@@ -1,11 +1,14 @@
 class TradingForm {
     constructor() {
         this.form = document.getElementById('trading-form');
-        this.availableBalance = 10000; // Mock balance
+        this.availableBalance = 0; // Will be loaded from API
+        this.totalBalance = 0;
+        this.totalAssets = 0;
+        this.marginUsed = 0;
         this.positionSizePercent = 3.3;
         
         this.init();
-        this.updateAccountInfo();
+        this.loadBalanceData();
     }
 
     init() {
@@ -14,6 +17,9 @@ class TradingForm {
         
         // Add to watchlist button
         document.getElementById('add-to-watchlist').addEventListener('click', () => this.addToWatchlist());
+        
+        // Reset form button
+        document.getElementById('reset-form').addEventListener('click', () => this.resetForm());
         
         // Real-time calculations
         const leverageSelect = document.getElementById('leverage');
@@ -24,6 +30,9 @@ class TradingForm {
         
         // Form validation
         this.setupValidation();
+        
+        // Symbol price fetching
+        this.setupSymbolPriceFetch();
         
         // Auto-save draft every 30 seconds
         setInterval(() => this.autoSave(), 30000);
@@ -96,6 +105,104 @@ class TradingForm {
         this.updateSubmitButton();
     }
 
+    setupSymbolPriceFetch() {
+        const symbolField = document.getElementById('symbol');
+        let fetchTimeout;
+        
+        // Auto-uppercase input as user types
+        symbolField.addEventListener('input', (e) => {
+            const cursorPosition = e.target.selectionStart;
+            const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+            e.target.value = value;
+            e.target.setSelectionRange(cursorPosition, cursorPosition);
+        });
+        
+        symbolField.addEventListener('blur', async () => {
+            const symbol = symbolField.value.trim().toUpperCase();
+            if (!symbol) return;
+            
+            // Clear any existing timeout
+            clearTimeout(fetchTimeout);
+            
+            // Keep the symbol clean in the form (just BTC, ADA, etc.)
+            const cleanSymbol = symbol.replace('USDT', '').replace('.P', '').replace('-', '');
+            symbolField.value = cleanSymbol;
+            
+            // Fetch price after a short delay to avoid rapid requests
+            fetchTimeout = setTimeout(async () => {
+                await this.fetchMarketPrice(cleanSymbol);
+            }, 300);
+        });
+        
+        // Also listen for Enter key
+        symbolField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                symbolField.blur(); // This will trigger the blur event
+            }
+        });
+    }
+
+    async fetchMarketPrice(cleanSymbol) {
+        const marketPriceField = document.getElementById('entry_market');
+        const originalPlaceholder = marketPriceField.placeholder;
+        
+        try {
+            // Show loading state
+            marketPriceField.placeholder = 'Fetching price...';
+            marketPriceField.classList.add('loading');
+            
+            // Fetch price from our PHP backend (it handles the BingX API format conversion)
+            const price = await this.getBingXPrice(cleanSymbol);
+            
+            if (price) {
+                marketPriceField.value = price;
+                this.showNotification(`Price updated: ${cleanSymbol} = $${price}`, 'success');
+                
+                // Recalculate entry points 2 and 3 if they have percentages
+                this.calculateEntryPrice('entry_2_percent', 'entry_2');
+                this.calculateEntryPrice('entry_3_percent', 'entry_3');
+            } else {
+                this.showNotification(`Could not fetch price for ${cleanSymbol}`, 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error fetching price:', error);
+            this.showNotification(`Error fetching price for ${cleanSymbol}`, 'error');
+        } finally {
+            // Reset loading state
+            marketPriceField.placeholder = originalPlaceholder;
+            marketPriceField.classList.remove('loading');
+        }
+    }
+
+    async getBingXPrice(cleanSymbol) {
+        try {
+            // Call our PHP backend endpoint
+            const response = await fetch(`api/get_price.php?symbol=${encodeURIComponent(cleanSymbol)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.price) {
+                return parseFloat(data.price).toFixed(5);
+            } else {
+                throw new Error(data.error || 'Invalid response from price API');
+            }
+            
+        } catch (error) {
+            console.error('Price API Error:', error);
+            return null;
+        }
+    }
+
     calculateEntryPrice(percentFieldId, priceFieldId) {
         const percentEl = document.getElementById(percentFieldId);
         const priceEl = document.getElementById(priceFieldId);
@@ -163,10 +270,10 @@ class TradingForm {
 
         // Symbol validation
         if (field.name === 'symbol' && field.value) {
-            const symbolRegex = /^[A-Z]{2,10}USDT$/;
+            const symbolRegex = /^[A-Z]{1,10}$/;
             if (!symbolRegex.test(field.value.toUpperCase())) {
                 isValid = false;
-                errorMessage = 'Symbol must end with USDT (e.g., BTCUSDT)';
+                errorMessage = 'Symbol should be 1-10 letters (e.g., BTC, ADA, ETH)';
             }
         }
 
@@ -204,14 +311,76 @@ class TradingForm {
         formGroup.appendChild(errorEl);
     }
 
+    async loadBalanceData() {
+        try {
+            const response = await fetch('api/get_balance.php');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            console.log('Balance API Response:', result); // Debug log
+
+            if (result.success) {
+                this.totalBalance = result.data.total_balance;
+                this.availableBalance = result.data.available_balance;
+                this.marginUsed = result.data.margin_used;
+                this.totalAssets = this.marginUsed + this.availableBalance;
+                
+                // Update UI
+                this.updateAccountInfo();
+                
+                // Update last updated time
+                const lastUpdated = new Date().toLocaleTimeString();
+                document.getElementById('last-updated').textContent = lastUpdated;
+                
+                // Show success notification
+                this.showNotification('Balance updated from BingX', 'success');
+            } else {
+                // Show detailed error information
+                let errorMsg = result.error || 'Failed to load balance data';
+                if (result.debug) {
+                    console.log('API Debug Info:', result.debug);
+                    errorMsg += ` (Debug: API Key: ${result.debug.api_key_present ? 'Present' : 'Missing'}, cURL: ${result.debug.curl_available ? 'Available' : 'Missing'})`;
+                }
+                throw new Error(errorMsg);
+            }
+
+        } catch (error) {
+            console.error('Error loading balance:', error);
+            
+            // Don't use demo data - show error state
+            this.totalBalance = 0;
+            this.availableBalance = 0;
+            this.totalAssets = 0;
+            this.marginUsed = 0;
+            
+            document.getElementById('total-assets').textContent = 'Error';
+            document.getElementById('available-balance').textContent = 'Error';
+            document.getElementById('position-size').textContent = 'Error';
+            document.getElementById('margin-used').textContent = 'Error';
+            document.getElementById('last-updated').textContent = 'API Error';
+            
+            this.showNotification('Failed to load balance from BingX: ' + error.message, 'error');
+        }
+    }
+
     updateAccountInfo() {
         const leverage = parseInt(document.getElementById('leverage').value) || 1;
-        const positionSize = (this.availableBalance * this.positionSizePercent) / 100;
-        const marginUsed = positionSize / leverage;
+        const positionSize = (this.totalAssets * this.positionSizePercent) / 100;
+        const leverageMargin = positionSize / leverage;
 
-        document.getElementById('available-balance').textContent = `$${this.availableBalance.toLocaleString()}`;
+
+        document.getElementById('total-assets').textContent = `$${this.totalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('available-balance').textContent = `$${this.availableBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('position-size').textContent = `$${Math.ceil(positionSize).toLocaleString()}`;
-        document.getElementById('margin-used').textContent = `$${Math.ceil(marginUsed).toLocaleString()}`;
+        document.getElementById('margin-used').textContent = `$${this.marginUsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    }
+
+    async refreshBalance() {
+        await this.loadBalanceData();
     }
 
     getFormData() {
@@ -329,7 +498,7 @@ class TradingForm {
         this.updateRecentSignals();
     }
 
-    addToWatchlist() {
+    async addToWatchlist() {
         // Validate that symbol is filled
         const symbolEl = document.getElementById('symbol');
         if (!symbolEl.value.trim()) {
@@ -339,65 +508,187 @@ class TradingForm {
         }
 
         // Validate symbol format
-        const symbolRegex = /^[A-Z]{2,10}USDT$/;
+        const symbolRegex = /^[A-Z]{1,10}$/;
         if (!symbolRegex.test(symbolEl.value.toUpperCase())) {
-            this.showNotification('Symbol must end with USDT (e.g., BTCUSDT)', 'error');
+            this.showNotification('Symbol should be 1-10 letters (e.g., BTC, ADA, ETH)', 'error');
             symbolEl.focus();
             return;
         }
 
+        // Get direction
+        const directionEl = document.querySelector('input[name="direction"]:checked');
+        if (!directionEl) {
+            this.showNotification('Direction (Long/Short) is required', 'error');
+            return;
+        }
+
         const symbol = symbolEl.value.toUpperCase();
-        const watchPrices = [];
+        const direction = directionEl.value;
+        const watchlistItems = [];
 
         // Check entry 2 if enabled and has value
         if (document.getElementById('entry_2_enabled').checked && document.getElementById('entry_2').value) {
-            watchPrices.push({
-                price: parseFloat(document.getElementById('entry_2').value),
-                type: 'Entry 2',
-                percentage: document.getElementById('entry_2_percent').value || null
-            });
+            const entry2Price = parseFloat(document.getElementById('entry_2').value);
+            const entry2Margin = parseFloat(document.getElementById('entry_2_margin').value) || 0;
+            const entry2Percent = parseFloat(document.getElementById('entry_2_percent').value) || null;
+
+            if (entry2Price > 0) {
+                watchlistItems.push({
+                    entry_type: 'entry_2',
+                    entry_price: entry2Price,
+                    margin_amount: entry2Margin,
+                    percentage: entry2Percent
+                });
+            }
         }
 
         // Check entry 3 if enabled and has value
         if (document.getElementById('entry_3_enabled').checked && document.getElementById('entry_3').value) {
-            watchPrices.push({
-                price: parseFloat(document.getElementById('entry_3').value),
-                type: 'Entry 3',
-                percentage: document.getElementById('entry_3_percent').value || null
+            const entry3Price = parseFloat(document.getElementById('entry_3').value);
+            const entry3Margin = parseFloat(document.getElementById('entry_3_margin').value) || 0;
+            const entry3Percent = parseFloat(document.getElementById('entry_3_percent').value) || null;
+
+            if (entry3Price > 0) {
+                watchlistItems.push({
+                    entry_type: 'entry_3',
+                    entry_price: entry3Price,
+                    margin_amount: entry3Margin,
+                    percentage: entry3Percent
+                });
+            }
+        }
+
+        if (watchlistItems.length === 0) {
+            this.showNotification('At least one entry point (Entry 2 or Entry 3) must be enabled with a valid price', 'error');
+            return;
+        }
+
+        // Validate entry values for enabled entries
+        let validationErrors = [];
+
+        // Check entry 2 validation
+        if (document.getElementById('entry_2_enabled').checked) {
+            const entry2Price = parseFloat(document.getElementById('entry_2').value) || 0;
+            const entry2Margin = parseFloat(document.getElementById('entry_2_margin').value) || 0;
+            const entry2Percent = parseFloat(document.getElementById('entry_2_percent').value) || 0;
+
+            if (entry2Price <= 0) {
+                validationErrors.push('Entry 2 price must be greater than 0');
+            }
+            if (entry2Margin <= 0) {
+                validationErrors.push('Entry 2 order value must be greater than 0');
+            }
+            if (entry2Percent <= 0) {
+                validationErrors.push('Entry 2 percentage must be greater than 0');
+            }
+        }
+
+        // Check entry 3 validation
+        if (document.getElementById('entry_3_enabled').checked) {
+            const entry3Price = parseFloat(document.getElementById('entry_3').value) || 0;
+            const entry3Margin = parseFloat(document.getElementById('entry_3_margin').value) || 0;
+            const entry3Percent = parseFloat(document.getElementById('entry_3_percent').value) || 0;
+
+            if (entry3Price <= 0) {
+                validationErrors.push('Entry 3 price must be greater than 0');
+            }
+            if (entry3Margin <= 0) {
+                validationErrors.push('Entry 3 order value must be greater than 0');
+            }
+            if (entry3Percent <= 0) {
+                validationErrors.push('Entry 3 percentage must be greater than 0');
+            }
+        }
+
+        if (validationErrors.length > 0) {
+            this.showNotification(validationErrors[0], 'error'); // Show first error
+            return;
+        }
+
+        try {
+            // Send to database
+            const response = await fetch('api/watchlist.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbol: symbol,
+                    direction: direction,
+                    watchlist_items: watchlistItems
+                })
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showNotification(result.message, 'success');
+                
+                // Update watchlist display
+                this.updateWatchlistDisplay();
+                
+                // Clear the form after adding to watchlist
+                this.clearWatchlistFields();
+            } else {
+                throw new Error(result.error || 'Failed to add to watchlist');
+            }
+
+        } catch (error) {
+            console.error('Watchlist API Error:', error);
+            this.showNotification('Failed to add to watchlist: ' + error.message, 'error');
         }
+    }
 
-        // Create watchlist item
-        const watchlistItem = {
-            id: Date.now(),
-            symbol: symbol,
-            watchPrices: watchPrices,
-            created_at: new Date().toISOString(),
-            status: 'active'
-        };
-
-        // Save to localStorage
-        const watchlist = JSON.parse(localStorage.getItem('trading_watchlist') || '[]');
-        
-        // Check if symbol already exists
-        const existingIndex = watchlist.findIndex(item => item.symbol === symbol);
-        if (existingIndex !== -1) {
-            // Update existing watchlist item
-            watchlist[existingIndex] = watchlistItem;
-            this.showNotification(`Updated ${symbol} in watchlist`, 'success');
-        } else {
-            // Add new watchlist item
-            watchlist.unshift(watchlistItem);
-            this.showNotification(`Added ${symbol} to watchlist`, 'success');
+    resetForm() {
+        // Confirm before resetting
+        if (confirm('Are you sure you want to reset all form fields? This action cannot be undone.')) {
+            // Reset the entire form
+            this.form.reset();
+            
+            // Reset custom states
+            document.getElementById('entry_market_enabled').checked = true;
+            document.getElementById('entry_2_enabled').checked = false;
+            document.getElementById('entry_3_enabled').checked = false;
+            
+            // Reset direction to long (default)
+            document.querySelector('input[name="direction"][value="long"]').checked = true;
+            
+            // Refresh entry point states
+            const entryPoints = [
+                { checkbox: 'entry_market_enabled', input: 'entry_market', margin: 'entry_market_margin' },
+                { checkbox: 'entry_2_enabled', input: 'entry_2', margin: 'entry_2_margin', percent: 'entry_2_percent' },
+                { checkbox: 'entry_3_enabled', input: 'entry_3', margin: 'entry_3_margin', percent: 'entry_3_percent' }
+            ];
+            
+            entryPoints.forEach(({ checkbox, input, margin, percent }) => {
+                const checkboxEl = document.getElementById(checkbox);
+                const inputEl = document.getElementById(input);
+                const marginEl = document.getElementById(margin);
+                const percentEl = percent ? document.getElementById(percent) : null;
+                
+                const isEnabled = checkboxEl.checked;
+                inputEl.disabled = !isEnabled;
+                marginEl.disabled = !isEnabled;
+                if (percentEl) percentEl.disabled = !isEnabled;
+                
+                inputEl.style.opacity = isEnabled ? '1' : '0.5';
+                marginEl.style.opacity = isEnabled ? '1' : '0.5';
+                if (percentEl) percentEl.style.opacity = isEnabled ? '1' : '0.5';
+            });
+            
+            // Update button state
+            this.updateSubmitButton();
+            
+            // Update account info
+            this.updateAccountInfo();
+            
+            // Show success notification
+            this.showNotification('Form has been reset', 'success');
         }
-
-        localStorage.setItem('trading_watchlist', JSON.stringify(watchlist));
-        
-        // Update watchlist display
-        this.updateWatchlistDisplay();
-        
-        // Clear the form after adding to watchlist
-        this.clearWatchlistFields();
     }
 
     clearWatchlistFields() {
@@ -462,29 +753,113 @@ class TradingForm {
         `).join('');
     }
 
-    updateWatchlistDisplay() {
-        const watchlist = JSON.parse(localStorage.getItem('trading_watchlist') || '[]');
-        const watchlistContainer = document.getElementById('watchlist-items');
+    getTimeAgo(dateString) {
+        const now = new Date();
+        const past = new Date(dateString);
+        const diffMs = now - past;
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         
-        if (watchlist.length === 0) {
-            watchlistContainer.innerHTML = '<p class="no-watchlist">No watchlist items</p>';
-            return;
+        if (diffMinutes < 1) {
+            return 'Just now';
+        } else if (diffMinutes < 60) {
+            return `${diffMinutes}m ago`;
+        } else if (diffHours < 24) {
+            const remainingMinutes = diffMinutes % 60;
+            if (remainingMinutes === 0) {
+                return `${diffHours}h ago`;
+            } else {
+                return `${diffHours}h ${remainingMinutes}m ago`;
+            }
+        } else if (diffDays < 7) {
+            return `${diffDays}d ago`;
+        } else {
+            return past.toLocaleDateString();
         }
+    }
 
-        watchlistContainer.innerHTML = watchlist.slice(0, 5).map(item => `
-            <div class="watchlist-item" style="padding: 12px; background: var(--dark-card); border-radius: 6px; border: 1px solid var(--dark-border);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <strong style="color: var(--green-5);">${item.symbol}</strong>
-                    <span style="font-size: 12px; color: var(--dark-text-muted);">${new Date(item.created_at).toLocaleDateString()}</span>
-                </div>
-                ${item.watchPrices.map(watch => `
-                    <div style="font-size: 12px; color: var(--dark-text-secondary); margin-bottom: 4px;">
-                        ${watch.type}: $${watch.price.toFixed(5)}${watch.percentage ? ` (${watch.percentage}%)` : ''}
+    async updateWatchlistDisplay() {
+        try {
+            const response = await fetch('api/watchlist.php?limit=10');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const watchlistContainer = document.getElementById('watchlist-items');
+            
+            if (!result.success || result.data.length === 0) {
+                watchlistContainer.innerHTML = '<p class="no-watchlist">No watchlist items</p>';
+                return;
+            }
+
+            const watchlist = result.data;
+            
+            watchlistContainer.innerHTML = watchlist.map(item => {
+                const entryTypeLabel = item.entry_type === 'entry_2' ? 'Entry 2' : 'Entry 3';
+                const directionClass = item.direction;
+                const directionText = item.direction.toUpperCase();
+                const timeAgo = this.getTimeAgo(item.created_at);
+                const percentageDisplay = item.percentage ? `${parseFloat(item.percentage).toFixed(1)}%` : 'No %';
+                
+                return `
+                    <div class="watchlist-item">
+                        <div class="watchlist-item-header">
+                            <strong class="watchlist-symbol ${directionClass}">${item.symbol}</strong>
+                            <span class="watchlist-time">${timeAgo}</span>
+                        </div>
+                        <div class="watchlist-price-row">
+                            <div class="watchlist-entry-info">
+                                <strong>${entryTypeLabel}:</strong> $${parseFloat(item.entry_price).toFixed(5)}
+                            </div>
+                            <div class="watchlist-direction ${directionClass}">
+                                ${directionText}
+                            </div>
+                        </div>
+                        <div class="watchlist-bottom-row">
+                            <span>Margin: $${parseFloat(item.margin_amount).toFixed(2)}</span>
+                            <span>${percentageDisplay}</span>
+                        </div>
+                        <button 
+                            class="watchlist-remove-btn"
+                            onclick="tradingForm.removeWatchlistItem(${item.id})" 
+                            title="Remove from watchlist"
+                        >×</button>
                     </div>
-                `).join('')}
-                ${item.watchPrices.length === 0 ? '<div style="font-size: 12px; color: var(--dark-text-muted);">No specific prices set</div>' : ''}
-            </div>
-        `).join('');
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Error loading watchlist:', error);
+            document.getElementById('watchlist-items').innerHTML = '<p class="no-watchlist">Error loading watchlist</p>';
+        }
+    }
+
+    async removeWatchlistItem(id) {
+        try {
+            const response = await fetch(`api/watchlist.php/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showNotification('Removed from watchlist', 'success');
+                this.updateWatchlistDisplay();
+            } else {
+                throw new Error(result.error || 'Failed to remove from watchlist');
+            }
+
+        } catch (error) {
+            console.error('Error removing watchlist item:', error);
+            this.showNotification('Failed to remove from watchlist', 'error');
+        }
     }
 
     showNotification(message, type = 'info') {
@@ -517,8 +892,9 @@ class TradingForm {
 }
 
 // Initialize the trading form when DOM is loaded
+let tradingForm; // Make globally accessible
 document.addEventListener('DOMContentLoaded', () => {
-    const tradingForm = new TradingForm();
+    tradingForm = new TradingForm();
     tradingForm.loadDraft();
     tradingForm.updateRecentSignals();
     tradingForm.updateWatchlistDisplay();

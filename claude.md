@@ -71,3 +71,11 @@ DB_NAME=crypto_trading
 
 ## Reference Documentation
 See `crypto-trading-docs.md` for complete technical specifications, API endpoints, database schema, and implementation details.
+
+## CSS and Styling Standards
+NEVER use inline CSS styles in HTML or JavaScript. ALL styling must be defined in CSS classes within the style.css file.
+- Use semantic class names that describe the component/element purpose
+- Group related styles together with comments
+- Maintain consistent naming conventions (kebab-case for CSS classes)
+- When creating dynamic content in JavaScript, apply CSS classes instead of inline styles
+- Example: Use `class="watchlist-item"` instead of `style="padding: 12px; background: var(--dark-card);"`

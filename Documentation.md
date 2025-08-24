@@ -90,21 +90,33 @@ CREATE TABLE orders (
 #### `watchlist` Table
 ```sql
 CREATE TABLE watchlist (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    symbol VARCHAR(20) NOT NULL,
-    target_price DECIMAL(15,8) NOT NULL,
-    condition ENUM('ABOVE', 'BELOW') NOT NULL,
-    alert_type ENUM('ENTRY_POINT', 'PROFIT_ALERT', 'CUSTOM') NOT NULL,
-    priority ENUM('HIGH', 'MEDIUM', 'LOW') DEFAULT 'MEDIUM',
-    signal_id INT NULL,
-    order_id INT NULL,
-    is_triggered BOOLEAN DEFAULT FALSE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL,
+    entry_price DECIMAL(18, 8) NOT NULL,
+    entry_type ENUM('entry_2', 'entry_3') NOT NULL,
+    direction ENUM('long', 'short') NOT NULL,
+    margin_amount DECIMAL(18, 8) NOT NULL,
+    percentage DECIMAL(8, 4) NULL COMMENT 'Percentage used for calculation',
+    status ENUM('active', 'triggered', 'cancelled') DEFAULT 'active',
     triggered_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (signal_id) REFERENCES signals(id),
-    FOREIGN KEY (order_id) REFERENCES orders(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_symbol (symbol),
+    INDEX idx_status (status),
+    INDEX idx_entry_price (entry_price),
+    INDEX idx_created_at (created_at)
 );
 ```
+
+**Purpose**: Store price alerts for entry points 2 and 3 with trading direction and margin info
+**Key Features**:
+- Each entry point (entry_2/entry_3) creates a separate watchlist record  
+- Stores symbol, entry price, direction (long/short), and margin amount
+- Tracks percentage used for price calculation
+- Status management (active/triggered/cancelled)
+- Support for notifications when price is touched
+- Multiple records per symbol supported (one for entry_2, one for entry_3)
 
 #### `positions` Table
 ```sql
