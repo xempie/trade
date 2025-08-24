@@ -787,6 +787,9 @@ class TradingForm {
 
     async updateRecentSignals() {
         try {
+            // Clear localStorage of failed signals first
+            this.cleanupFailedSignals();
+            
             // Try to fetch from database first
             const response = await fetch('api/get_orders.php?type=signals&limit=5');
             
@@ -794,7 +797,13 @@ class TradingForm {
                 const result = await response.json();
                 
                 if (result.success && result.data.length > 0) {
-                    this.displayRecentSignals(result.data);
+                    // Filter out signals with only failed orders (show only filled positions)
+                    const filledSignals = result.data.filter(signal => {
+                        // Only show signals that have at least one filled order
+                        return signal.filled_orders > 0;
+                    });
+                    
+                    this.displayRecentSignals(filledSignals);
                     return;
                 }
             }
@@ -802,9 +811,26 @@ class TradingForm {
             console.warn('Failed to fetch recent signals from API, using localStorage:', error);
         }
         
-        // Fallback to localStorage
+        // Fallback to localStorage - also filter out failed orders
         const signals = JSON.parse(localStorage.getItem('trading_signals') || '[]');
-        this.displayRecentSignals(signals.slice(0, 5));
+        const filledSignals = signals.filter(signal => {
+            // Only show signals that have successful orders or are from localStorage (older format)
+            return !signal.orders || signal.orders.some(order => order.success);
+        });
+        this.displayRecentSignals(filledSignals.slice(0, 5));
+    }
+    
+    cleanupFailedSignals() {
+        try {
+            const signals = JSON.parse(localStorage.getItem('trading_signals') || '[]');
+            const successfulSignals = signals.filter(signal => {
+                // Keep signals that have successful orders or no order info (old format)
+                return !signal.orders || signal.orders.some(order => order.success);
+            });
+            localStorage.setItem('trading_signals', JSON.stringify(successfulSignals));
+        } catch (error) {
+            console.warn('Error cleaning up failed signals:', error);
+        }
     }
     
     displayRecentSignals(signals) {
@@ -820,7 +846,14 @@ class TradingForm {
             const symbol = signal.symbol;
             const leverage = signal.leverage;
             const createdAt = signal.created_at;
-            const ordersInfo = signal.total_orders ? ` (${signal.filled_orders}/${signal.total_orders} filled)` : '';
+            let statusInfo = '';
+            if (signal.total_orders > 0) {
+                if (signal.filled_orders > 0) {
+                    statusInfo = ` (${signal.filled_orders}/${signal.total_orders} filled)`;
+                } else {
+                    statusInfo = ` (${signal.total_orders} failed)`;
+                }
+            }
             
             return `
                 <div class="signal-item">
@@ -829,7 +862,7 @@ class TradingForm {
                         <span class="signal-time">${new Date(createdAt).toLocaleDateString()}</span>
                     </div>
                     <div class="signal-details">
-                        ${direction?.toUpperCase()} • ${leverage}x${ordersInfo}
+                        ${direction?.toUpperCase()} • ${leverage}x${statusInfo}
                     </div>
                 </div>
             `;

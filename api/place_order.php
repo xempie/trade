@@ -103,6 +103,85 @@ function calculatePositionSize($availableBalance, $leverage = 1) {
     return $positionSize;
 }
 
+// Get minimum order size for different symbols
+function getMinOrderSize($symbol) {
+    // Remove USDT suffix to get base symbol
+    $baseSymbol = str_replace(['-USDT', 'USDT'], '', strtoupper($symbol));
+    
+    // Common minimum order sizes for popular cryptocurrencies
+    $minSizes = [
+        'BTC' => 0.0001,
+        'ETH' => 0.001,
+        'BNB' => 0.01,
+        'ADA' => 1.0,
+        'XRP' => 1.0,
+        'SOL' => 0.01,
+        'DOT' => 0.1,
+        'DOGE' => 1.0,
+        'AVAX' => 0.01,
+        'LINK' => 0.01,
+        'UNI' => 0.01,
+        'LTC' => 0.001,
+        'BCH' => 0.001,
+        'ATOM' => 0.01,
+        'FIL' => 0.01,
+        'TRX' => 10.0,
+        'NEAR' => 0.1,
+        'ALGO' => 1.0,
+        'VET' => 100.0,
+        'ICP' => 0.01,
+        'THETA' => 0.1,
+        'FTM' => 1.0,
+        'HBAR' => 10.0,
+        'EOS' => 0.1,
+        'AAVE' => 0.001,
+        'GRT' => 1.0,
+        'SNX' => 0.01
+    ];
+    
+    return $minSizes[$baseSymbol] ?? 0.1; // Default minimum
+}
+
+// Round to appropriate decimal places based on symbol
+function roundToSymbolPrecision($quantity, $symbol) {
+    // Remove USDT suffix to get base symbol
+    $baseSymbol = str_replace(['-USDT', 'USDT'], '', strtoupper($symbol));
+    
+    // Decimal precision for different symbols
+    $precisions = [
+        'BTC' => 4,
+        'ETH' => 3,
+        'BNB' => 2,
+        'ADA' => 0,
+        'XRP' => 0,
+        'SOL' => 2,
+        'DOT' => 1,
+        'DOGE' => 0,
+        'AVAX' => 2,
+        'LINK' => 2,
+        'UNI' => 2,
+        'LTC' => 3,
+        'BCH' => 3,
+        'ATOM' => 2,
+        'FIL' => 2,
+        'TRX' => 0,
+        'NEAR' => 1,
+        'ALGO' => 0,
+        'VET' => 0,
+        'ICP' => 2,
+        'THETA' => 1,
+        'FTM' => 0,
+        'HBAR' => 0,
+        'EOS' => 1,
+        'AAVE' => 3,
+        'GRT' => 0,
+        'SNX' => 2
+    ];
+    
+    $precision = $precisions[$baseSymbol] ?? 1; // Default precision
+    return round($quantity, $precision);
+}
+
 // Set position mode to one-way (dual-side) if needed
 function setBingXPositionMode($apiKey, $apiSecret, $dualSidePosition = 'false') {
     try {
@@ -427,7 +506,16 @@ try {
             // For BingX, quantity should be in base currency units, not USD value
             if ($price > 0) {
                 $positionSize = $margin / $price; // Convert USD margin to base currency quantity
-                $positionSize = floor($positionSize * 1000) / 1000; // Round to 3 decimal places
+                
+                // Apply minimum order size requirements for different symbols
+                $minOrderSize = getMinOrderSize($symbol);
+                if ($positionSize < $minOrderSize) {
+                    $positionSize = $minOrderSize; // Use minimum required size
+                    error_log("Position size adjusted to minimum: {$minOrderSize} {$symbol}");
+                }
+                
+                // Round to appropriate decimal places based on symbol
+                $positionSize = roundToSymbolPrecision($positionSize, $symbol);
             } else {
                 $positionSize = ceil($margin); // Fallback for market orders
             }
