@@ -38,7 +38,8 @@ function loadEnv($path) {
 }
 
 // Load .env file
-loadEnv(__DIR__ . '/../.env');
+$envPath = __DIR__ . '/../.env';
+loadEnv($envPath);
 
 // Get BingX API credentials
 $apiKey = getenv('BINGX_API_KEY') ?: '';
@@ -292,10 +293,13 @@ try {
     
     // Debug information
     $debug = [
+        'env_path' => $envPath,
+        'env_file_exists' => file_exists($envPath),
         'api_key_present' => !empty($apiKey),
         'api_secret_present' => !empty($apiSecret),
         'api_key_length' => strlen($apiKey ?: ''),
         'api_secret_length' => strlen($apiSecret ?: ''),
+        'api_key_preview' => $apiKey ? substr($apiKey, 0, 10) . '...' : 'EMPTY',
         'curl_available' => function_exists('curl_init')
     ];
     

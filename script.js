@@ -479,23 +479,77 @@ class TradingForm {
     }
 
     async createSignal(data) {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock API call - replace with actual backend call
-        console.log('Creating signal:', data);
-        
-        // For now, just store in localStorage
-        const signals = JSON.parse(localStorage.getItem('trading_signals') || '[]');
-        signals.unshift({
-            id: Date.now(),
-            ...data,
-            created_at: new Date().toISOString(),
-            status: 'active'
-        });
-        localStorage.setItem('trading_signals', JSON.stringify(signals));
-        
-        this.updateRecentSignals();
+        try {
+            // Call the real order placement API
+            const response = await fetch('api/place_order.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to place orders');
+            }
+            
+            // Show detailed results
+            const marketOrders = result.orders.filter(o => o.order_type === 'MARKET');
+            const limitOrders = result.orders.filter(o => o.order_type === 'LIMIT');
+            
+            let message = `Signal created successfully! Signal ID: ${result.signal_id}\n`;
+            
+            if (marketOrders.length > 0) {
+                message += `\nMarket orders placed: ${marketOrders.length}`;
+                marketOrders.forEach(order => {
+                    if (order.success) {
+                        message += `\n✅ ${order.entry_type.toUpperCase()}: $${order.position_size} (Order ID: ${order.bingx_order_id})`;
+                    } else {
+                        message += `\n❌ ${order.entry_type.toUpperCase()}: ${order.message}`;
+                    }
+                });
+            }
+            
+            if (limitOrders.length > 0) {
+                message += `\nLimit orders saved for monitoring: ${limitOrders.length}`;
+                limitOrders.forEach(order => {
+                    message += `\n📝 ${order.entry_type.toUpperCase()}: $${order.position_size} at $${order.price}`;
+                });
+            }
+            
+            message += `\nTotal margin used: $${result.total_margin_used.toFixed(2)}`;
+            
+            // Show success notification with details
+            this.showNotification(message, 'success');
+            
+            // Store in localStorage for display
+            const signals = JSON.parse(localStorage.getItem('trading_signals') || '[]');
+            signals.unshift({
+                id: result.signal_id,
+                ...data,
+                created_at: new Date().toISOString(),
+                status: 'active',
+                orders: result.orders,
+                margin_used: result.total_margin_used
+            });
+            localStorage.setItem('trading_signals', JSON.stringify(signals));
+            
+            // Update displays
+            this.updateRecentSignals();
+            this.loadBalanceData(); // Refresh balance after order placement
+            
+            return result;
+            
+        } catch (error) {
+            console.error('Order placement error:', error);
+            throw error;
+        }
     }
 
     async addToWatchlist() {
@@ -731,8 +785,29 @@ class TradingForm {
         }
     }
 
-    updateRecentSignals() {
+    async updateRecentSignals() {
+        try {
+            // Try to fetch from database first
+            const response = await fetch('api/get_orders.php?type=signals&limit=5');
+            
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (result.success && result.data.length > 0) {
+                    this.displayRecentSignals(result.data);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to fetch recent signals from API, using localStorage:', error);
+        }
+        
+        // Fallback to localStorage
         const signals = JSON.parse(localStorage.getItem('trading_signals') || '[]');
+        this.displayRecentSignals(signals.slice(0, 5));
+    }
+    
+    displayRecentSignals(signals) {
         const signalList = document.getElementById('signal-list');
         
         if (signals.length === 0) {
@@ -740,17 +815,25 @@ class TradingForm {
             return;
         }
 
-        signalList.innerHTML = signals.slice(0, 5).map(signal => `
-            <div class="signal-item" style="padding: 12px; background: var(--dark-card); border-radius: 6px; border: 1px solid var(--dark-border);">
-                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 8px;">
-                    <strong style="color: var(--green-5);">${signal.symbol}</strong>
-                    <span style="font-size: 12px; color: var(--dark-text-muted);">${new Date(signal.created_at).toLocaleDateString()}</span>
+        signalList.innerHTML = signals.map(signal => {
+            const direction = signal.signal_type || signal.direction;
+            const symbol = signal.symbol;
+            const leverage = signal.leverage;
+            const createdAt = signal.created_at;
+            const ordersInfo = signal.total_orders ? ` (${signal.filled_orders}/${signal.total_orders} filled)` : '';
+            
+            return `
+                <div class="signal-item">
+                    <div class="signal-item-header">
+                        <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
+                        <span class="signal-time">${new Date(createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div class="signal-details">
+                        ${direction?.toUpperCase()} • ${leverage}x${ordersInfo}
+                    </div>
                 </div>
-                <div style="font-size: 12px; color: var(--dark-text-secondary);">
-                    ${signal.direction.toUpperCase()} • ${signal.leverage}x
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     getTimeAgo(dateString) {

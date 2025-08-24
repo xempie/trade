@@ -452,6 +452,39 @@ input[type=number] {
     padding: 20px 0;
 }
 
+/* Signal Item Styles */
+.signal-item {
+    padding: 12px;
+    background: var(--dark-card);
+    border-radius: 6px;
+    border: 1px solid var(--dark-border);
+}
+
+.signal-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.signal-symbol.long {
+    color: var(--green-5);
+}
+
+.signal-symbol.short {
+    color: var(--red-5);
+}
+
+.signal-time {
+    font-size: 12px;
+    color: var(--dark-text-muted);
+}
+
+.signal-details {
+    font-size: 12px;
+    color: var(--dark-text-secondary);
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .container {
