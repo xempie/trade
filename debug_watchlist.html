@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Watchlist Debug</title>
+</head>
+<body>
+    <h2>Watchlist API Debug</h2>
+    <div id="results"></div>
+
+    <script>
+    async function testApis() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<p>Testing APIs...</p>';
+        
+        try {
+            // Test basic watchlist
+            console.log('Testing basic watchlist API...');
+            const response1 = await fetch('api/watchlist.php?limit=10');
+            const data1 = await response1.json();
+            console.log('Watchlist API response:', data1);
+            
+            // Test watchlist prices
+            console.log('Testing watchlist prices API...');
+            const response2 = await fetch('api/get_watchlist_prices.php');
+            const data2 = await response2.json();
+            console.log('Watchlist prices API response:', data2);
+            
+            results.innerHTML = `
+                <h3>Basic Watchlist API</h3>
+                <p>Status: ${response1.status}</p>
+                <p>Success: ${data1.success}</p>
+                <p>Items: ${data1.data ? data1.data.length : 'N/A'}</p>
+                <pre>${JSON.stringify(data1, null, 2).substring(0, 500)}...</pre>
+                
+                <h3>Watchlist Prices API</h3>
+                <p>Status: ${response2.status}</p>
+                <p>Success: ${data2.success}</p>
+                <p>Items: ${data2.data ? data2.data.length : 'N/A'}</p>
+                <pre>${JSON.stringify(data2, null, 2).substring(0, 500)}...</pre>
+            `;
+            
+        } catch (error) {
+            console.error('Error:', error);
+            results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        }
+    }
+    
+    // Run test on page load
+    testApis();
+    </script>
+</body>
+</html>
