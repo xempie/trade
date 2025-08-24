@@ -79,3 +79,6 @@ NEVER use inline CSS styles in HTML or JavaScript. ALL styling must be defined i
 - Maintain consistent naming conventions (kebab-case for CSS classes)
 - When creating dynamic content in JavaScript, apply CSS classes instead of inline styles
 - Example: Use `class="watchlist-item"` instead of `style="padding: 12px; background: var(--dark-card);"`
+
+## Git Commands Policy
+When user requests git commands (commit, push, pull, etc.), NEVER ask for confirmation or yes/no questions. Always proceed automatically with the requested git operations. Consider all git command requests as pre-approved and execute them immediately without prompting for user confirmation.
