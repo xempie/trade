@@ -103,6 +103,46 @@ function calculatePositionSize($availableBalance, $leverage = 1) {
     return $positionSize;
 }
 
+// Set position mode to one-way (dual-side) if needed
+function setBingXPositionMode($apiKey, $apiSecret, $dualSidePosition = 'false') {
+    try {
+        $timestamp = round(microtime(true) * 1000);
+        
+        $params = [
+            'dualSidePosition' => $dualSidePosition, // 'false' = one-way, 'true' = hedge
+            'timestamp' => $timestamp
+        ];
+        
+        $queryString = http_build_query($params);
+        $signature = hash_hmac('sha256', $queryString, $apiSecret);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "https://open-api.bingx.com/openApi/swap/v2/trade/positionSide/dual");
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'X-BX-APIKEY: ' . $apiKey
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($response && $httpCode == 200) {
+            $data = json_decode($response, true);
+            return $data && $data['code'] == 0;
+        }
+        return false;
+        
+    } catch (Exception $e) {
+        error_log("Position mode setting error: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Set leverage on BingX before placing order
 function setBingXLeverage($apiKey, $apiSecret, $symbol, $leverage) {
     try {
@@ -149,12 +189,18 @@ function placeBingXOrder($apiKey, $apiSecret, $orderData) {
     try {
         $timestamp = round(microtime(true) * 1000);
         
+        // Determine position side based on trade direction (for hedge mode)
+        $positionSide = 'BOTH'; // Default for one-way mode
+        if (isset($orderData['direction'])) {
+            $positionSide = strtoupper($orderData['direction']); // LONG or SHORT for hedge mode
+        }
+        
         $params = [
             'symbol' => $orderData['symbol'],
             'side' => $orderData['side'],
             'type' => $orderData['type'],
             'quantity' => $orderData['quantity'],
-            'positionSide' => 'BOTH', // Required for BingX futures
+            'positionSide' => $positionSide,
             'timestamp' => $timestamp
         ];
         
@@ -398,7 +444,8 @@ try {
                 'type' => $entryType === 'market' ? 'MARKET' : 'LIMIT',
                 'entry_level' => strtoupper($entryType),
                 'quantity' => $positionSize,
-                'leverage' => $leverage
+                'leverage' => $leverage,
+                'direction' => $direction // Pass direction for positionSide
             ];
             
             if ($orderData['type'] === 'LIMIT') {
