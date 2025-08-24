@@ -18,7 +18,7 @@
             <form id="trading-form" class="trading-form">
                 <div class="form-group">
                     <label for="symbol">Symbol</label>
-                    <input type="text" id="symbol" name="symbol" placeholder="e.g., BTCUSDT" required>
+                    <input type="text" id="symbol" name="symbol" placeholder="Enter crypto symbol (e.g., BTC, ADA, ETH)" required>
                 </div>
 
                 <div class="form-group">
@@ -60,7 +60,7 @@
                     <div class="form-group">
                         <label for="entry_market">Market Entry</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="$30" step="0.01" class="margin-input">
+                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="entry_market_enabled" name="entry_market_enabled" checked>
@@ -73,7 +73,7 @@
                     <div class="form-group">
                         <label for="entry_2">Entry 2</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="$30" step="0.01" class="margin-input">
+                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
                             <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
                             <label class="checkbox-label">
@@ -87,7 +87,7 @@
                     <div class="form-group">
                         <label for="entry_3">Entry 3</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="$30" step="0.01" class="margin-input">
+                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
                             <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
                             <label class="checkbox-label">
@@ -112,6 +112,7 @@
 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="add-to-watchlist">Add to Watch List</button>
+                    <button type="button" class="btn btn-secondary" id="reset-form">Reset Form</button>
                     <button type="submit" class="btn btn-primary">Create Signal</button>
                 </div>
             </form>
@@ -119,18 +120,31 @@
 
         <div class="info-panel">
             <div class="account-info">
-                <h3>Account Info</h3>
+                <div class="account-header">
+                    <h3>Account Info</h3>
+                    <button class="refresh-balance-btn" onclick="tradingForm.refreshBalance()" title="Refresh balance from BingX">
+                        ↻
+                    </button>
+                </div>
+                <div class="info-item">
+                    <span class="label">Total Assets:</span>
+                    <span class="value total-assets" id="total-assets">$0.00</span>
+                </div>
                 <div class="info-item">
                     <span class="label">Available Balance:</span>
                     <span class="value" id="available-balance">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Margin Used:</span>
+                    <span class="value" id="margin-used">$0.00</span>
                 </div>
                 <div class="info-item">
                     <span class="label">Position Size (3.3%):</span>
                     <span class="value" id="position-size">$0.00</span>
                 </div>
                 <div class="info-item">
-                    <span class="label">Margin Used:</span>
-                    <span class="value" id="margin-used">$0.00</span>
+                    <span class="label">Last Updated:</span>
+                    <span class="value" id="last-updated">Loading...</span>
                 </div>
             </div>
 
