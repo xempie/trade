@@ -420,6 +420,30 @@ input[type=number] {
     gap: 12px;
 }
 
+.watchlist-items {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.watchlist-items::-webkit-scrollbar {
+    width: 6px;
+}
+
+.watchlist-items::-webkit-scrollbar-track {
+    background: var(--dark-card);
+    border-radius: 3px;
+}
+
+.watchlist-items::-webkit-scrollbar-thumb {
+    background: var(--dark-border);
+    border-radius: 3px;
+}
+
+.watchlist-items::-webkit-scrollbar-thumb:hover {
+    background: var(--green-5);
+}
+
 .no-signals,
 .no-watchlist {
     color: var(--dark-text-muted);
@@ -613,4 +637,86 @@ input.loading {
 .watchlist-remove-btn:hover {
     background: var(--red-6);
     transform: scale(1.1);
+}
+
+/* Watchlist Header Styles */
+.watchlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.refresh-watchlist-btn {
+    background: var(--green-5);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.refresh-watchlist-btn:hover {
+    background: var(--green-6);
+    transform: rotate(180deg);
+}
+
+.refresh-watchlist-btn:active {
+    transform: rotate(360deg);
+}
+
+/* Price Alert Styles */
+.watchlist-symbol-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.watchlist-close-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.watchlist-close-indicator.close {
+    background: var(--red-5);
+    animation: blink 1s infinite;
+}
+
+.watchlist-close-indicator.reached {
+    background: var(--green-5);
+}
+
+.watchlist-current-price {
+    font-size: 12px;
+    color: var(--dark-text-secondary);
+    margin-top: 4px;
+}
+
+.watchlist-distance {
+    font-weight: 600;
+}
+
+.watchlist-distance.positive {
+    color: var(--green-5);
+}
+
+.watchlist-distance.negative {
+    color: var(--red-5);
+}
+
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0.3;
+    }
 }

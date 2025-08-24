@@ -805,9 +805,12 @@ class TradingForm {
                 const percentageDisplay = item.percentage ? `${parseFloat(item.percentage).toFixed(1)}%` : 'No %';
                 
                 return `
-                    <div class="watchlist-item">
+                    <div class="watchlist-item" data-id="${item.id}">
                         <div class="watchlist-item-header">
-                            <strong class="watchlist-symbol ${directionClass}">${item.symbol}</strong>
+                            <div class="watchlist-symbol-container">
+                                <strong class="watchlist-symbol ${directionClass}">${item.symbol}</strong>
+                                <span class="watchlist-close-indicator" style="display: none;"></span>
+                            </div>
                             <span class="watchlist-time">${timeAgo}</span>
                         </div>
                         <div class="watchlist-price-row">
@@ -817,6 +820,9 @@ class TradingForm {
                             <div class="watchlist-direction ${directionClass}">
                                 ${directionText}
                             </div>
+                        </div>
+                        <div class="watchlist-current-price">
+                            <span class="price-info">Loading price...</span>
                         </div>
                         <div class="watchlist-bottom-row">
                             <span>Margin: $${parseFloat(item.margin_amount).toFixed(2)}</span>
@@ -831,9 +837,93 @@ class TradingForm {
                 `;
             }).join('');
 
+            // Auto-refresh prices after displaying items
+            this.refreshWatchlistPrices(false);
+
         } catch (error) {
             console.error('Error loading watchlist:', error);
             document.getElementById('watchlist-items').innerHTML = '<p class="no-watchlist">Error loading watchlist</p>';
+        }
+    }
+
+    async refreshWatchlist() {
+        this.showNotification('Refreshing watchlist prices...', 'info');
+        await this.refreshWatchlistPrices(true);
+    }
+
+    async refreshWatchlistPrices(showNotification = true) {
+        try {
+            const response = await fetch('api/get_watchlist_prices.php');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch prices');
+            }
+
+            const priceData = result.data;
+            
+            // Update each watchlist item with current price and distance
+            priceData.forEach(item => {
+                const watchlistElement = document.querySelector(`[data-id="${item.id}"]`);
+                if (!watchlistElement) return;
+
+                const priceInfoElement = watchlistElement.querySelector('.price-info');
+                const closeIndicator = watchlistElement.querySelector('.watchlist-close-indicator');
+                
+                if (item.price_status === 'available' && item.current_price !== null) {
+                    const distanceClass = item.distance_percent >= 0 ? 'positive' : 'negative';
+                    const distanceSign = item.distance_percent >= 0 ? '+' : '';
+                    
+                    priceInfoElement.innerHTML = `
+                        Current: $${parseFloat(item.current_price).toFixed(5)} 
+                        <span class="watchlist-distance ${distanceClass}">
+                            (${distanceSign}${item.distance_percent}%)
+                        </span>
+                    `;
+                    
+                    // Show/hide indicator based on alert status
+                    if (item.alert_status === 'close') {
+                        // Price is within 0.1% before reaching target - show blinking
+                        closeIndicator.style.display = 'inline-block';
+                        closeIndicator.classList.add('close');
+                        closeIndicator.classList.remove('reached');
+                    } else if (item.alert_status === 'reached') {
+                        // Price has reached/passed target - show solid circle
+                        closeIndicator.style.display = 'inline-block';
+                        closeIndicator.classList.add('reached');
+                        closeIndicator.classList.remove('close');
+                    } else {
+                        // Normal state - hide indicator
+                        closeIndicator.style.display = 'none';
+                        closeIndicator.classList.remove('close', 'reached');
+                    }
+                } else {
+                    priceInfoElement.innerHTML = 'Price unavailable';
+                    closeIndicator.style.display = 'none';
+                    closeIndicator.classList.remove('close', 'reached');
+                }
+            });
+
+            if (showNotification) {
+                this.showNotification('Watchlist prices updated', 'success');
+            }
+
+        } catch (error) {
+            console.error('Error refreshing watchlist prices:', error);
+            
+            // Update all price info elements to show error
+            document.querySelectorAll('.price-info').forEach(element => {
+                element.innerHTML = 'Error loading price';
+            });
+            
+            if (showNotification) {
+                this.showNotification('Failed to refresh prices: ' + error.message, 'error');
+            }
         }
     }
 

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(start http://localhost/trade/)"
+      "Bash(start http://localhost/trade/)",
+      "Bash(git push:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

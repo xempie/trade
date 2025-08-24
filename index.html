@@ -40,7 +40,6 @@
                 <div class="form-group">
                     <label for="leverage">Leverage</label>
                     <select id="leverage" name="leverage" required>
-                        <option value="">Select Leverage</option>
                         <option value="1">1x</option>
                         <option value="2">2x</option>
                         <option value="3">3x</option>
@@ -50,7 +49,7 @@
                         <option value="7">7x</option>
                         <option value="8">8x</option>
                         <option value="9">9x</option>
-                        <option value="10">10x</option>
+                        <option value="10" selected="true">10x</option>
                     </select>
                 </div>
 
@@ -156,7 +155,12 @@
             </div>
 
             <div class="watchlist-panel">
-                <h3>Watch List</h3>
+                <div class="watchlist-header">
+                    <h3>Watch List</h3>
+                    <button class="refresh-watchlist-btn" onclick="tradingForm.refreshWatchlist()" title="Refresh prices from BingX">
+                        ↻
+                    </button>
+                </div>
                 <div class="watchlist-items" id="watchlist-items">
                     <p class="no-watchlist">No watchlist items</p>
                 </div>
