@@ -151,6 +151,15 @@ function getBingXPositions() {
     }
 }
 
+// Get positions from database with debug info
+function getPositionsWithDebug($pdo, $filters = []) {
+    $result = getPositions($pdo, $filters);
+    return [
+        'data' => $result,
+        'debug' => $GLOBALS['positions_debug'] ?? []
+    ];
+}
+
 // Get positions from database
 function getPositions($pdo, $filters = []) {
     try {
@@ -251,6 +260,13 @@ function getPositions($pdo, $filters = []) {
             $enhancedPositions[] = $position;
         }
         
+        // Store debug info globally for access in wrapper function
+        $GLOBALS['positions_debug'] = [
+            'bingx_positions_count' => count($bingxPositions),
+            'bingx_map_keys' => array_keys($bingxMap),
+            'db_positions_count' => count($dbPositions)
+        ];
+        
         return $enhancedPositions;
         
     } catch (Exception $e) {
@@ -328,6 +344,7 @@ try {
     });
     
     $data = [];
+    $debugInfo = [];
     
     switch ($type) {
         case 'orders':
@@ -335,7 +352,9 @@ try {
             break;
             
         case 'positions':
-            $data = getPositions($pdo, $filters);
+            $result = getPositionsWithDebug($pdo, $filters);
+            $data = $result['data'];
+            $debugInfo = $result['debug'];
             break;
             
         case 'signals':
@@ -346,13 +365,20 @@ try {
             throw new Exception('Invalid type parameter. Use: orders, positions, or signals');
     }
     
-    echo json_encode([
+    $response = [
         'success' => true,
         'type' => $type,
         'data' => $data,
         'count' => count($data),
         'filters_applied' => $filters
-    ]);
+    ];
+    
+    // Add debug info for positions
+    if ($type === 'positions' && isset($_GET['debug'])) {
+        $response['debug'] = $debugInfo;
+    }
+    
+    echo json_encode($response);
     
 } catch (Exception $e) {
     error_log("Get Orders API Error: " . $e->getMessage());
