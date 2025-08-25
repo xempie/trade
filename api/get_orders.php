@@ -264,6 +264,7 @@ function getPositions($pdo, $filters = []) {
                 $position['debug_matched'] = false;
                 $position['debug_key'] = $key;
                 $position['debug_available_keys'] = array_keys($bingxMap);
+                $position['debug_test'] = 'DEBUG_VERSION_DEPLOYED';
             }
             
             $enhancedPositions[] = $position;
