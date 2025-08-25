@@ -91,7 +91,8 @@ unset($_SESSION['oauth_state']);
 error_log("Crypto Trading App: Successful login for {$userEmail}");
 
 // Redirect to intended page or dashboard
-$redirectUrl = $_SESSION['intended_url'] ?? '/index.html';
+$basePath = getAppBasePath();
+$redirectUrl = $_SESSION['intended_url'] ?? $basePath . '/index.php';
 unset($_SESSION['intended_url']);
 
 header('Location: ' . $redirectUrl);

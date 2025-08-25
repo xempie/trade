@@ -36,13 +36,22 @@ if (file_exists(dirname(__DIR__) . '/.env.prod')) {
 
 loadAuthEnv($envFile);
 
-// Google OAuth Configuration
-define('GOOGLE_CLIENT_ID', $_ENV['GOOGLE_CLIENT_ID'] ?? '');
-define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
-define('GOOGLE_REDIRECT_URI', $_ENV['APP_URL'] . '/auth/callback.php');
+// Google OAuth Configuration - require environment variables
+$googleClientId = $_ENV['GOOGLE_CLIENT_ID'] ?? '';
+$googleClientSecret = $_ENV['GOOGLE_CLIENT_SECRET'] ?? '';
+$appUrl = $_ENV['APP_URL'] ?? 'https://[REDACTED_HOST]/ta';
 
-// Allowed emails (only these Gmail accounts can access)
-$ALLOWED_EMAILS = explode(',', $_ENV['ALLOWED_EMAILS'] ?? '');
+if (empty($googleClientId) || empty($googleClientSecret)) {
+    error_log('Google OAuth credentials not configured in environment variables');
+}
+
+define('GOOGLE_CLIENT_ID', $googleClientId);
+define('GOOGLE_CLIENT_SECRET', $googleClientSecret);
+define('GOOGLE_REDIRECT_URI', $appUrl . '/auth/callback.php');
+
+// Allowed emails (only these Gmail accounts can access) with fallback
+$allowedEmailsStr = $_ENV['ALLOWED_EMAILS'] ?? 'afhayati@gmail.com';
+$ALLOWED_EMAILS = explode(',', $allowedEmailsStr);
 $ALLOWED_EMAILS = array_map('trim', $ALLOWED_EMAILS);
 
 // Session configuration
@@ -110,11 +119,28 @@ function getCurrentUser() {
 }
 
 /**
+ * Get the base path for the application
+ */
+function getAppBasePath() {
+    $scriptName = $_SERVER['SCRIPT_NAME'];
+    $basePath = dirname($scriptName);
+    
+    // If we're in a subdirectory like /auth/, go one level up
+    if (basename($basePath) === 'auth') {
+        $basePath = dirname($basePath);
+    }
+    
+    return rtrim($basePath, '/');
+}
+
+/**
  * Redirect to login page
  */
 function redirectToLogin() {
     $currentUrl = $_SERVER['REQUEST_URI'];
-    header('Location: /auth/login.php?redirect=' . urlencode($currentUrl));
+    $_SESSION['intended_url'] = $currentUrl;
+    $basePath = getAppBasePath();
+    header('Location: ' . $basePath . '/auth/login.php?redirect=' . urlencode($currentUrl));
     exit;
 }
 
@@ -124,7 +150,8 @@ function redirectToLogin() {
 function logout() {
     session_unset();
     session_destroy();
-    header('Location: /auth/login.php?logged_out=1');
+    $basePath = getAppBasePath();
+    header('Location: ' . $basePath . '/auth/login.php?logged_out=1');
     exit;
 }
 
