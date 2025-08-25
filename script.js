@@ -54,6 +54,7 @@ class TradingForm {
         // Set up percentage calculation for Entry 2 and Entry 3
         const entry2Percent = document.getElementById('entry_2_percent');
         const entry3Percent = document.getElementById('entry_3_percent');
+        const stopLossPercent = document.getElementById('stop_loss_percent');
         
         if (entry2Percent) {
             entry2Percent.addEventListener('input', () => {
@@ -67,12 +68,27 @@ class TradingForm {
             });
         }
         
+        if (stopLossPercent) {
+            stopLossPercent.addEventListener('input', () => {
+                this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+            });
+        }
+        
+        // Also calculate stop loss when price is manually entered
+        const stopLossPrice = document.getElementById('stop_loss');
+        if (stopLossPrice) {
+            stopLossPrice.addEventListener('input', () => {
+                this.calculateStopLossPercent('stop_loss', 'stop_loss_percent');
+            });
+        }
+        
         // Also recalculate when market entry changes
         const entryMarketEl = document.getElementById('entry_market');
         if (entryMarketEl) {
             entryMarketEl.addEventListener('input', () => {
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
+                this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
             });
         }
         
@@ -81,6 +97,7 @@ class TradingForm {
             radio.addEventListener('change', () => {
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
+                this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
                 this.updateSubmitButton();
             });
         });
@@ -147,6 +164,8 @@ class TradingForm {
                 // Recalculate entry points 2 and 3 if they have percentages
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
+                // Recalculate stop loss if it has a percentage
+                this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
             } else {
                 this.showNotification(`Could not fetch price for ${cleanSymbol}`, 'error');
             }
@@ -215,6 +234,66 @@ class TradingForm {
         
         // Format to appropriate decimal places
         priceEl.value = calculatedPrice.toFixed(5);
+    }
+
+    calculateStopLossPrice(percentFieldId, priceFieldId) {
+        const percentEl = document.getElementById(percentFieldId);
+        const priceEl = document.getElementById(priceFieldId);
+        const marketPriceEl = document.getElementById('entry_market');
+        const directionEl = document.querySelector('input[name="direction"]:checked');
+        
+        const percentage = parseFloat(percentEl.value);
+        const marketPrice = parseFloat(marketPriceEl.value);
+        const direction = directionEl ? directionEl.value : 'long';
+        
+        if (!percentage || !marketPrice || percentage === 0) {
+            priceEl.value = '';
+            return;
+        }
+        
+        let calculatedPrice;
+        if (direction === 'long') {
+            // For long positions, stop loss should be lower than market (stop when price drops)
+            calculatedPrice = marketPrice * (1 - percentage / 100);
+        } else {
+            // For short positions, stop loss should be higher than market (stop when price rises)
+            calculatedPrice = marketPrice * (1 + percentage / 100);
+        }
+        
+        // Format to appropriate decimal places
+        priceEl.value = calculatedPrice.toFixed(5);
+    }
+
+    calculateStopLossPercent(priceFieldId, percentFieldId) {
+        const priceEl = document.getElementById(priceFieldId);
+        const percentEl = document.getElementById(percentFieldId);
+        const marketPriceEl = document.getElementById('entry_market');
+        const directionEl = document.querySelector('input[name="direction"]:checked');
+        
+        const stopLossPrice = parseFloat(priceEl.value);
+        const marketPrice = parseFloat(marketPriceEl.value);
+        const direction = directionEl ? directionEl.value : 'long';
+        
+        if (!stopLossPrice || !marketPrice || stopLossPrice === 0) {
+            percentEl.value = '';
+            return;
+        }
+        
+        let calculatedPercent;
+        if (direction === 'long') {
+            // For long positions, calculate how much lower stop loss is from market
+            calculatedPercent = ((marketPrice - stopLossPrice) / marketPrice) * 100;
+        } else {
+            // For short positions, calculate how much higher stop loss is from market
+            calculatedPercent = ((stopLossPrice - marketPrice) / marketPrice) * 100;
+        }
+        
+        // Only update if the calculated percentage is positive (valid stop loss direction)
+        if (calculatedPercent > 0) {
+            percentEl.value = calculatedPercent.toFixed(1);
+        } else {
+            percentEl.value = '';
+        }
     }
 
     updateSubmitButton() {

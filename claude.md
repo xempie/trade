@@ -1,5 +1,11 @@
 # Claude.md - Crypto Trading Management App Context
 
+## 🚨 IMPORTANT DEPLOYMENT RULE
+**DO NOT DEPLOY TO LIVE SERVER UNTIL USER EXPLICITLY SAYS "deploy"**
+- Only deploy when user gives explicit deployment permission
+- Test changes locally first before any deployment
+- Wait for user approval before running deploy.php
+
 ## Project Overview
 Personal web application for managing crypto futures trading signals with BingX exchange integration, automated order placement, watchlist management, and Telegram notifications.
 
