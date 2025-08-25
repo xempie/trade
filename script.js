@@ -476,6 +476,37 @@ class TradingForm {
             this.showNotification('At least one entry point must have both margin value and price/percentage', 'error');
         }
 
+        // Check total margin usage doesn't exceed 10% of total assets
+        let totalMarginUsage = 0;
+        
+        // Add market entry margin
+        const marketMargin = parseFloat(document.getElementById('entry_market_margin')?.value || 0);
+        if (marketMargin > 0 && document.getElementById('entry_market')?.value) {
+            totalMarginUsage += marketMargin;
+        }
+        
+        // Add entry 2 margin
+        const entry2Margin = parseFloat(document.getElementById('entry_2_margin')?.value || 0);
+        if (entry2Margin > 0 && (document.getElementById('entry_2_percent')?.value || document.getElementById('entry_2')?.value)) {
+            totalMarginUsage += entry2Margin;
+        }
+        
+        // Add entry 3 margin
+        const entry3Margin = parseFloat(document.getElementById('entry_3_margin')?.value || 0);
+        if (entry3Margin > 0 && (document.getElementById('entry_3_percent')?.value || document.getElementById('entry_3')?.value)) {
+            totalMarginUsage += entry3Margin;
+        }
+        
+        // Check if total margin usage exceeds 10% of total assets
+        const maxAllowedMargin = this.totalAssets * 0.10; // 10% of total assets
+        if (totalMarginUsage > maxAllowedMargin) {
+            isValid = false;
+            this.showNotification(
+                `Order rejected: Total margin ($${totalMarginUsage.toFixed(2)}) exceeds 10% of total assets ($${maxAllowedMargin.toFixed(2)}). Maximum allowed: $${maxAllowedMargin.toFixed(2)}`, 
+                'error'
+            );
+        }
+
         return isValid;
     }
 
