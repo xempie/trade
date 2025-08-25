@@ -109,7 +109,10 @@ $isLocal = isLocalhost();
 
                 <div class="form-group">
                     <label for="stop_loss">Stop Loss</label>
-                    <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
+                    <div class="entry-row">
+                        <input type="number" id="stop_loss_percent" name="stop_loss_percent" placeholder="%" step="0.1" class="percent-input">
+                        <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
+                    </div>
                 </div>
 
                 <div class="form-group">
