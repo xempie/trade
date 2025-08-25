@@ -192,12 +192,16 @@ function getPositions($pdo, $filters = []) {
         $enhancedPositions = [];
         $bingxPositions = getBingXPositions();
         
+        // Debug: Log BingX response for troubleshooting
+        error_log("BingX Positions Count: " . count($bingxPositions));
+        
         // Create a map of BingX positions for quick lookup
         $bingxMap = [];
         foreach ($bingxPositions as $bingxPos) {
             if (isset($bingxPos['symbol']) && isset($bingxPos['positionSide']) && floatval($bingxPos['positionAmt']) != 0) {
                 $key = $bingxPos['symbol'] . '_' . $bingxPos['positionSide'];
                 $bingxMap[$key] = $bingxPos;
+                error_log("BingX Position Key: $key, PnL: " . ($bingxPos['unrealizedProfit'] ?? 'N/A'));
             }
         }
         
@@ -211,6 +215,9 @@ function getPositions($pdo, $filters = []) {
             
             $side = strtoupper($dbPos['side']);
             $key = $symbol . '_' . $side;
+            
+            // Debug: Log matching attempt
+            error_log("DB Position ID: {$dbPos['id']}, Lookup Key: $key, Matched: " . (isset($bingxMap[$key]) ? 'YES' : 'NO'));
             
             // Start with database position data
             $position = $dbPos;
