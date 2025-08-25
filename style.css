@@ -64,7 +64,7 @@ body {
 }
 
 .header {
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     text-align: center;
 }
 
@@ -90,6 +90,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: 10px;
 }
 
 .form-group label {
@@ -172,7 +173,7 @@ body {
 .entry-points,
 .profit-targets {
     background: var(--dark-card);
-    padding: 20px;
+    padding: 20px 10px;
     border-radius: 8px;
     border: 1px solid var(--dark-border);
 }
@@ -653,7 +654,7 @@ input[type=number] {
     }
     
     .entry-row input:not(.margin-input):not(.percent-input) {
-        flex: 0 0 50% !important;
+        flex: 0 0 40% !important;
         min-width: 80px !important;
     }
     
