@@ -82,7 +82,7 @@ $isLocal = isLocalhost();
                     <div class="form-group">
                         <label for="entry_market">Market Entry</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="$" step="0.01" class="margin-input">
                             <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
                         </div>
                     </div>
@@ -90,18 +90,18 @@ $isLocal = isLocalhost();
                     <div class="form-group">
                         <label for="entry_2">Entry 2</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="$" step="0.01" class="margin-input">
                             <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
-                            <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
+                            <input type="number" id="entry_2" name="entry_2" placeholder="Price" step="0.00001">
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="entry_3">Entry 3</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="$" step="0.01" class="margin-input">
                             <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
-                            <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
+                            <input type="number" id="entry_3" name="entry_3" placeholder="Price" step="0.00001">
                         </div>
                     </div>
                 </div>
