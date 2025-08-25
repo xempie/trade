@@ -1,0 +1,70 @@
+# Crypto Trading Management App - Crontab Configuration
+# 
+# To install these cron jobs, run:
+# crontab crontab-config.txt
+#
+# To edit crontab manually:
+# crontab -e
+#
+# To view current crontab:
+# crontab -l
+
+# =============================================================================
+# TRADING MONITORING CRON JOBS
+# =============================================================================
+
+# Price monitoring - Check watchlist items every minute
+# Triggers Telegram notifications when target prices are reached
+* * * * * /usr/bin/php /var/www/html/trade/jobs/price-monitor.php >> /var/log/crypto-trading/price-monitor.log 2>&1
+
+# Order status monitoring - Check pending orders every 2 minutes
+# Sends notifications when orders are filled or cancelled
+*/2 * * * * /usr/bin/php /var/www/html/trade/jobs/order-status.php >> /var/log/crypto-trading/order-status.log 2>&1
+
+# Position sync - Update P&L and check milestones every 5 minutes
+# Sends profit/loss milestone notifications
+*/5 * * * * /usr/bin/php /var/www/html/trade/jobs/position-sync.php >> /var/log/crypto-trading/position-sync.log 2>&1
+
+# Balance sync - Update account balance every 15 minutes
+# Monitors significant balance changes
+*/15 * * * * /usr/bin/php /var/www/html/trade/jobs/balance-sync.php >> /var/log/crypto-trading/balance-sync.log 2>&1
+
+# =============================================================================
+# MAINTENANCE CRON JOBS (Optional)
+# =============================================================================
+
+# Log cleanup - Remove old log files weekly (every Sunday at 2 AM)
+0 2 * * 0 find /var/log/crypto-trading/ -name "*.log" -mtime +7 -delete
+
+# Database cleanup - Archive old completed signals monthly (1st of month at 3 AM)
+0 3 1 * * /usr/bin/php /var/www/html/trade/jobs/cleanup-old-data.php >> /var/log/crypto-trading/cleanup.log 2>&1
+
+# =============================================================================
+# IMPORTANT NOTES
+# =============================================================================
+# 
+# 1. Update paths to match your server configuration:
+#    - Change /var/www/html/trade to your actual project path
+#    - Change /usr/bin/php to your PHP executable path (use 'which php' to find)
+#
+# 2. Create log directories:
+#    mkdir -p /var/log/crypto-trading
+#    chown www-data:www-data /var/log/crypto-trading
+#
+# 3. Set proper permissions:
+#    chmod +x /var/www/html/trade/jobs/*.php
+#
+# 4. Test scripts manually before adding to crontab:
+#    php /var/www/html/trade/jobs/price-monitor.php
+#
+# 5. Monitor log files for errors:
+#    tail -f /var/log/crypto-trading/price-monitor.log
+#
+# 6. Environment variables:
+#    Ensure .env file is readable by the web server user
+#
+# 7. For Windows/XAMPP development, use Windows Task Scheduler instead:
+#    - Create tasks for each script
+#    - Use: C:\xampp\php\php.exe C:\xampp\htdocs\trade\jobs\price-monitor.php
+#
+# =============================================================================
