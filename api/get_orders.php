@@ -249,12 +249,21 @@ function getPositions($pdo, $filters = []) {
                 } else {
                     $position['pnl_percentage'] = 0;
                 }
+                
+                // Add debug info to position
+                $position['debug_matched'] = true;
+                $position['debug_key'] = $key;
             } else {
                 // No live data available, use zero values
                 $position['unrealized_pnl'] = 0;
                 $position['mark_price'] = 0;
                 $position['position_value'] = 0;
                 $position['pnl_percentage'] = 0;
+                
+                // Add debug info to position
+                $position['debug_matched'] = false;
+                $position['debug_key'] = $key;
+                $position['debug_available_keys'] = array_keys($bingxMap);
             }
             
             $enhancedPositions[] = $position;
