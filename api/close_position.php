@@ -65,12 +65,18 @@ function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity) {
         // Determine the opposite side for closing
         $closeSide = $side === 'LONG' ? 'SELL' : 'BUY';
         
+        // Determine position side based on trade direction (for hedge mode)
+        $positionSide = 'BOTH'; // Default for one-way mode
+        // For closing positions, we need to use the same positionSide as when opening
+        // BingX uses LONG/SHORT for hedge mode, BOTH for one-way mode
+        $positionSide = strtoupper($side); // Use the direction as positionSide
+        
         $params = [
             'symbol' => $symbol,
             'side' => $closeSide,
             'type' => 'MARKET',
             'quantity' => $quantity,
-            'positionSide' => strtoupper($side),
+            'positionSide' => $positionSide,
             'timestamp' => $timestamp
         ];
         
@@ -79,6 +85,7 @@ function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity) {
         
         // Debug logging
         error_log("Closing BingX Position Parameters: " . json_encode($params));
+        error_log("Position Details: ID={$quantity}, Symbol={$symbol}, Side={$side}, CloseSide={$closeSide}");
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, "https://open-api.bingx.com/openApi/swap/v2/trade/order");
@@ -101,6 +108,7 @@ function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity) {
         }
         
         if ($httpCode !== 200) {
+            error_log("BingX API Error - HTTP {$httpCode}: " . $response);
             throw new Exception("BingX API HTTP error: {$httpCode}. Response: " . $response);
         }
         
@@ -112,7 +120,9 @@ function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity) {
         
         if (!isset($data['code']) || $data['code'] !== 0) {
             $errorMsg = isset($data['msg']) ? $data['msg'] : 'Unknown API error';
-            throw new Exception('BingX Close Position Error: ' . $errorMsg);
+            $errorCode = isset($data['code']) ? $data['code'] : 'unknown';
+            error_log("BingX Close Position API Error - Code: {$errorCode}, Message: {$errorMsg}, Full response: " . json_encode($data));
+            throw new Exception('BingX Close Position Error: ' . $errorMsg . " (Code: {$errorCode})");
         }
         
         return [
@@ -209,7 +219,7 @@ try {
     );
     
     if ($closeResult['success']) {
-        // Update position status in database
+        // Position successfully closed on exchange
         $updated = updatePositionStatus($pdo, $positionId, 'CLOSED');
         
         if ($updated) {
@@ -229,7 +239,24 @@ try {
             ]);
         }
     } else {
-        throw new Exception($closeResult['error']);
+        // Check if the error is "No position to close" (80001)
+        // This means position was already closed manually outside our app
+        if (strpos($closeResult['error'], '80001') !== false || 
+            strpos($closeResult['error'], 'No position to close') !== false) {
+            
+            // Mark position as closed in database since it's already closed on exchange
+            $updated = updatePositionStatus($pdo, $positionId, 'CLOSED');
+            
+            echo json_encode([
+                'success' => true,
+                'message' => "Position was already closed manually. Database updated.",
+                'position_id' => $positionId,
+                'note' => 'Position closed outside of app'
+            ]);
+        } else {
+            // Other errors - actual API failures
+            throw new Exception($closeResult['error']);
+        }
     }
     
 } catch (Exception $e) {

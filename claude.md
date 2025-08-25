@@ -49,6 +49,12 @@ Personal web application for managing crypto futures trading signals with BingX 
 - Maximum leverage: 10x
 - Position size: 3.3% of available balance per entry
 
+## Position Status Management
+- **Manual Closure Handling**: If positions are closed manually outside the app (e.g., directly on BingX), the close position API will detect this (error 80001) and automatically update the database status to CLOSED
+- **Display Filter**: Only positions with status='OPEN' are displayed in the main interface
+- **History**: Closed positions are preserved in database but not shown in main view (history page to be implemented later)
+- **Status Sync**: App maintains position status synchronization with BingX exchange
+
 ## Environment Variables Needed
 ```
 [REDACTED_API_KEY]

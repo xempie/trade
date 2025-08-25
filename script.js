@@ -6,6 +6,7 @@ class TradingForm {
         this.totalAssets = 0;
         this.marginUsed = 0;
         this.positionSizePercent = 3.3;
+        this.positionStatus = {}; // Track which positions exist on exchange
         
         this.init();
         this.loadBalanceData();
@@ -836,20 +837,33 @@ class TradingForm {
         }
 
         positionList.innerHTML = positions.map(position => {
-            const direction = position.side || position.signal_type;
-            const symbol = position.symbol;
-            const leverage = position.leverage;
-            const openedAt = position.opened_at;
-            const marginUsed = parseFloat(position.margin_used).toFixed(2);
+            // Handle both database positions and localStorage signals
+            const direction = position.side || position.signal_type || 'UNKNOWN';
+            const symbol = position.symbol || 'UNKNOWN';
+            const leverage = position.leverage || 1;
+            const openedAt = position.opened_at || position.created_at || position.timestamp;
+            const marginUsed = position.margin_used ? parseFloat(position.margin_used).toFixed(2) : '0.00';
             const pnl = position.unrealized_pnl ? parseFloat(position.unrealized_pnl).toFixed(2) : '0.00';
             const pnlClass = parseFloat(pnl) >= 0 ? 'profit' : 'loss';
             
             // Calculate P&L percentage based on margin used
-            const pnlPercent = marginUsed > 0 ? ((parseFloat(pnl) / parseFloat(marginUsed)) * 100).toFixed(2) : '0.00';
+            const pnlPercent = parseFloat(marginUsed) > 0 ? ((parseFloat(pnl) / parseFloat(marginUsed)) * 100).toFixed(2) : '0.00';
             const pnlPercentClass = parseFloat(pnlPercent) >= 0 ? 'profit' : 'loss';
             
-            // Calculate time ago
-            const timeAgo = this.getTimeAgo(openedAt);
+            // Calculate time ago - handle various date formats
+            let timeAgo = 'Unknown time';
+            if (openedAt) {
+                try {
+                    timeAgo = this.getTimeAgo(openedAt);
+                } catch (e) {
+                    timeAgo = 'Invalid date';
+                }
+            }
+            
+            // Skip positions with invalid or missing data
+            if (!symbol || symbol === 'UNKNOWN' || !direction || direction === 'UNKNOWN') {
+                return '';
+            }
             
             return `
                 <div class="signal-item position-item">
@@ -864,15 +878,35 @@ class TradingForm {
                         P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
                     </div>
                     <div class="position-actions">
-                        <button 
-                            class="position-close-btn"
-                            onclick="tradingForm.closePosition(${position.id}, '${symbol}', '${direction}')" 
-                            title="Close position"
-                        >Close Position</button>
+                        ${this.getPositionButton(position.id, symbol, direction)}
                     </div>
                 </div>
             `;
-        }).join('');
+        }).filter(html => html !== '').join('');
+    }
+
+    getPositionButton(positionId, symbol, direction) {
+        const status = this.positionStatus[positionId];
+        
+        // If position status is unknown or exists on exchange, show Close button
+        if (!status || status.exists_on_exchange) {
+            return `
+                <button 
+                    class="position-close-btn"
+                    onclick="tradingForm.closePosition(${positionId}, '${symbol}', '${direction}')" 
+                    title="Close position"
+                >Close Position</button>
+            `;
+        } else {
+            // Position doesn't exist on exchange, show Remove button
+            return `
+                <button 
+                    class="position-remove-btn"
+                    onclick="tradingForm.removePosition(${positionId}, '${symbol}', '${direction}')" 
+                    title="Remove position (not on exchange)"
+                >Remove</button>
+            `;
+        }
     }
     
     displayRecentSignals(signals) {
@@ -882,6 +916,22 @@ class TradingForm {
 
     async refreshPositions() {
         this.showNotification('Refreshing positions...', 'info');
+        
+        try {
+            // Check positions status against exchange
+            const checkResponse = await fetch('api/check_positions.php');
+            if (checkResponse.ok) {
+                const checkResult = await checkResponse.json();
+                if (checkResult.success) {
+                    this.positionStatus = checkResult.position_status;
+                }
+            }
+        } catch (error) {
+            console.warn('Position status check failed:', error);
+            this.positionStatus = {};
+        }
+        
+        // Then update the positions list
         await this.updateRecentSignals();
     }
 
@@ -924,6 +974,48 @@ class TradingForm {
         } catch (error) {
             console.error('Close position error:', error);
             this.showNotification(`Failed to close position: ${error.message}`, 'error');
+        }
+    }
+
+    async removePosition(positionId, symbol, direction) {
+        if (!confirm(`Remove ${direction} position on ${symbol}? This position no longer exists on the exchange.`)) {
+            return;
+        }
+
+        try {
+            this.showNotification(`Removing ${symbol} ${direction} position...`, 'info');
+            
+            // Call API to mark position as closed
+            const response = await fetch('api/close_position.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    position_id: positionId,
+                    symbol: symbol,
+                    direction: direction
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showNotification(`Position removed: ${result.message}`, 'success');
+                // Refresh positions list and balance
+                this.updateRecentSignals();
+                this.loadBalanceData();
+            } else {
+                throw new Error(result.error || 'Failed to remove position');
+            }
+
+        } catch (error) {
+            console.error('Remove position error:', error);
+            this.showNotification(`Failed to remove position: ${error.message}`, 'error');
         }
     }
 
