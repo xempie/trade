@@ -53,3 +53,11 @@ storage/
 # Config overrides
 config.local.php
 config.production.php
+
+# Deployment files (sensitive)
+deploy-config.php
+.env.prod
+deployment.log
+
+# Development environment file
+.env.dev

@@ -10,6 +10,7 @@ class TradingForm {
         
         this.init();
         this.loadBalanceData();
+        this.refreshPositions();
     }
 
     init() {
@@ -797,8 +798,8 @@ class TradingForm {
             if (response.ok) {
                 const result = await response.json();
                 
-                if (result.success && result.data.length > 0) {
-                    this.displayRecentPositions(result.data);
+                if (result.success) {
+                    this.displayRecentPositions(result.data || []);
                     return;
                 }
             }
@@ -812,6 +813,8 @@ class TradingForm {
             // Only show signals that have successful orders or are from localStorage (older format)
             return !signal.orders || signal.orders.some(order => order.success);
         });
+        
+        // Always call displayRecentPositions, even if empty
         this.displayRecentSignals(filledSignals.slice(0, 5));
     }
     
@@ -832,7 +835,7 @@ class TradingForm {
         const positionList = document.getElementById('signal-list');
         
         if (positions.length === 0) {
-            positionList.innerHTML = '<p class="no-signals">No open positions</p>';
+            positionList.innerHTML = '<p class="no-signals">No active positions</p>';
             return;
         }
 

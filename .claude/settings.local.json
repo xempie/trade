@@ -5,7 +5,11 @@
       "Bash(git push:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(php:*)"
+      "Bash(php:*)",
+      "Bash(dir .env*)",
+      "Bash(start http://localhost/trade/index-local.html)",
+      "Bash(curl:*)",
+      "Bash(copy index.html index-working.html)"
     ],
     "deny": [],
     "ask": [],

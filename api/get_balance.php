@@ -1,9 +1,14 @@
 <?php
+// Include authentication protection
+require_once '../auth/api_protection.php';
+
+// Protect this API endpoint
+protectAPI();
+
 // Ensure we always output JSON
 ini_set('display_errors', 0);
 error_reporting(0);
 
-header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
