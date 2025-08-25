@@ -203,7 +203,12 @@ function getPositions($pdo, $filters = []) {
         
         // Merge database positions with live BingX data
         foreach ($dbPositions as $dbPos) {
+            // Convert symbol to BingX format
             $symbol = $dbPos['symbol'];
+            if (!strpos($symbol, 'USDT')) {
+                $symbol = $symbol . '-USDT';
+            }
+            
             $side = strtoupper($dbPos['side']);
             $key = $symbol . '_' . $side;
             
