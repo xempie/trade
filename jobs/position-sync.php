@@ -103,55 +103,8 @@ function getBingXPositions($apiKey, $apiSecret) {
     }
 }
 
-// Send Telegram notification
-function sendTelegramNotification($message, $priority = 'MEDIUM') {
-    $botToken = getenv('TELEGRAM_BOT_TOKEN');
-    $chatId = getenv('TELEGRAM_CHAT_ID');
-    
-    if (empty($botToken) || empty($chatId)) {
-        return false;
-    }
-    
-    $priorityEmojis = [
-        'HIGH' => '🚨',
-        'MEDIUM' => '💰',
-        'LOW' => 'ℹ️'
-    ];
-    
-    $emoji = $priorityEmojis[$priority] ?? '💰';
-    $finalMessage = $emoji . ' ' . $message;
-    
-    try {
-        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-        $postData = [
-            'chat_id' => $chatId,
-            'text' => $finalMessage,
-            'parse_mode' => 'HTML'
-        ];
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode === 200) {
-            $result = json_decode($response, true);
-            return $result['ok'] ?? false;
-        }
-        
-        return false;
-        
-    } catch (Exception $e) {
-        error_log("Position Sync - Telegram notification failed: " . $e->getMessage());
-        return false;
-    }
-}
+// Include Telegram messaging class
+require_once $projectDir . '/api/telegram.php';
 
 // Update position P&L in database
 function updatePositionPnL($pdo, $positionId, $unrealizedPnL) {
@@ -263,20 +216,19 @@ try {
                     $milestonePercent = $milestone['milestone'];
                     $currentPercent = round($milestone['percent'], 2);
                     
-                    $emoji = $type === 'profit' ? '💰' : '📉';
-                    $direction = $type === 'profit' ? 'PROFIT' : 'LOSS';
-                    
-                    $message = "<b>{$direction} Milestone Reached!</b>\n\n" .
-                              "{$emoji} <b>{$dbPos['symbol']}</b> (" . strtoupper($dbPos['side']) . ")\n" .
-                              "🎯 Milestone: {$milestonePercent}%\n" .
-                              "📊 Current P&L: {$currentPercent}%\n" .
-                              "💵 P&L Amount: \${$newPnL}";
-                    
-                    if (sendTelegramNotification($message, 'MEDIUM')) {
+                    $telegram = new TelegramMessenger();
+                    if ($telegram->sendPnLMilestone(
+                        $dbPos['symbol'],
+                        $dbPos['side'],
+                        $type,
+                        $milestonePercent,
+                        $currentPercent,
+                        $newPnL
+                    )) {
                         $notificationsSent++;
                     }
                     
-                    echo "Milestone: {$dbPos['symbol']} {$direction} {$milestonePercent}% (current: {$currentPercent}%)\n";
+                    echo "Milestone: {$dbPos['symbol']} {$type} {$milestonePercent}% (current: {$currentPercent}%)\n";
                 }
             }
         } else {

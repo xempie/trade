@@ -163,55 +163,8 @@ function updateAccountBalance($pdo, $balanceData) {
     }
 }
 
-// Send Telegram notification
-function sendTelegramNotification($message, $priority = 'LOW') {
-    $botToken = getenv('TELEGRAM_BOT_TOKEN');
-    $chatId = getenv('TELEGRAM_CHAT_ID');
-    
-    if (empty($botToken) || empty($chatId)) {
-        return false;
-    }
-    
-    $priorityEmojis = [
-        'HIGH' => '🚨',
-        'MEDIUM' => '💰',
-        'LOW' => 'ℹ️'
-    ];
-    
-    $emoji = $priorityEmojis[$priority] ?? 'ℹ️';
-    $finalMessage = $emoji . ' ' . $message;
-    
-    try {
-        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-        $postData = [
-            'chat_id' => $chatId,
-            'text' => $finalMessage,
-            'parse_mode' => 'HTML'
-        ];
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode === 200) {
-            $result = json_decode($response, true);
-            return $result['ok'] ?? false;
-        }
-        
-        return false;
-        
-    } catch (Exception $e) {
-        error_log("Balance Sync - Telegram notification failed: " . $e->getMessage());
-        return false;
-    }
-}
+// Include Telegram messaging class
+require_once $projectDir . '/api/telegram.php';
 
 // Check for significant balance changes
 function checkBalanceChanges($oldBalance, $newBalance) {
@@ -280,19 +233,16 @@ try {
             $change = checkBalanceChanges($previousBalance, $currentBalance);
             
             if ($change) {
-                $type = $change['type'];
-                $emoji = $type === 'increase' ? '📈' : '📉';
-                $direction = $type === 'increase' ? 'increased' : 'decreased';
+                $telegram = new TelegramMessenger();
+                $telegram->sendBalanceChange(
+                    $change['type'],
+                    $change['percent'],
+                    $change['old_total'],
+                    $change['new_total'],
+                    $change['change_amount']
+                );
                 
-                $message = "<b>Balance Change Alert</b>\n\n" .
-                          "{$emoji} Account balance has {$direction}\n" .
-                          "📊 Change: {$change['percent']}%\n" .
-                          "💰 From: \${$change['old_total']}\n" .
-                          "💰 To: \${$change['new_total']}\n" .
-                          "📊 Difference: \${$change['change_amount']}";
-                
-                sendTelegramNotification($message, 'MEDIUM');
-                echo "Balance change notification sent: {$direction} {$change['percent']}%\n";
+                echo "Balance change notification sent: {$change['type']} {$change['percent']}%\n";
             }
         }
         

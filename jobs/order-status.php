@@ -175,55 +175,8 @@ function createPositionRecord($pdo, $order, $fillPrice) {
     }
 }
 
-// Send Telegram notification
-function sendTelegramNotification($message, $priority = 'HIGH') {
-    $botToken = getenv('TELEGRAM_BOT_TOKEN');
-    $chatId = getenv('TELEGRAM_CHAT_ID');
-    
-    if (empty($botToken) || empty($chatId)) {
-        return false;
-    }
-    
-    $priorityEmojis = [
-        'HIGH' => '✅',
-        'MEDIUM' => '🎯',
-        'LOW' => 'ℹ️'
-    ];
-    
-    $emoji = $priorityEmojis[$priority] ?? '✅';
-    $finalMessage = $emoji . ' ' . $message;
-    
-    try {
-        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-        $postData = [
-            'chat_id' => $chatId,
-            'text' => $finalMessage,
-            'parse_mode' => 'HTML'
-        ];
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode === 200) {
-            $result = json_decode($response, true);
-            return $result['ok'] ?? false;
-        }
-        
-        return false;
-        
-    } catch (Exception $e) {
-        error_log("Order Status - Telegram notification failed: " . $e->getMessage());
-        return false;
-    }
-}
+// Include Telegram messaging class
+require_once $projectDir . '/api/telegram.php';
 
 // Main execution
 echo "Starting order status check at " . date('Y-m-d H:i:s') . "\n";
@@ -286,30 +239,28 @@ try {
             }
             
             // Send filled notification
-            $sideEmoji = ($order['side'] === 'BUY') ? '📈' : '📉';
-            $entryLevel = str_replace('_', ' ', strtoupper($order['entry_level']));
-            
-            $message = "<b>Order Filled!</b>\n\n" .
-                      "{$sideEmoji} <b>{$order['symbol']}</b> ({$entryLevel})\n" .
-                      "💰 Size: \${$order['quantity']}\n" .
-                      "💵 Fill Price: \${$fillPrice}\n" .
-                      "⚡ Leverage: {$order['leverage']}x\n" .
-                      "🎯 Side: " . strtoupper($order['side']);
-            
-            sendTelegramNotification($message, 'HIGH');
+            $telegram = new TelegramMessenger();
+            $telegram->sendOrderFilled(
+                $order['symbol'],
+                $order['side'], 
+                $order['quantity'],
+                $fillPrice,
+                $order['leverage'],
+                $order['entry_level']
+            );
             
         } elseif ($status === 'CANCELED' || $status === 'CANCELLED') {
             $newStatus = 'CANCELLED';
             $cancelledCount++;
             
             // Send cancelled notification
-            $message = "<b>Order Cancelled</b>\n\n" .
-                      "❌ <b>{$order['symbol']}</b>\n" .
-                      "💰 Size: \${$order['quantity']}\n" .
-                      "💵 Price: \${$order['price']}\n" .
-                      "🎯 Side: " . strtoupper($order['side']);
-            
-            sendTelegramNotification($message, 'MEDIUM');
+            $telegram = new TelegramMessenger();
+            $telegram->sendOrderCancelled(
+                $order['symbol'],
+                $order['quantity'],
+                $order['price'],
+                $order['side']
+            );
         }
         
         if ($newStatus && $newStatus !== $order['status']) {

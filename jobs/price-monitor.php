@@ -109,56 +109,8 @@ function getCurrentPrice($symbol, $apiKey, $apiSecret) {
     }
 }
 
-// Send Telegram notification
-function sendTelegramNotification($message, $priority = 'MEDIUM') {
-    $botToken = getenv('TELEGRAM_BOT_TOKEN');
-    $chatId = getenv('TELEGRAM_CHAT_ID');
-    
-    if (empty($botToken) || empty($chatId)) {
-        error_log("Price Monitor - Telegram credentials not configured");
-        return false;
-    }
-    
-    $priorityEmojis = [
-        'HIGH' => '🚨',
-        'MEDIUM' => '🎯',
-        'LOW' => 'ℹ️'
-    ];
-    
-    $emoji = $priorityEmojis[$priority] ?? '🎯';
-    $finalMessage = $emoji . ' ' . $message;
-    
-    try {
-        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-        $postData = [
-            'chat_id' => $chatId,
-            'text' => $finalMessage,
-            'parse_mode' => 'HTML'
-        ];
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode === 200) {
-            $result = json_decode($response, true);
-            return $result['ok'] ?? false;
-        }
-        
-        return false;
-        
-    } catch (Exception $e) {
-        error_log("Price Monitor - Telegram notification failed: " . $e->getMessage());
-        return false;
-    }
-}
+// Include Telegram messaging class
+require_once $projectDir . '/api/telegram.php';
 
 // Mark watchlist item as triggered
 function markTriggered($pdo, $watchlistId) {
@@ -233,16 +185,17 @@ try {
             if (markTriggered($pdo, $item['id'])) {
                 $triggeredCount++;
                 
-                // Send notification
-                $directionEmoji = $direction === 'long' ? '📈' : '📉';
-                $message = "<b>Price Alert Triggered!</b>\n\n" .
-                          "{$directionEmoji} <b>{$symbol}</b> ({$entryType})\n" .
-                          "🎯 Target: \${$entryPrice}\n" .
-                          "💰 Current: \${$currentPrice}\n" .
-                          "📊 Direction: " . strtoupper($direction) . "\n" .
-                          "💵 Margin: \${$marginAmount}";
-                
-                sendTelegramNotification($message, 'HIGH');
+                // Send notification with interactive buttons
+                $telegram = new TelegramMessenger();
+                $telegram->sendPriceAlert(
+                    $symbol,
+                    $entryType, 
+                    $entryPrice,
+                    $currentPrice,
+                    $direction,
+                    $marginAmount,
+                    $item['id']
+                );
                 
                 echo "Triggered: {$symbol} {$direction} at {$currentPrice} (target: {$entryPrice})\n";
             }
