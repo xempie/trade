@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Trading Management - Working Copy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="header">
+                <h1>Trading Form</h1>                
+            </div>
+
+            <form id="trading-form" class="trading-form">
+                <div class="form-group">
+                    <label for="symbol">Symbol</label>
+                    <input type="text" id="symbol" name="symbol" placeholder="Enter crypto symbol (e.g., BTC, ADA, ETH)" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="direction">Direction</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="direction" value="long" checked>
+                            <span class="radio-custom"></span>
+                            Long
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="direction" value="short">
+                            <span class="radio-custom"></span>
+                            Short
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="leverage">Leverage</label>
+                    <select id="leverage" name="leverage" required>
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                        <option value="4">4x</option>
+                        <option value="5">5x</option>
+                        <option value="6">6x</option>
+                        <option value="7">7x</option>
+                        <option value="8">8x</option>
+                        <option value="9">9x</option>
+                        <option value="10" selected="true">10x</option>
+                    </select>
+                </div>
+
+                <div class="entry-points">
+                    <h3>Entry Points</h3>
+                    
+                    <div class="form-group">
+                        <label for="entry_market">Market Entry</label>
+                        <div class="entry-row">
+                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_market_enabled" name="entry_market_enabled" checked>
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="entry_2">Entry 2</label>
+                        <div class="entry-row">
+                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
+                            <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_2_enabled" name="entry_2_enabled">
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="entry_3">Entry 3</label>
+                        <div class="entry-row">
+                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
+                            <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_3_enabled" name="entry_3_enabled">
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="form-group">
+                    <label for="stop_loss">Stop Loss</label>
+                    <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" placeholder="Add any notes about this signal..." rows="3"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="add-to-watchlist">Add to Watch List</button>
+                    <button type="button" class="btn btn-secondary" id="reset-form">Reset Form</button>
+                    <button type="submit" class="btn btn-primary">Create Signal</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="info-panel">
+            <div class="account-info">
+                <div class="account-header">
+                    <h3>Account Info</h3>
+                    <button class="refresh-balance-btn" onclick="tradingForm.refreshBalance()" title="Refresh balance from BingX">
+                        ↻
+                    </button>
+                </div>
+                <div class="info-item">
+                    <span class="label">Total Assets:</span>
+                    <span class="value total-assets" id="total-assets">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Available Balance:</span>
+                    <span class="value" id="available-balance">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Margin Used:</span>
+                    <span class="value" id="margin-used">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Position Size (3.3%):</span>
+                    <span class="value" id="position-size">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Last Updated:</span>
+                    <span class="value" id="last-updated">Loading...</span>
+                </div>
+            </div>
+
+            <div class="recent-signals">
+                <div class="positions-header">
+                    <h3>Active Positions</h3>
+                    <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
+                        ↻
+                    </button>
+                </div>
+                <div class="signal-list" id="signal-list">
+                    <p class="no-signals">No active positions</p>
+                </div>
+            </div>
+
+            <div class="watchlist-panel">
+                <div class="watchlist-header">
+                    <h3>Watch List</h3>
+                    <button class="refresh-watchlist-btn" onclick="tradingForm.refreshWatchlist()" title="Refresh prices from BingX">
+                        ↻
+                    </button>
+                </div>
+                <div class="watchlist-items" id="watchlist-items">
+                    <p class="no-watchlist">No watchlist items</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
