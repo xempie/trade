@@ -205,11 +205,6 @@ body {
     min-width: 80px;
 }
 
-.entry-row input[readonly] {
-    background: var(--dark-bg);
-    color: var(--dark-text-secondary);
-    cursor: not-allowed;
-}
 
 /* Remove number input spinners */
 input[type=number]::-webkit-outer-spin-button,
@@ -644,13 +639,13 @@ input[type=number] {
     }
     
     .margin-input {
-        flex: 1 1 120px !important;
-        min-width: 100px !important;
+        flex: 0 0 80px !important;
+        min-width: 70px !important;
     }
     
     .percent-input {
-        flex: 0 0 60px !important;
-        min-width: 50px !important;
+        flex: 0 0 50px !important;
+        min-width: 45px !important;
     }
     
     .form-actions {
