@@ -196,13 +196,17 @@ body {
 }
 
 .margin-input {
-    flex: 0 0 180px !important;
-    min-width: 180px;
+    flex: 0 0 25% !important;
+    min-width: 60px;
 }
 
 .percent-input {
-    flex: 0 0 80px !important;
-    min-width: 80px;
+    flex: 0 0 25% !important;
+    min-width: 50px;
+}
+
+.entry-row input:not(.margin-input):not(.percent-input) {
+    flex: 0 0 50% !important;
 }
 
 
@@ -639,13 +643,18 @@ input[type=number] {
     }
     
     .margin-input {
-        flex: 0 0 80px !important;
-        min-width: 70px !important;
+        flex: 0 0 25% !important;
+        min-width: 60px !important;
     }
     
     .percent-input {
-        flex: 0 0 50px !important;
-        min-width: 45px !important;
+        flex: 0 0 25% !important;
+        min-width: 50px !important;
+    }
+    
+    .entry-row input:not(.margin-input):not(.percent-input) {
+        flex: 0 0 50% !important;
+        min-width: 80px !important;
     }
     
     .form-actions {
