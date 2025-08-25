@@ -3,7 +3,8 @@ require_once 'config.php';
 
 // If already authenticated, redirect to main app
 if (isAuthenticated()) {
-    $redirectUrl = $_GET['redirect'] ?? '/index.html';
+    $basePath = getAppBasePath();
+    $redirectUrl = $_GET['redirect'] ?? $basePath . '/index.php';
     header('Location: ' . $redirectUrl);
     exit;
 }

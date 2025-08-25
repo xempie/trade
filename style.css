@@ -413,6 +413,35 @@ input[type=number] {
     color: #F39C12;
 }
 
+.balance-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.balance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--dark-border);
+}
+
+.balance-item:last-child {
+    border-bottom: none;
+}
+
+.balance-label {
+    color: var(--dark-text-secondary);
+    font-size: 14px;
+}
+
+.balance-value {
+    color: var(--dark-text-primary);
+    font-weight: 600;
+    font-size: 14px;
+}
+
 .signal-list,
 .watchlist-items {
     display: flex;
@@ -496,11 +525,13 @@ input[type=number] {
     margin-top: 4px;
 }
 
-.position-pnl.profit {
+.position-pnl.profit,
+.balance-value.profit {
     color: var(--green-5);
 }
 
-.position-pnl.loss {
+.position-pnl.loss,
+.balance-value.loss {
     color: var(--red-5);
 }
 

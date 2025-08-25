@@ -72,90 +72,127 @@ $isLocal = isLocalhost();
                         <option value="7">7x</option>
                         <option value="8">8x</option>
                         <option value="9">9x</option>
-                        <option value="10" selected>10x</option>
+                        <option value="10" selected="true">10x</option>
                     </select>
                 </div>
 
+                <div class="entry-points">
+                    <h3>Entry Points</h3>
+                    
+                    <div class="form-group">
+                        <label for="entry_market">Market Entry</label>
+                        <div class="entry-row">
+                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_market_enabled" name="entry_market_enabled" checked>
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="entry_2">Entry 2</label>
+                        <div class="entry-row">
+                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
+                            <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_2_enabled" name="entry_2_enabled">
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="entry_3">Entry 3</label>
+                        <div class="entry-row">
+                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                            <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
+                            <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_3_enabled" name="entry_3_enabled">
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+
                 <div class="form-group">
-                    <label for="market-entry">Market Entry</label>
-                    <input type="number" step="0.00001" id="market-entry" name="market-entry" placeholder="Market entry price" required>
+                    <label for="stop_loss">Stop Loss</label>
+                    <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
                 </div>
 
                 <div class="form-group">
-                    <label for="entry2">Entry 2</label>
-                    <input type="number" step="0.00001" id="entry2" name="entry2" placeholder="Second entry price">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" placeholder="Add any notes about this signal..." rows="3"></textarea>
                 </div>
 
-                <div class="form-group">
-                    <label for="entry3">Entry 3</label>
-                    <input type="number" step="0.00001" id="entry3" name="entry3" placeholder="Third entry price">
-                </div>
-
-                <div class="form-group">
-                    <label for="target1">Target 1</label>
-                    <input type="number" step="0.00001" id="target1" name="target1" placeholder="First target price">
-                </div>
-
-                <div class="form-group">
-                    <label for="target2">Target 2</label>
-                    <input type="number" step="0.00001" id="target2" name="target2" placeholder="Second target price">
-                </div>
-
-                <div class="form-group">
-                    <label for="target3">Target 3</label>
-                    <input type="number" step="0.00001" id="target3" name="target3" placeholder="Third target price">
-                </div>
-
-                <div class="form-group">
-                    <label for="stop-loss">Stop Loss</label>
-                    <input type="number" step="0.00001" id="stop-loss" name="stop-loss" placeholder="Stop loss price">
-                </div>
-
-                <div class="button-group">
-                    <button type="submit" class="submit-btn">Create Signal</button>
-                    <button type="button" class="watchlist-btn" onclick="addToWatchlist()">Add to Watchlist</button>
-                    <button type="button" class="clear-btn" onclick="clearForm()">Clear</button>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="add-to-watchlist">Add to Watch List</button>
+                    <button type="button" class="btn btn-secondary" id="reset-form">Reset Form</button>
+                    <button type="submit" class="btn btn-primary">Create Signal</button>
                 </div>
             </form>
         </div>
 
-        <!-- Balance and Account Info -->
-        <div class="account-info">
-            <h2>Account Information</h2>
-            <div id="balance-info" class="balance-container">
-                <div class="balance-item">
-                    <span class="balance-label">Available Balance:</span>
-                    <span class="balance-value" id="available-balance">Loading...</span>
+        <div class="info-panel">
+            <div class="account-info">
+                <div class="account-header">
+                    <h3>Account Info</h3>
+                    <button class="refresh-balance-btn" onclick="tradingForm.refreshBalance()" title="Refresh balance from BingX">
+                        ↻
+                    </button>
                 </div>
-                <div class="balance-item">
-                    <span class="balance-label">Used Margin:</span>
-                    <span class="balance-value" id="used-margin">Loading...</span>
+                <div class="info-item">
+                    <span class="label">Total Assets:</span>
+                    <span class="value total-assets" id="total-assets">$0.00</span>
                 </div>
-                <div class="balance-item">
-                    <span class="balance-label">Unrealized PnL:</span>
-                    <span class="balance-value" id="unrealized-pnl">Loading...</span>
+                <div class="info-item">
+                    <span class="label">Available Balance:</span>
+                    <span class="value" id="available-balance">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Margin Used:</span>
+                    <span class="value" id="margin-used">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Position Size (3.3%):</span>
+                    <span class="value" id="position-size">$0.00</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Last Updated:</span>
+                    <span class="value" id="last-updated">Loading...</span>
                 </div>
             </div>
-            <button onclick="refreshBalance()" class="refresh-btn">Refresh Balance</button>
-        </div>
 
-        <!-- Watchlist Section -->
-        <div class="watchlist-section">
-            <h2>Watchlist</h2>
-            <div id="watchlist-container" class="watchlist-container">
-                <!-- Watchlist items will be loaded here -->
+            <div class="recent-signals">
+                <div class="positions-header">
+                    <h3>Active Positions</h3>
+                    <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
+                        ↻
+                    </button>
+                </div>
+                <div class="signal-list" id="signal-list">
+                    <p class="no-signals">No active positions</p>
+                </div>
             </div>
-            <button onclick="loadWatchlist()" class="refresh-btn">Refresh Watchlist</button>
-        </div>
 
-        <!-- Active Positions Section -->
-        <div class="positions-section">
-            <h2>Active Positions</h2>
-            <div id="positions-container" class="positions-container">
-                <!-- Positions will be loaded here -->
-                <p class="no-signals">No active positions</p>
+            <div class="watchlist-panel">
+                <div class="watchlist-header">
+                    <h3>Watch List</h3>
+                    <button class="refresh-watchlist-btn" onclick="tradingForm.refreshWatchlist()" title="Refresh prices from BingX">
+                        ↻
+                    </button>
+                </div>
+                <div class="watchlist-items" id="watchlist-items">
+                    <p class="no-watchlist">No watchlist items</p>
+                </div>
             </div>
-            <button onclick="loadPositions()" class="refresh-btn">Refresh Positions</button>
         </div>
     </div>
 

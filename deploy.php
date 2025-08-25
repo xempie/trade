@@ -54,8 +54,13 @@ class SafeDeployment {
                 throw new Exception("SFTP authentication failed");
             }
         } else {
-            // For FTP connections
-            $this->ftpConnection = ftp_connect($this->config['host'], $this->config['port']);
+            // For FTP connections with SSL/TLS support
+            $this->ftpConnection = ftp_ssl_connect($this->config['host'], $this->config['port']);
+            if (!$this->ftpConnection) {
+                // Fallback to regular FTP if SSL fails
+                $this->ftpConnection = ftp_connect($this->config['host'], $this->config['port']);
+            }
+            
             if (!ftp_login($this->ftpConnection, $this->config['username'], $this->config['password'])) {
                 throw new Exception("FTP login failed");
             }
@@ -113,7 +118,8 @@ class SafeDeployment {
         );
         
         foreach ($files as $file) {
-            if ($file->isDot()) continue;
+            $filename = $file->getFilename();
+            if ($filename == '.' || $filename == '..') continue;
             
             $relativePath = str_replace($localDir . DIRECTORY_SEPARATOR, '', $file->getPathname());
             $relativePath = str_replace('\\', '/', $relativePath);

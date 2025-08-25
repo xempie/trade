@@ -117,11 +117,23 @@ try {
     $exchangePositions = getBingXPositions($apiKey, $apiSecret);
     
     // Create a map of exchange positions by symbol and side
+    // Also normalize field names for JavaScript compatibility
     $exchangeMap = [];
     foreach ($exchangePositions as $pos) {
         if (isset($pos['symbol']) && isset($pos['positionSide']) && floatval($pos['positionAmt']) != 0) {
             $key = $pos['symbol'] . '_' . $pos['positionSide'];
-            $exchangeMap[$key] = $pos;
+            
+            // Map BingX field names to our expected field names
+            $normalizedPosition = $pos;
+            $normalizedPosition['unrealized_pnl'] = $pos['unrealizedProfit'] ?? 0;
+            $normalizedPosition['mark_price'] = $pos['markPrice'] ?? 0;
+            $normalizedPosition['entry_price'] = $pos['avgPrice'] ?? 0;
+            $normalizedPosition['position_value'] = $pos['positionValue'] ?? 0;
+            $normalizedPosition['margin_used'] = $pos['margin'] ?? $pos['initialMargin'] ?? 0;
+            $normalizedPosition['side'] = $pos['positionSide'] ?? '';
+            $normalizedPosition['quantity'] = $pos['positionAmt'] ?? 0;
+            
+            $exchangeMap[$key] = $normalizedPosition;
         }
     }
     

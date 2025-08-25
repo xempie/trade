@@ -15,17 +15,27 @@ class TradingForm {
 
     init() {
         // Form submission
-        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        if (this.form) {
+            this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        }
         
-        // Add to watchlist button
-        document.getElementById('add-to-watchlist').addEventListener('click', () => this.addToWatchlist());
+        // Add to watchlist button (optional)
+        const addToWatchlistBtn = document.getElementById('add-to-watchlist');
+        if (addToWatchlistBtn) {
+            addToWatchlistBtn.addEventListener('click', () => this.addToWatchlist());
+        }
         
-        // Reset form button
-        document.getElementById('reset-form').addEventListener('click', () => this.resetForm());
+        // Reset form button (optional)
+        const resetFormBtn = document.getElementById('reset-form');
+        if (resetFormBtn) {
+            resetFormBtn.addEventListener('click', () => this.resetForm());
+        }
         
         // Real-time calculations
         const leverageSelect = document.getElementById('leverage');
-        leverageSelect.addEventListener('change', () => this.updateAccountInfo());
+        if (leverageSelect) {
+            leverageSelect.addEventListener('change', () => this.updateAccountInfo());
+        }
         
         // Enable/disable entry points
         this.setupEntryPointToggles();
@@ -52,6 +62,11 @@ class TradingForm {
             const inputEl = document.getElementById(input);
             const marginEl = document.getElementById(margin);
             const percentEl = percent ? document.getElementById(percent) : null;
+            
+            // Skip if elements don't exist
+            if (!checkboxEl || !inputEl || !marginEl) {
+                return;
+            }
             
             checkboxEl.addEventListener('change', () => {
                 const isEnabled = checkboxEl.checked;
@@ -89,10 +104,13 @@ class TradingForm {
         });
         
         // Also recalculate when market entry changes
-        document.getElementById('entry_market').addEventListener('input', () => {
-            this.calculateEntryPrice('entry_2_percent', 'entry_2');
-            this.calculateEntryPrice('entry_3_percent', 'entry_3');
-        });
+        const entryMarketEl = document.getElementById('entry_market');
+        if (entryMarketEl) {
+            entryMarketEl.addEventListener('input', () => {
+                this.calculateEntryPrice('entry_2_percent', 'entry_2');
+                this.calculateEntryPrice('entry_3_percent', 'entry_3');
+            });
+        }
         
         // Recalculate when direction changes
         document.querySelectorAll('input[name="direction"]').forEach(radio => {
@@ -109,6 +127,8 @@ class TradingForm {
 
     setupSymbolPriceFetch() {
         const symbolField = document.getElementById('symbol');
+        if (!symbolField) return;
+        
         let fetchTimeout;
         
         // Auto-uppercase input as user types
@@ -235,19 +255,22 @@ class TradingForm {
 
     updateSubmitButton() {
         const directionEl = document.querySelector('input[name="direction"]:checked');
-        const submitBtn = this.form.querySelector('.btn-primary');
+        const submitBtn = this.form ? this.form.querySelector('.btn-primary') : null;
         const direction = directionEl ? directionEl.value : 'long';
         
-        if (direction === 'short') {
-            submitBtn.textContent = 'Open Short Position';
-            submitBtn.classList.add('short');
-        } else {
-            submitBtn.textContent = 'Open Long Position';
-            submitBtn.classList.remove('short');
+        if (submitBtn) {
+            if (direction === 'short') {
+                submitBtn.textContent = 'Open Short Position';
+                submitBtn.classList.add('short');
+            } else {
+                submitBtn.textContent = 'Open Long Position';
+                submitBtn.classList.remove('short');
+            }
         }
     }
 
     setupValidation() {
+        if (!this.form) return;
         const inputs = this.form.querySelectorAll('input, select, textarea');
         
         inputs.forEach(input => {
@@ -329,6 +352,7 @@ class TradingForm {
                 this.totalBalance = result.data.total_balance;
                 this.availableBalance = result.data.available_balance;
                 this.marginUsed = result.data.margin_used;
+                this.unrealizedPnL = result.data.unrealized_pnl || 0;
                 this.totalAssets = this.marginUsed + this.availableBalance;
                 
                 // Update UI
@@ -336,7 +360,10 @@ class TradingForm {
                 
                 // Update last updated time
                 const lastUpdated = new Date().toLocaleTimeString();
-                document.getElementById('last-updated').textContent = lastUpdated;
+                const lastUpdatedEl = document.getElementById('last-updated');
+                if (lastUpdatedEl) {
+                    lastUpdatedEl.textContent = lastUpdated;
+                }
                 
                 // Show success notification
                 this.showNotification('Balance updated from BingX', 'success');
@@ -359,26 +386,60 @@ class TradingForm {
             this.totalAssets = 0;
             this.marginUsed = 0;
             
-            document.getElementById('total-assets').textContent = 'Error';
-            document.getElementById('available-balance').textContent = 'Error';
-            document.getElementById('position-size').textContent = 'Error';
-            document.getElementById('margin-used').textContent = 'Error';
-            document.getElementById('last-updated').textContent = 'API Error';
+            // Show error in UI (only if elements exist)
+            const totalAssetsEl = document.getElementById('total-assets');
+            if (totalAssetsEl) totalAssetsEl.textContent = 'Error';
+            
+            const availableBalanceEl = document.getElementById('available-balance');
+            if (availableBalanceEl) availableBalanceEl.textContent = 'Error';
+            
+            const positionSizeEl = document.getElementById('position-size');
+            if (positionSizeEl) positionSizeEl.textContent = 'Error';
+            
+            const marginUsedEl = document.getElementById('margin-used');
+            if (marginUsedEl) marginUsedEl.textContent = 'Error';
+            
+            const lastUpdatedEl = document.getElementById('last-updated');
+            if (lastUpdatedEl) lastUpdatedEl.textContent = 'API Error';
             
             this.showNotification('Failed to load balance from BingX: ' + error.message, 'error');
         }
     }
 
     updateAccountInfo() {
-        const leverage = parseInt(document.getElementById('leverage').value) || 1;
+        const leverageEl = document.getElementById('leverage');
+        const leverage = leverageEl ? parseInt(leverageEl.value) || 1 : 1;
         const positionSize = (this.totalAssets * this.positionSizePercent) / 100;
         const leverageMargin = positionSize / leverage;
 
+        // Update elements only if they exist
+        const totalAssetsEl = document.getElementById('total-assets');
+        if (totalAssetsEl) {
+            totalAssetsEl.textContent = `$${this.totalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
 
-        document.getElementById('total-assets').textContent = `$${this.totalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('available-balance').textContent = `$${this.availableBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById('position-size').textContent = `$${Math.ceil(positionSize).toLocaleString()}`;
-        document.getElementById('margin-used').textContent = `$${this.marginUsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        const availableBalanceEl = document.getElementById('available-balance');
+        if (availableBalanceEl) {
+            availableBalanceEl.textContent = `$${this.availableBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        const positionSizeEl = document.getElementById('position-size');
+        if (positionSizeEl) {
+            positionSizeEl.textContent = `$${Math.ceil(positionSize).toLocaleString()}`;
+        }
+
+        const marginUsedEl = document.getElementById('margin-used');
+        if (marginUsedEl) {
+            marginUsedEl.textContent = `$${this.marginUsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+        
+        // Update unrealized PnL with color coding
+        const pnlElement = document.getElementById('unrealized-pnl');
+        if (pnlElement) {
+            const pnlValue = this.unrealizedPnL || 0;
+            pnlElement.textContent = `$${pnlValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            pnlElement.className = `balance-value ${pnlValue >= 0 ? 'profit' : 'loss'}`;
+        }
     }
 
     async refreshBalance() {
@@ -386,6 +447,8 @@ class TradingForm {
     }
 
     getFormData() {
+        if (!this.form) return {};
+        
         const formData = new FormData(this.form);
         const data = {};
         
@@ -395,14 +458,16 @@ class TradingForm {
 
         // Add enabled entry points
         data.enabled_entries = [];
-        if (document.getElementById('entry_market_enabled').checked && data.entry_market) {
+        const entryMarketEnabled = document.getElementById('entry_market_enabled');
+        if (entryMarketEnabled && entryMarketEnabled.checked && data.entry_market) {
             data.enabled_entries.push({ 
                 type: 'market', 
                 price: data.entry_market,
                 margin: data.entry_market_margin || 0
             });
         }
-        if (document.getElementById('entry_2_enabled').checked && data.entry_2) {
+        const entry2Enabled = document.getElementById('entry_2_enabled');
+        if (entry2Enabled && entry2Enabled.checked && data.entry_2) {
             data.enabled_entries.push({ 
                 type: 'limit', 
                 price: data.entry_2,
@@ -410,7 +475,8 @@ class TradingForm {
                 percentage: data.entry_2_percent || 0
             });
         }
-        if (document.getElementById('entry_3_enabled').checked && data.entry_3) {
+        const entry3Enabled = document.getElementById('entry_3_enabled');
+        if (entry3Enabled && entry3Enabled.checked && data.entry_3) {
             data.enabled_entries.push({ 
                 type: 'limit', 
                 price: data.entry_3,
@@ -423,6 +489,7 @@ class TradingForm {
     }
 
     validateForm() {
+        if (!this.form) return true;
         const inputs = this.form.querySelectorAll('input[required], select[required]');
         let isValid = true;
 
@@ -452,14 +519,20 @@ class TradingForm {
             return;
         }
 
-        const submitBtn = this.form.querySelector('.btn-primary');
-        const originalText = submitBtn.textContent;
+        const submitBtn = this.form ? this.form.querySelector('.btn-primary') : null;
+        const originalText = submitBtn ? submitBtn.textContent : '';
         
         try {
-            const direction = document.querySelector('input[name="direction"]:checked').value;
-            submitBtn.textContent = `Opening ${direction.charAt(0).toUpperCase() + direction.slice(1)} Position...`;
-            submitBtn.disabled = true;
-            this.form.classList.add('loading');
+            const directionEl = document.querySelector('input[name="direction"]:checked');
+            const direction = directionEl ? directionEl.value : 'long';
+            
+            if (submitBtn) {
+                submitBtn.textContent = `Opening ${direction.charAt(0).toUpperCase() + direction.slice(1)} Position...`;
+                submitBtn.disabled = true;
+            }
+            if (this.form) {
+                this.form.classList.add('loading');
+            }
 
             const data = this.getFormData();
             
@@ -467,16 +540,22 @@ class TradingForm {
             await this.createSignal(data);
             
             this.showNotification('Position opened successfully!', 'success');
-            this.form.reset();
+            if (this.form) {
+                this.form.reset();
+            }
             this.updateAccountInfo();
             this.updateSubmitButton();
             
         } catch (error) {
             this.showNotification(error.message || 'Failed to create signal', 'error');
         } finally {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-            this.form.classList.remove('loading');
+            if (submitBtn) {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+            if (this.form) {
+                this.form.classList.remove('loading');
+            }
         }
     }
 
@@ -703,15 +782,23 @@ class TradingForm {
         // Confirm before resetting
         if (confirm('Are you sure you want to reset all form fields? This action cannot be undone.')) {
             // Reset the entire form
-            this.form.reset();
+            if (this.form) {
+                this.form.reset();
+            }
             
-            // Reset custom states
-            document.getElementById('entry_market_enabled').checked = true;
-            document.getElementById('entry_2_enabled').checked = false;
-            document.getElementById('entry_3_enabled').checked = false;
+            // Reset custom states (only if elements exist)
+            const entryMarketEnabled = document.getElementById('entry_market_enabled');
+            if (entryMarketEnabled) entryMarketEnabled.checked = true;
+            
+            const entry2Enabled = document.getElementById('entry_2_enabled');
+            if (entry2Enabled) entry2Enabled.checked = false;
+            
+            const entry3Enabled = document.getElementById('entry_3_enabled');
+            if (entry3Enabled) entry3Enabled.checked = false;
             
             // Reset direction to long (default)
-            document.querySelector('input[name="direction"][value="long"]').checked = true;
+            const longRadio = document.querySelector('input[name="direction"][value="long"]');
+            if (longRadio) longRadio.checked = true;
             
             // Refresh entry point states
             const entryPoints = [
@@ -833,6 +920,7 @@ class TradingForm {
     
     displayRecentPositions(positions) {
         const positionList = document.getElementById('signal-list');
+        if (!positionList) return;
         
         if (positions.length === 0) {
             positionList.innerHTML = '<p class="no-signals">No active positions</p>';
@@ -1058,6 +1146,7 @@ class TradingForm {
 
             const result = await response.json();
             const watchlistContainer = document.getElementById('watchlist-items');
+            if (!watchlistContainer) return;
             
             if (!result.success || result.data.length === 0) {
                 watchlistContainer.innerHTML = '<p class="no-watchlist">No watchlist items</p>';
@@ -1111,7 +1200,10 @@ class TradingForm {
 
         } catch (error) {
             console.error('Error loading watchlist:', error);
-            document.getElementById('watchlist-items').innerHTML = '<p class="no-watchlist">Error loading watchlist</p>';
+            const watchlistContainer = document.getElementById('watchlist-items');
+            if (watchlistContainer) {
+                watchlistContainer.innerHTML = '<p class="no-watchlist">Error loading watchlist</p>';
+            }
         }
     }
 
@@ -1251,10 +1343,9 @@ class TradingForm {
 }
 
 // Initialize the trading form when DOM is loaded
-let tradingForm; // Make globally accessible
 document.addEventListener('DOMContentLoaded', () => {
-    tradingForm = new TradingForm();
-    tradingForm.loadDraft();
-    tradingForm.updateRecentSignals();
-    tradingForm.updateWatchlistDisplay();
+    window.tradingForm = new TradingForm();
+    window.tradingForm.loadDraft();
+    window.tradingForm.updateRecentSignals();
+    window.tradingForm.updateWatchlistDisplay();
 });

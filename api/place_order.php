@@ -228,12 +228,13 @@ function setBingXPositionMode($apiKey, $apiSecret, $dualSidePosition = 'false') 
 }
 
 // Set leverage on BingX before placing order
-function setBingXLeverage($apiKey, $apiSecret, $symbol, $leverage) {
+function setBingXLeverage($apiKey, $apiSecret, $symbol, $leverage, $side = 'BOTH') {
     try {
         $timestamp = round(microtime(true) * 1000);
         
         $params = [
             'symbol' => $symbol,
+            'side' => $side,
             'leverage' => $leverage,
             'timestamp' => $timestamp
         ];
@@ -256,10 +257,20 @@ function setBingXLeverage($apiKey, $apiSecret, $symbol, $leverage) {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
+        // Log the leverage setting response for debugging
+        error_log("Leverage setting response for {$symbol} to {$leverage}x: HTTP {$httpCode}, Response: " . substr($response, 0, 200));
+        
         if ($response && $httpCode == 200) {
             $data = json_decode($response, true);
-            return $data && $data['code'] == 0;
+            if ($data && $data['code'] == 0) {
+                error_log("Leverage successfully set to {$leverage}x for {$symbol}");
+                return true;
+            } else {
+                error_log("Leverage setting failed: " . json_encode($data));
+                return false;
+            }
         }
+        error_log("Leverage setting failed with HTTP {$httpCode}");
         return false;
         
     } catch (Exception $e) {
@@ -477,6 +488,9 @@ try {
     $leverage = intval($input['leverage']);
     $enabledEntries = $input['enabled_entries'];
     
+    // Log the received leverage value for debugging
+    error_log("Received order request: Symbol={$symbol}, Direction={$direction}, Leverage={$leverage}");
+    
     // Convert symbol to BingX format
     $bingxSymbol = $symbol;
     if (!strpos($bingxSymbol, 'USDT')) {
@@ -507,10 +521,11 @@ try {
             $price = floatval($entry['price']);
             $margin = floatval($entry['margin']);
             
-            // Calculate position size based on margin amount and current price
-            // For BingX, quantity should be in base currency units, not USD value
+            // Calculate position size: margin * leverage = total position value
+            // Then convert total position value to base currency quantity
             if ($price > 0) {
-                $positionSize = $margin / $price; // Convert USD margin to base currency quantity
+                $totalPositionValue = $margin * $leverage; // $35 * 10x = $350 total position
+                $positionSize = $totalPositionValue / $price; // Convert USD value to base currency quantity
                 
                 // Apply minimum order size requirements for different symbols
                 $minOrderSize = getMinOrderSize($symbol);
@@ -522,9 +537,14 @@ try {
                 // Round to appropriate decimal places based on symbol
                 $positionSize = roundToSymbolPrecision($positionSize, $symbol);
             } else {
-                $positionSize = ceil($margin); // Fallback for market orders
+                // Fallback for market orders - use margin * leverage
+                $totalPositionValue = $margin * $leverage;
+                $positionSize = $totalPositionValue; // Fallback value
             }
-            $marginUsed = ($positionSize * $price) / $leverage; // Calculate actual margin used
+            $marginUsed = $margin; // The margin entered by user is the actual margin used
+            
+            // Log the order sizing calculation
+            error_log("Order sizing: Margin={$margin}, Leverage={$leverage}, TotalValue={$totalPositionValue}, PositionSize={$positionSize}, Price={$price}");
             
             // Determine order side based on direction
             $side = $direction === 'long' ? 'BUY' : 'SELL';
@@ -547,10 +567,15 @@ try {
             
             // Place order on BingX (only for market orders, limit orders would be placed later)
             if ($orderData['type'] === 'MARKET') {
-                // Set leverage first
-                $leverageSet = setBingXLeverage($apiKey, $apiSecret, $bingxSymbol, $leverage);
+                // Set leverage first (convert order side to position side for leverage API)
+                $positionSide = ($direction === 'long') ? 'LONG' : 'SHORT';
+                $leverageSet = setBingXLeverage($apiKey, $apiSecret, $bingxSymbol, $leverage, $positionSide);
                 if (!$leverageSet) {
                     error_log("Warning: Failed to set leverage for {$bingxSymbol} to {$leverage}x");
+                } else {
+                    error_log("Successfully set leverage for {$bingxSymbol} to {$leverage}x");
+                    // Small delay to ensure leverage is applied before order
+                    usleep(500000); // 0.5 second delay
                 }
                 
                 $orderResult = placeBingXOrder($apiKey, $apiSecret, $orderData);

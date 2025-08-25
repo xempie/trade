@@ -104,6 +104,53 @@ function getOrders($pdo, $filters = []) {
     }
 }
 
+// Get BingX positions from exchange
+function getBingXPositions() {
+    $apiKey = getenv('BINGX_API_KEY') ?: '';
+    $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
+    
+    if (empty($apiKey) || empty($apiSecret)) {
+        return [];
+    }
+    
+    try {
+        $timestamp = round(microtime(true) * 1000);
+        $queryString = "timestamp={$timestamp}";
+        $signature = hash_hmac('sha256', $queryString, $apiSecret);
+        
+        $url = "https://open-api.bingx.com/openApi/swap/v2/user/positions?" . $queryString . "&signature=" . $signature;
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'X-BX-APIKEY: ' . $apiKey
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            throw new Exception("BingX API HTTP error: {$httpCode}");
+        }
+        
+        $data = json_decode($response, true);
+        
+        if (!$data || !isset($data['code']) || $data['code'] !== 0) {
+            throw new Exception('Failed to fetch positions from BingX');
+        }
+        
+        return $data['data'] ?? [];
+        
+    } catch (Exception $e) {
+        error_log("BingX positions fetch error: " . $e->getMessage());
+        return [];
+    }
+}
+
 // Get positions from database
 function getPositions($pdo, $filters = []) {
     try {
@@ -139,7 +186,60 @@ function getPositions($pdo, $filters = []) {
         }
         
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $dbPositions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Enhance positions with live BingX data
+        $enhancedPositions = [];
+        $bingxPositions = getBingXPositions();
+        
+        // Create a map of BingX positions for quick lookup
+        $bingxMap = [];
+        foreach ($bingxPositions as $bingxPos) {
+            if (isset($bingxPos['symbol']) && isset($bingxPos['positionSide']) && floatval($bingxPos['positionAmt']) != 0) {
+                $key = $bingxPos['symbol'] . '_' . $bingxPos['positionSide'];
+                $bingxMap[$key] = $bingxPos;
+            }
+        }
+        
+        // Merge database positions with live BingX data
+        foreach ($dbPositions as $dbPos) {
+            $symbol = $dbPos['symbol'];
+            $side = strtoupper($dbPos['side']);
+            $key = $symbol . '_' . $side;
+            
+            // Start with database position data
+            $position = $dbPos;
+            
+            // If we have live data from BingX, use it for real-time values
+            if (isset($bingxMap[$key])) {
+                $bingxPos = $bingxMap[$key];
+                
+                // Add live BingX data
+                $position['unrealized_pnl'] = floatval($bingxPos['unrealizedProfit'] ?? 0);
+                $position['mark_price'] = floatval($bingxPos['markPrice'] ?? 0);
+                $position['position_value'] = floatval($bingxPos['positionValue'] ?? 0);
+                $position['margin_used'] = floatval($bingxPos['margin'] ?? $bingxPos['initialMargin'] ?? 0);
+                $position['current_quantity'] = floatval($bingxPos['positionAmt'] ?? 0);
+                
+                // Calculate PnL percentage
+                $marginUsed = $position['margin_used'];
+                if ($marginUsed > 0) {
+                    $position['pnl_percentage'] = ($position['unrealized_pnl'] / $marginUsed) * 100;
+                } else {
+                    $position['pnl_percentage'] = 0;
+                }
+            } else {
+                // No live data available, use zero values
+                $position['unrealized_pnl'] = 0;
+                $position['mark_price'] = 0;
+                $position['position_value'] = 0;
+                $position['pnl_percentage'] = 0;
+            }
+            
+            $enhancedPositions[] = $position;
+        }
+        
+        return $enhancedPositions;
         
     } catch (Exception $e) {
         throw new Exception('Failed to fetch positions: ' . $e->getMessage());

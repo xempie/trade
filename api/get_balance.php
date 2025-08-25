@@ -9,15 +9,6 @@ protectAPI();
 ini_set('display_errors', 0);
 error_reporting(0);
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    exit(0);
-}
-
 // Load environment variables
 function loadEnv($path) {
     if (!file_exists($path)) {
@@ -148,8 +139,37 @@ function tryBingXEndpoint($apiKey, $apiSecret, $endpoint) {
         $balanceData = null;
         $accountData = $data['data'];
         
-        // Check if this is account endpoint response
-        if (isset($accountData['balance'])) {
+        // Check if this is the new balance format with a single balance object
+        if (isset($accountData['balance']) && isset($accountData['balance']['asset'])) {
+            // This is the current API format - single balance object
+            $usdtBalance = $accountData['balance'];
+            if ($usdtBalance['asset'] === 'USDT') {
+                $totalBalance = floatval($usdtBalance['balance']);
+                $availableBalance = floatval($usdtBalance['availableMargin']);
+                $marginUsed = floatval($usdtBalance['usedMargin']);
+                $unrealizedPnL = floatval($usdtBalance['unrealizedProfit']);
+                $positionSize = $totalBalance * 0.033;
+                
+                return [
+                    'success' => true,
+                    'data' => [
+                        'total_balance' => $totalBalance,
+                        'available_balance' => $availableBalance,
+                        'margin_used' => $marginUsed,
+                        'unrealized_pnl' => $unrealizedPnL,
+                        'position_size' => $positionSize,
+                        'currency' => 'USDT',
+                        'last_updated' => date('Y-m-d H:i:s')
+                    ],
+                    'debug_info' => [
+                        'response_format' => 'single_balance_object',
+                        'balance_fields' => array_keys($usdtBalance)
+                    ]
+                ];
+            }
+        }
+        // Check if this is array of balances format
+        elseif (isset($accountData['balance']) && is_array($accountData['balance'])) {
             $balanceData = $accountData['balance'];
         } elseif (isset($accountData['assets'])) {
             $balanceData = $accountData['assets'];
