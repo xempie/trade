@@ -11,8 +11,7 @@
     <div class="container">
         <div class="form-container">
             <div class="header">
-                <h1>Create Trading Signal</h1>
-                <p>Manage your crypto futures trading signals</p>
+                <h1>Trading Form</h1>                
             </div>
 
             <form id="trading-form" class="trading-form">
@@ -148,7 +147,12 @@
             </div>
 
             <div class="recent-signals">
-                <h3>Recent Positions</h3>
+                <div class="positions-header">
+                    <h3>Recent Positions</h3>
+                    <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
+                        ↻
+                    </button>
+                </div>
                 <div class="signal-list" id="signal-list">
                     <p class="no-signals">No recent positions</p>
                 </div>

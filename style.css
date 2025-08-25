@@ -420,26 +420,31 @@ input[type=number] {
     gap: 12px;
 }
 
+.signal-list,
 .watchlist-items {
     max-height: 250px;
     overflow-y: auto;
     padding-right: 4px;
 }
 
+.signal-list::-webkit-scrollbar,
 .watchlist-items::-webkit-scrollbar {
     width: 6px;
 }
 
+.signal-list::-webkit-scrollbar-track,
 .watchlist-items::-webkit-scrollbar-track {
     background: var(--dark-card);
     border-radius: 3px;
 }
 
+.signal-list::-webkit-scrollbar-thumb,
 .watchlist-items::-webkit-scrollbar-thumb {
     background: var(--dark-border);
     border-radius: 3px;
 }
 
+.signal-list::-webkit-scrollbar-thumb:hover,
 .watchlist-items::-webkit-scrollbar-thumb:hover {
     background: var(--green-5);
 }
@@ -483,6 +488,80 @@ input[type=number] {
 .signal-details {
     font-size: 12px;
     color: var(--dark-text-secondary);
+}
+
+.position-pnl {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.position-pnl.profit {
+    color: var(--green-5);
+}
+
+.position-pnl.loss {
+    color: var(--red-5);
+}
+
+/* Positions Header Styles */
+.positions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.refresh-positions-btn {
+    background: var(--green-5);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.refresh-positions-btn:hover {
+    background: var(--green-6);
+    transform: rotate(180deg);
+}
+
+.refresh-positions-btn:active {
+    transform: rotate(360deg);
+}
+
+/* Position Item Styles */
+.position-item {
+    position: relative;
+}
+
+.position-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.position-close-btn {
+    background: var(--red-5);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.position-close-btn:hover {
+    background: var(--red-6);
+    transform: translateY(-1px);
 }
 
 /* Responsive Design */

@@ -790,20 +790,14 @@ class TradingForm {
             // Clear localStorage of failed signals first
             this.cleanupFailedSignals();
             
-            // Try to fetch from database first
-            const response = await fetch('api/get_orders.php?type=signals&limit=5');
+            // Try to fetch actual positions from database first
+            const response = await fetch('api/get_orders.php?type=positions&status=OPEN&limit=5');
             
             if (response.ok) {
                 const result = await response.json();
                 
                 if (result.success && result.data.length > 0) {
-                    // Filter out signals with only failed orders (show only filled positions)
-                    const filledSignals = result.data.filter(signal => {
-                        // Only show signals that have at least one filled order
-                        return signal.filled_orders > 0;
-                    });
-                    
-                    this.displayRecentSignals(filledSignals);
+                    this.displayRecentPositions(result.data);
                     return;
                 }
             }
@@ -833,40 +827,104 @@ class TradingForm {
         }
     }
     
-    displayRecentSignals(signals) {
-        const signalList = document.getElementById('signal-list');
+    displayRecentPositions(positions) {
+        const positionList = document.getElementById('signal-list');
         
-        if (signals.length === 0) {
-            signalList.innerHTML = '<p class="no-signals">No recent positions</p>';
+        if (positions.length === 0) {
+            positionList.innerHTML = '<p class="no-signals">No open positions</p>';
             return;
         }
 
-        signalList.innerHTML = signals.map(signal => {
-            const direction = signal.signal_type || signal.direction;
-            const symbol = signal.symbol;
-            const leverage = signal.leverage;
-            const createdAt = signal.created_at;
-            let statusInfo = '';
-            if (signal.total_orders > 0) {
-                if (signal.filled_orders > 0) {
-                    statusInfo = ` (${signal.filled_orders}/${signal.total_orders} filled)`;
-                } else {
-                    statusInfo = ` (${signal.total_orders} failed)`;
-                }
-            }
+        positionList.innerHTML = positions.map(position => {
+            const direction = position.side || position.signal_type;
+            const symbol = position.symbol;
+            const leverage = position.leverage;
+            const openedAt = position.opened_at;
+            const marginUsed = parseFloat(position.margin_used).toFixed(2);
+            const pnl = position.unrealized_pnl ? parseFloat(position.unrealized_pnl).toFixed(2) : '0.00';
+            const pnlClass = parseFloat(pnl) >= 0 ? 'profit' : 'loss';
+            
+            // Calculate P&L percentage based on margin used
+            const pnlPercent = marginUsed > 0 ? ((parseFloat(pnl) / parseFloat(marginUsed)) * 100).toFixed(2) : '0.00';
+            const pnlPercentClass = parseFloat(pnlPercent) >= 0 ? 'profit' : 'loss';
+            
+            // Calculate time ago
+            const timeAgo = this.getTimeAgo(openedAt);
             
             return `
-                <div class="signal-item">
+                <div class="signal-item position-item">
                     <div class="signal-item-header">
                         <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
-                        <span class="signal-time">${new Date(createdAt).toLocaleDateString()}</span>
+                        <span class="signal-time">${timeAgo}</span>
                     </div>
                     <div class="signal-details">
-                        ${direction?.toUpperCase()} • ${leverage}x${statusInfo}
+                        ${direction?.toUpperCase()} • ${leverage}x • Margin: $${marginUsed}
+                    </div>
+                    <div class="position-pnl ${pnlClass}">
+                        P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
+                    </div>
+                    <div class="position-actions">
+                        <button 
+                            class="position-close-btn"
+                            onclick="tradingForm.closePosition(${position.id}, '${symbol}', '${direction}')" 
+                            title="Close position"
+                        >Close Position</button>
                     </div>
                 </div>
             `;
         }).join('');
+    }
+    
+    displayRecentSignals(signals) {
+        // Fallback function for localStorage data
+        this.displayRecentPositions(signals);
+    }
+
+    async refreshPositions() {
+        this.showNotification('Refreshing positions...', 'info');
+        await this.updateRecentSignals();
+    }
+
+    async closePosition(positionId, symbol, direction) {
+        if (!confirm(`Are you sure you want to close your ${direction} position on ${symbol}?`)) {
+            return;
+        }
+
+        try {
+            this.showNotification(`Closing ${symbol} ${direction} position...`, 'info');
+            
+            // Call API to close position
+            const response = await fetch('api/close_position.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    position_id: positionId,
+                    symbol: symbol,
+                    direction: direction
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showNotification(`Position closed successfully: ${result.message}`, 'success');
+                // Refresh positions list and balance
+                this.updateRecentSignals();
+                this.loadBalanceData();
+            } else {
+                throw new Error(result.error || 'Failed to close position');
+            }
+
+        } catch (error) {
+            console.error('Close position error:', error);
+            this.showNotification(`Failed to close position: ${error.message}`, 'error');
+        }
     }
 
     getTimeAgo(dateString) {
