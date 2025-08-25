@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cleanup localStorage</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .btn { padding: 10px 20px; margin: 10px; background: #e74c3c; color: white; border: none; cursor: pointer; }
+        .btn:hover { background: #c0392b; }
+        .success { color: #27ae60; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h2>Cleanup localStorage Data</h2>
+    <p>This will clear all stored trading signals that are causing display issues.</p>
+    
+    <button class="btn" onclick="clearAllStorage()">Clear All localStorage</button>
+    <button class="btn" onclick="clearTradingSignals()">Clear Trading Signals Only</button>
+    <button class="btn" onclick="showStorageData()">Show Current Storage Data</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        function clearAllStorage() {
+            localStorage.clear();
+            document.getElementById('result').innerHTML = '<div class="success">All localStorage data cleared!</div>';
+        }
+        
+        function clearTradingSignals() {
+            localStorage.removeItem('trading_signals');
+            document.getElementById('result').innerHTML = '<div class="success">Trading signals cleared!</div>';
+        }
+        
+        function showStorageData() {
+            const signals = localStorage.getItem('trading_signals');
+            const result = document.getElementById('result');
+            
+            if (signals) {
+                try {
+                    const parsed = JSON.parse(signals);
+                    result.innerHTML = '<h3>Current Trading Signals:</h3><pre style="background:#333;padding:10px;overflow:auto;max-height:400px;">' + 
+                        JSON.stringify(parsed, null, 2) + '</pre>';
+                } catch (e) {
+                    result.innerHTML = '<div style="color:red;">Invalid JSON in localStorage: ' + signals + '</div>';
+                }
+            } else {
+                result.innerHTML = '<div class="success">No trading signals in localStorage</div>';
+            }
+        }
+    </script>
+</body>
+</html>

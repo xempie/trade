@@ -8,6 +8,9 @@
       "Bash(php:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\c\\xampp\\htdocs"
+    ]
   }
 }
