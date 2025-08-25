@@ -208,32 +208,61 @@ function getPositions($pdo, $filters = []) {
         $bingxMap = [];
         foreach ($bingxPositions as $bingxPos) {
             if (isset($bingxPos['symbol']) && isset($bingxPos['positionSide']) && floatval($bingxPos['positionAmt']) != 0) {
-                $key = $bingxPos['symbol'] . '_' . $bingxPos['positionSide'];
+                // Try multiple key formats for better matching
+                $symbol = $bingxPos['symbol'];
+                $side = strtoupper($bingxPos['positionSide']);
+                
+                $key = $symbol . '_' . $side;
                 $bingxMap[$key] = $bingxPos;
+                
+                // Also create alternative keys for common format variations
+                if (strpos($symbol, '-') !== false) {
+                    $altSymbol = str_replace('-', '', $symbol); // ALGO-USDT -> ALGOUSDT
+                    $bingxMap[$altSymbol . '_' . $side] = $bingxPos;
+                }
+                if (strpos($symbol, 'USDT') !== false) {
+                    $baseSymbol = str_replace(['-USDT', 'USDT'], '', $symbol); // ALGO-USDT -> ALGO
+                    $bingxMap[$baseSymbol . '_' . $side] = $bingxPos;
+                }
+                
                 error_log("BingX Position Key: $key, PnL: " . ($bingxPos['unrealizedProfit'] ?? 'N/A'));
             }
         }
         
         // Merge database positions with live BingX data
         foreach ($dbPositions as $dbPos) {
-            // Convert symbol to BingX format
-            $symbol = $dbPos['symbol'];
-            if (!strpos($symbol, 'USDT')) {
-                $symbol = $symbol . '-USDT';
+            // Try multiple symbol formats to match BingX data
+            $baseSymbol = $dbPos['symbol'];
+            $side = strtoupper($dbPos['side']);
+            
+            // Generate possible keys to try
+            $possibleKeys = [
+                $baseSymbol . '_' . $side,                    // ALGO_SHORT
+                $baseSymbol . '-USDT_' . $side,               // ALGO-USDT_SHORT  
+                $baseSymbol . 'USDT_' . $side,                // ALGOUSDT_SHORT
+                $baseSymbol . '-USDT_' . $side,               // ALGO-USDT_SHORT (duplicate but safe)
+            ];
+            
+            $matchedKey = null;
+            $bingxPos = null;
+            
+            // Try each possible key until we find a match
+            foreach ($possibleKeys as $key) {
+                if (isset($bingxMap[$key])) {
+                    $matchedKey = $key;
+                    $bingxPos = $bingxMap[$key];
+                    break;
+                }
             }
             
-            $side = strtoupper($dbPos['side']);
-            $key = $symbol . '_' . $side;
-            
             // Debug: Log matching attempt
-            error_log("DB Position ID: {$dbPos['id']}, Lookup Key: $key, Matched: " . (isset($bingxMap[$key]) ? 'YES' : 'NO'));
+            error_log("DB Position ID: {$dbPos['id']}, Matched Key: " . ($matchedKey ?? 'NONE') . ", Available Keys: " . implode(', ', array_keys($bingxMap)));
             
             // Start with database position data
             $position = $dbPos;
             
             // If we have live data from BingX, use it for real-time values
-            if (isset($bingxMap[$key])) {
-                $bingxPos = $bingxMap[$key];
+            if ($bingxPos !== null) {
                 
                 // Add live BingX data
                 $position['unrealized_pnl'] = floatval($bingxPos['unrealizedProfit'] ?? 0);
@@ -252,7 +281,7 @@ function getPositions($pdo, $filters = []) {
                 
                 // Add debug info to position
                 $position['debug_matched'] = true;
-                $position['debug_key'] = $key;
+                $position['debug_key'] = $matchedKey;
             } else {
                 // No live data available, use zero values
                 $position['unrealized_pnl'] = 0;
@@ -262,7 +291,7 @@ function getPositions($pdo, $filters = []) {
                 
                 // Add debug info to position
                 $position['debug_matched'] = false;
-                $position['debug_key'] = $key;
+                $position['debug_tried_keys'] = $possibleKeys;
                 $position['debug_available_keys'] = array_keys($bingxMap);
                 $position['debug_test'] = 'DEBUG_VERSION_DEPLOYED';
             }
