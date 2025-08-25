@@ -1259,10 +1259,12 @@ class TradingForm {
             position: fixed;
             top: 20px;
             right: 20px;
+            left: 20px;
             padding: 16px 20px;
             border-radius: 8px;
             color: white;
-            font-weight: 600;
+            font-weight: 400;
+            font-size: 12px;
             z-index: 1000;
             transition: all 0.3s ease;
             background: ${type === 'success' ? 'var(--green-5)' : type === 'error' ? '#e74c3c' : 'var(--dark-surface)'};
