@@ -634,8 +634,23 @@ input[type=number] {
     }
     
     .entry-row {
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .entry-row input {
+        min-width: 0;
+        flex-shrink: 1;
+    }
+    
+    .margin-input {
+        flex: 1 1 120px !important;
+        min-width: 100px !important;
+    }
+    
+    .percent-input {
+        flex: 0 0 60px !important;
+        min-width: 50px !important;
     }
     
     .form-actions {

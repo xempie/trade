@@ -51,57 +51,21 @@ class TradingForm {
     }
 
     setupEntryPointToggles() {
-        const entryPoints = [
-            { checkbox: 'entry_market_enabled', input: 'entry_market', margin: 'entry_market_margin' },
-            { checkbox: 'entry_2_enabled', input: 'entry_2', margin: 'entry_2_margin', percent: 'entry_2_percent' },
-            { checkbox: 'entry_3_enabled', input: 'entry_3', margin: 'entry_3_margin', percent: 'entry_3_percent' }
-        ];
-
-        entryPoints.forEach(({ checkbox, input, margin, percent }) => {
-            const checkboxEl = document.getElementById(checkbox);
-            const inputEl = document.getElementById(input);
-            const marginEl = document.getElementById(margin);
-            const percentEl = percent ? document.getElementById(percent) : null;
-            
-            // Skip if elements don't exist
-            if (!checkboxEl || !inputEl || !marginEl) {
-                return;
-            }
-            
-            checkboxEl.addEventListener('change', () => {
-                const isEnabled = checkboxEl.checked;
-                inputEl.disabled = !isEnabled;
-                marginEl.disabled = !isEnabled;
-                if (percentEl) percentEl.disabled = !isEnabled;
-                
-                inputEl.style.opacity = isEnabled ? '1' : '0.5';
-                marginEl.style.opacity = isEnabled ? '1' : '0.5';
-                if (percentEl) percentEl.style.opacity = isEnabled ? '1' : '0.5';
-                
-                if (!isEnabled) {
-                    inputEl.value = '';
-                    marginEl.value = '';
-                    if (percentEl) percentEl.value = '';
-                }
+        // Set up percentage calculation for Entry 2 and Entry 3
+        const entry2Percent = document.getElementById('entry_2_percent');
+        const entry3Percent = document.getElementById('entry_3_percent');
+        
+        if (entry2Percent) {
+            entry2Percent.addEventListener('input', () => {
+                this.calculateEntryPrice('entry_2_percent', 'entry_2');
             });
-            
-            // Set up percentage calculation for Entry 2 and Entry 3
-            if (percentEl) {
-                percentEl.addEventListener('input', () => {
-                    this.calculateEntryPrice(percent, input);
-                });
-            }
-            
-            // Initial state
-            const isEnabled = checkboxEl.checked;
-            inputEl.disabled = !isEnabled;
-            marginEl.disabled = !isEnabled;
-            if (percentEl) percentEl.disabled = !isEnabled;
-            
-            inputEl.style.opacity = isEnabled ? '1' : '0.5';
-            marginEl.style.opacity = isEnabled ? '1' : '0.5';
-            if (percentEl) percentEl.style.opacity = isEnabled ? '1' : '0.5';
-        });
+        }
+        
+        if (entry3Percent) {
+            entry3Percent.addEventListener('input', () => {
+                this.calculateEntryPrice('entry_3_percent', 'entry_3');
+            });
+        }
         
         // Also recalculate when market entry changes
         const entryMarketEl = document.getElementById('entry_market');
@@ -456,18 +420,20 @@ class TradingForm {
             data[key] = value;
         }
 
-        // Add enabled entry points
+        // Add enabled entry points (based on having values, not checkboxes)
         data.enabled_entries = [];
-        const entryMarketEnabled = document.getElementById('entry_market_enabled');
-        if (entryMarketEnabled && entryMarketEnabled.checked && data.entry_market) {
+        
+        // Market entry - add if both margin and price have values
+        if (data.entry_market && data.entry_market_margin) {
             data.enabled_entries.push({ 
                 type: 'market', 
                 price: data.entry_market,
                 margin: data.entry_market_margin || 0
             });
         }
-        const entry2Enabled = document.getElementById('entry_2_enabled');
-        if (entry2Enabled && entry2Enabled.checked && data.entry_2) {
+        
+        // Entry 2 - add if margin and (price or percentage) have values
+        if (data.entry_2_margin && (data.entry_2 || data.entry_2_percent)) {
             data.enabled_entries.push({ 
                 type: 'limit', 
                 price: data.entry_2,
@@ -475,8 +441,9 @@ class TradingForm {
                 percentage: data.entry_2_percent || 0
             });
         }
-        const entry3Enabled = document.getElementById('entry_3_enabled');
-        if (entry3Enabled && entry3Enabled.checked && data.entry_3) {
+        
+        // Entry 3 - add if margin and (price or percentage) have values
+        if (data.entry_3_margin && (data.entry_3 || data.entry_3_percent)) {
             data.enabled_entries.push({ 
                 type: 'limit', 
                 price: data.entry_3,
@@ -499,14 +466,14 @@ class TradingForm {
             }
         });
 
-        // At least one entry point must be enabled
-        const hasEnabledEntry = document.getElementById('entry_market_enabled').checked ||
-                               document.getElementById('entry_2_enabled').checked ||
-                               document.getElementById('entry_3_enabled').checked;
+        // At least one entry point must have a value
+        const hasValidEntry = (document.getElementById('entry_market_margin')?.value && document.getElementById('entry_market')?.value) ||
+                             (document.getElementById('entry_2_margin')?.value && (document.getElementById('entry_2_percent')?.value || document.getElementById('entry_2')?.value)) ||
+                             (document.getElementById('entry_3_margin')?.value && (document.getElementById('entry_3_percent')?.value || document.getElementById('entry_3')?.value));
 
-        if (!hasEnabledEntry) {
+        if (!hasValidEntry) {
             isValid = false;
-            this.showNotification('At least one entry point must be enabled', 'error');
+            this.showNotification('At least one entry point must have both margin value and price/percentage', 'error');
         }
 
         return isValid;
@@ -661,56 +628,60 @@ class TradingForm {
         const direction = directionEl.value;
         const watchlistItems = [];
 
-        // Check entry 2 if enabled and has value
-        if (document.getElementById('entry_2_enabled').checked && document.getElementById('entry_2').value) {
-            const entry2Price = parseFloat(document.getElementById('entry_2').value);
-            const entry2Margin = parseFloat(document.getElementById('entry_2_margin').value) || 0;
+        // Check entry 2 if it has values
+        const entry2Value = document.getElementById('entry_2').value;
+        const entry2Margin = document.getElementById('entry_2_margin').value;
+        if (entry2Value && entry2Margin) {
+            const entry2Price = parseFloat(entry2Value);
+            const entry2MarginNum = parseFloat(entry2Margin) || 0;
             const entry2Percent = parseFloat(document.getElementById('entry_2_percent').value) || null;
 
             if (entry2Price > 0) {
                 watchlistItems.push({
                     entry_type: 'entry_2',
                     entry_price: entry2Price,
-                    margin_amount: entry2Margin,
+                    margin_amount: entry2MarginNum,
                     percentage: entry2Percent
                 });
             }
         }
 
-        // Check entry 3 if enabled and has value
-        if (document.getElementById('entry_3_enabled').checked && document.getElementById('entry_3').value) {
-            const entry3Price = parseFloat(document.getElementById('entry_3').value);
-            const entry3Margin = parseFloat(document.getElementById('entry_3_margin').value) || 0;
+        // Check entry 3 if it has values
+        const entry3Value = document.getElementById('entry_3').value;
+        const entry3Margin = document.getElementById('entry_3_margin').value;
+        if (entry3Value && entry3Margin) {
+            const entry3Price = parseFloat(entry3Value);
+            const entry3MarginNum = parseFloat(entry3Margin) || 0;
             const entry3Percent = parseFloat(document.getElementById('entry_3_percent').value) || null;
 
             if (entry3Price > 0) {
                 watchlistItems.push({
                     entry_type: 'entry_3',
                     entry_price: entry3Price,
-                    margin_amount: entry3Margin,
+                    margin_amount: entry3MarginNum,
                     percentage: entry3Percent
                 });
             }
         }
 
         if (watchlistItems.length === 0) {
-            this.showNotification('At least one entry point (Entry 2 or Entry 3) must be enabled with a valid price', 'error');
+            this.showNotification('At least one entry point (Entry 2 or Entry 3) must have both margin and price values', 'error');
             return;
         }
 
-        // Validate entry values for enabled entries
+        // Validate entry values for entries with values
         let validationErrors = [];
 
-        // Check entry 2 validation
-        if (document.getElementById('entry_2_enabled').checked) {
-            const entry2Price = parseFloat(document.getElementById('entry_2').value) || 0;
-            const entry2Margin = parseFloat(document.getElementById('entry_2_margin').value) || 0;
+        // Check entry 2 validation if it has values
+        if (entry2Value && entry2Margin) {
+            const entry2Price = parseFloat(entry2Value) || 0;
+            const entry2MarginNum = parseFloat(entry2Margin) || 0;
             const entry2Percent = parseFloat(document.getElementById('entry_2_percent').value) || 0;
 
             if (entry2Price <= 0) {
                 validationErrors.push('Entry 2 price must be greater than 0');
             }
-            if (entry2Margin <= 0) {
+            if (entry2MarginNum <= 0) {
                 validationErrors.push('Entry 2 order value must be greater than 0');
             }
             if (entry2Percent <= 0) {
@@ -718,16 +689,16 @@ class TradingForm {
             }
         }
 
-        // Check entry 3 validation
-        if (document.getElementById('entry_3_enabled').checked) {
-            const entry3Price = parseFloat(document.getElementById('entry_3').value) || 0;
-            const entry3Margin = parseFloat(document.getElementById('entry_3_margin').value) || 0;
+        // Check entry 3 validation if it has values
+        if (entry3Value && entry3Margin) {
+            const entry3Price = parseFloat(entry3Value) || 0;
+            const entry3MarginNum = parseFloat(entry3Margin) || 0;
             const entry3Percent = parseFloat(document.getElementById('entry_3_percent').value) || 0;
 
             if (entry3Price <= 0) {
                 validationErrors.push('Entry 3 price must be greater than 0');
             }
-            if (entry3Margin <= 0) {
+            if (entry3MarginNum <= 0) {
                 validationErrors.push('Entry 3 order value must be greater than 0');
             }
             if (entry3Percent <= 0) {
@@ -786,42 +757,9 @@ class TradingForm {
                 this.form.reset();
             }
             
-            // Reset custom states (only if elements exist)
-            const entryMarketEnabled = document.getElementById('entry_market_enabled');
-            if (entryMarketEnabled) entryMarketEnabled.checked = true;
-            
-            const entry2Enabled = document.getElementById('entry_2_enabled');
-            if (entry2Enabled) entry2Enabled.checked = false;
-            
-            const entry3Enabled = document.getElementById('entry_3_enabled');
-            if (entry3Enabled) entry3Enabled.checked = false;
-            
             // Reset direction to long (default)
             const longRadio = document.querySelector('input[name="direction"][value="long"]');
             if (longRadio) longRadio.checked = true;
-            
-            // Refresh entry point states
-            const entryPoints = [
-                { checkbox: 'entry_market_enabled', input: 'entry_market', margin: 'entry_market_margin' },
-                { checkbox: 'entry_2_enabled', input: 'entry_2', margin: 'entry_2_margin', percent: 'entry_2_percent' },
-                { checkbox: 'entry_3_enabled', input: 'entry_3', margin: 'entry_3_margin', percent: 'entry_3_percent' }
-            ];
-            
-            entryPoints.forEach(({ checkbox, input, margin, percent }) => {
-                const checkboxEl = document.getElementById(checkbox);
-                const inputEl = document.getElementById(input);
-                const marginEl = document.getElementById(margin);
-                const percentEl = percent ? document.getElementById(percent) : null;
-                
-                const isEnabled = checkboxEl.checked;
-                inputEl.disabled = !isEnabled;
-                marginEl.disabled = !isEnabled;
-                if (percentEl) percentEl.disabled = !isEnabled;
-                
-                inputEl.style.opacity = isEnabled ? '1' : '0.5';
-                marginEl.style.opacity = isEnabled ? '1' : '0.5';
-                if (percentEl) percentEl.style.opacity = isEnabled ? '1' : '0.5';
-            });
             
             // Update button state
             this.updateSubmitButton();
@@ -835,15 +773,16 @@ class TradingForm {
     }
 
     clearWatchlistFields() {
-        // Clear entry points 2 and 3 if they were used for watchlist
-        if (document.getElementById('entry_2_enabled').checked) {
-            document.getElementById('entry_2_percent').value = '';
-            document.getElementById('entry_2').value = '';
-        }
-        if (document.getElementById('entry_3_enabled').checked) {
-            document.getElementById('entry_3_percent').value = '';
-            document.getElementById('entry_3').value = '';
-        }
+        // Clear entry points 2 and 3 if they have values
+        const entry2Percent = document.getElementById('entry_2_percent');
+        const entry2Price = document.getElementById('entry_2');
+        const entry3Percent = document.getElementById('entry_3_percent');
+        const entry3Price = document.getElementById('entry_3');
+        
+        if (entry2Percent) entry2Percent.value = '';
+        if (entry2Price) entry2Price.value = '';
+        if (entry3Percent) entry3Percent.value = '';
+        if (entry3Price) entry3Price.value = '';
     }
 
     autoSave() {

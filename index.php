@@ -84,11 +84,6 @@ $isLocal = isLocalhost();
                         <div class="entry-row">
                             <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="entry_market_enabled" name="entry_market_enabled" checked>
-                                <span class="checkbox-custom"></span>
-                                Enable
-                            </label>
                         </div>
                     </div>
 
@@ -98,11 +93,6 @@ $isLocal = isLocalhost();
                             <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
                             <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="entry_2_enabled" name="entry_2_enabled">
-                                <span class="checkbox-custom"></span>
-                                Enable
-                            </label>
                         </div>
                     </div>
 
@@ -112,11 +102,6 @@ $isLocal = isLocalhost();
                             <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
                             <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="entry_3_enabled" name="entry_3_enabled">
-                                <span class="checkbox-custom"></span>
-                                Enable
-                            </label>
                         </div>
                     </div>
                 </div>
