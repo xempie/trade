@@ -101,12 +101,12 @@ body {
 .form-group input,
 .form-group select,
 .form-group textarea {
-    padding: 12px 16px;
-    border: 2px solid var(--dark-border);
+    padding: 12px 5px;
+    border: 1px solid var(--dark-border);
     border-radius: 8px;
     background: var(--dark-card);
     color: var(--dark-text-primary);
-    font-size: 14px;
+    font-size: 12px;
     font-family: 'Roboto', sans-serif;
     transition: all 0.3s ease;
 }
@@ -201,12 +201,12 @@ body {
 }
 
 .percent-input {
-    flex: 0 0 25% !important;
+    flex: 0 0 20% !important;
     min-width: 50px;
 }
 
 .entry-row input:not(.margin-input):not(.percent-input) {
-    flex: 0 0 50% !important;
+    flex: 0 0 45% !important;
 }
 
 
@@ -629,7 +629,7 @@ input[type=number] {
     }
     
     .form-container {
-        padding: 20px;
+        padding: 20px 10px;
     }
     
     .entry-row {
