@@ -4,7 +4,8 @@
       "Bash(start http://localhost/trade/)",
       "Bash(git push:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(php:*)"
     ],
     "deny": [],
     "ask": []
