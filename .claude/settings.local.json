@@ -9,7 +9,10 @@
       "Bash(dir .env*)",
       "Bash(start http://localhost/trade/index-local.html)",
       "Bash(curl:*)",
-      "Bash(copy index.html index-working.html)"
+      "Bash(copy index.html index-working.html)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": [],
     "ask": [],
