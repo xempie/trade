@@ -16,6 +16,12 @@ $isLocal = isLocalhost();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Trading Management</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon-32x32.png">
+    <link rel="apple-touch-icon" href="favicon-32x32.png">
+    <link rel="shortcut icon" href="favicon-32x32.png">
+    
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>

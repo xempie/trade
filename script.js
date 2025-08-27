@@ -218,7 +218,7 @@ class TradingForm {
         const marketPrice = parseFloat(marketPriceEl.value);
         const direction = directionEl ? directionEl.value : 'long';
         
-        if (!percentage || !marketPrice || percentage === 0) {
+        if (isNaN(percentage) || !marketPrice || percentage === 0) {
             priceEl.value = '';
             return;
         }
@@ -246,7 +246,7 @@ class TradingForm {
         const marketPrice = parseFloat(marketPriceEl.value);
         const direction = directionEl ? directionEl.value : 'long';
         
-        if (!percentage || !marketPrice || percentage === 0) {
+        if (isNaN(percentage) || !marketPrice || percentage === 0) {
             priceEl.value = '';
             return;
         }
@@ -794,8 +794,8 @@ class TradingForm {
             if (entry2MarginNum <= 0) {
                 validationErrors.push('Entry 2 order value must be greater than 0');
             }
-            if (entry2Percent <= 0) {
-                validationErrors.push('Entry 2 percentage must be greater than 0');
+            if (entry2Percent === 0) {
+                validationErrors.push('Entry 2 percentage cannot be 0');
             }
         }
 
@@ -811,8 +811,8 @@ class TradingForm {
             if (entry3MarginNum <= 0) {
                 validationErrors.push('Entry 3 order value must be greater than 0');
             }
-            if (entry3Percent <= 0) {
-                validationErrors.push('Entry 3 percentage must be greater than 0');
+            if (entry3Percent === 0) {
+                validationErrors.push('Entry 3 percentage cannot be 0');
             }
         }
 
