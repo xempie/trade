@@ -737,6 +737,9 @@ class TradingForm {
         const symbol = symbolEl.value.toUpperCase();
         const direction = directionEl.value;
         const watchlistItems = [];
+        
+        // Get current market price from the form to use as initial_price
+        const marketPrice = parseFloat(document.getElementById('entry_market').value) || null;
 
         // Check entry 2 if it has values
         const entry2Value = document.getElementById('entry_2').value;
@@ -751,7 +754,8 @@ class TradingForm {
                     entry_type: 'entry_2',
                     entry_price: entry2Price,
                     margin_amount: entry2MarginNum,
-                    percentage: entry2Percent
+                    percentage: entry2Percent,
+                    initial_price: marketPrice
                 });
             }
         }
@@ -769,7 +773,8 @@ class TradingForm {
                     entry_type: 'entry_3',
                     entry_price: entry3Price,
                     margin_amount: entry3MarginNum,
-                    percentage: entry3Percent
+                    percentage: entry3Percent,
+                    initial_price: marketPrice
                 });
             }
         }
@@ -1382,34 +1387,47 @@ class TradingForm {
 
         const currentPrice = parseFloat(item.current_price);
         const targetPrice = parseFloat(item.entry_price);
-        
-        // Use distance_percent to calculate progress
-        // distance_percent shows how much price needs to change to reach target
-        const distancePercent = parseFloat(item.distance_percent);
+        const initialPrice = item.initial_price ? parseFloat(item.initial_price) : null;
         
         let progress = 0;
         
-        if (item.direction === 'long') {
-            // Long: we want price to drop to target
-            // When distance is 0%, we've reached target (100% progress)
-            // When distance is positive, we're above target (less progress)
-            // When distance is negative, we've passed target (100% progress)
-            if (distancePercent <= 0) {
-                progress = 100; // Reached or passed target
+        if (initialPrice && initialPrice !== targetPrice) {
+            // Use actual initial price for accurate progress calculation
+            if (item.direction === 'long') {
+                // Long: progress from initial price (top) to target price (bottom)
+                // Progress = (initial - current) / (initial - target)
+                if (initialPrice > targetPrice) {
+                    progress = Math.max(0, Math.min(100, 
+                        ((initialPrice - currentPrice) / (initialPrice - targetPrice)) * 100
+                    ));
+                }
             } else {
-                // Cap at reasonable range - show progress when within 10% of target
-                progress = Math.max(0, Math.min(100, (10 - distancePercent) / 10 * 100));
+                // Short: progress from initial price (bottom) to target price (top)
+                // Progress = (current - initial) / (target - initial)
+                if (targetPrice > initialPrice) {
+                    progress = Math.max(0, Math.min(100, 
+                        ((currentPrice - initialPrice) / (targetPrice - initialPrice)) * 100
+                    ));
+                }
             }
         } else {
-            // Short: we want price to rise to target
-            // When distance is 0%, we've reached target (100% progress)  
-            // When distance is negative, we're below target (less progress)
-            // When distance is positive, we've passed target (100% progress)
-            if (distancePercent >= 0) {
-                progress = 100; // Reached or passed target
+            // Fallback to distance_percent method for items without initial_price
+            const distancePercent = parseFloat(item.distance_percent);
+            
+            if (item.direction === 'long') {
+                if (distancePercent <= 0) {
+                    progress = 100; // Reached or passed target
+                } else {
+                    // Show progress when within 10% of target
+                    progress = Math.max(0, Math.min(100, (10 - distancePercent) / 10 * 100));
+                }
             } else {
-                // Cap at reasonable range - show progress when within 10% of target
-                progress = Math.max(0, Math.min(100, (10 + distancePercent) / 10 * 100));
+                if (distancePercent >= 0) {
+                    progress = 100; // Reached or passed target
+                } else {
+                    // Show progress when within 10% of target
+                    progress = Math.max(0, Math.min(100, (10 + distancePercent) / 10 * 100));
+                }
             }
         }
         
