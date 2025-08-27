@@ -42,6 +42,9 @@ function loadEnv($path) {
 $envPath = __DIR__ . '/../.env';
 loadEnv($envPath);
 
+// Load API helper for trading mode support
+require_once __DIR__ . '/api_helper.php';
+
 // Database connection
 function getDbConnection() {
     $host = getenv('DB_HOST') ?: 'localhost';
@@ -69,7 +72,8 @@ function getAccountBalance($apiKey, $apiSecret) {
         $queryString = "timestamp={$timestamp}";
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
-        $url = "https://open-api.bingx.com/openApi/swap/v2/user/balance?" . $queryString . "&signature=" . $signature;
+        $baseUrl = getBingXApiUrl();
+        $url = $baseUrl . "/openApi/swap/v2/user/balance?" . $queryString . "&signature=" . $signature;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -201,7 +205,8 @@ function setBingXPositionMode($apiKey, $apiSecret, $dualSidePosition = 'false') 
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://open-api.bingx.com/openApi/swap/v2/trade/positionSide/dual");
+        $baseUrl = getBingXApiUrl();
+        curl_setopt($ch, CURLOPT_URL, $baseUrl . "/openApi/swap/v2/trade/positionSide/dual");
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -243,7 +248,8 @@ function setBingXLeverage($apiKey, $apiSecret, $symbol, $leverage, $side = 'BOTH
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://open-api.bingx.com/openApi/swap/v2/trade/leverage");
+        $baseUrl = getBingXApiUrl();
+        curl_setopt($ch, CURLOPT_URL, $baseUrl . "/openApi/swap/v2/trade/leverage");
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -312,7 +318,8 @@ function placeBingXOrder($apiKey, $apiSecret, $orderData) {
         error_log("BingX Query String: " . $queryString);
         
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://open-api.bingx.com/openApi/swap/v2/trade/order");
+        $baseUrl = getBingXApiUrl();
+        curl_setopt($ch, CURLOPT_URL, $baseUrl . "/openApi/swap/v2/trade/order");
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

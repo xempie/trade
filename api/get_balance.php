@@ -37,6 +37,9 @@ function loadEnv($path) {
 $envPath = __DIR__ . '/../.env';
 loadEnv($envPath);
 
+// Load API helper for trading mode support
+require_once __DIR__ . '/api_helper.php';
+
 // Get BingX API credentials
 $apiKey = getenv('BINGX_API_KEY') ?: '';
 $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
@@ -87,7 +90,8 @@ function tryBingXEndpoint($apiKey, $apiSecret, $endpoint) {
         $queryString = "timestamp={$timestamp}";
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
-        $url = "https://open-api.bingx.com" . $endpoint . "?" . $queryString . "&signature=" . $signature;
+        $baseUrl = getBingXApiUrl();
+        $url = $baseUrl . $endpoint . "?" . $queryString . "&signature=" . $signature;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -281,7 +285,8 @@ function getPositionsData($apiKey, $apiSecret) {
         $queryString = "timestamp={$timestamp}";
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
-        $url = "https://open-api.bingx.com/openApi/swap/v2/user/positions?" . $queryString . "&signature=" . $signature;
+        $baseUrl = getBingXApiUrl();
+        $url = $baseUrl . "/openApi/swap/v2/user/positions?" . $queryString . "&signature=" . $signature;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
