@@ -367,7 +367,7 @@ input[type=number] {
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 22px;
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -375,6 +375,7 @@ input[type=number] {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    padding-bottom: 4px;
 }
 
 .refresh-balance-btn:hover {
@@ -548,7 +549,7 @@ input[type=number] {
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 22px;
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -556,6 +557,7 @@ input[type=number] {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    padding-bottom: 4px;
 }
 
 .refresh-positions-btn:hover {
