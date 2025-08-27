@@ -1213,7 +1213,11 @@ class TradingForm {
                 
                 return `
                     <div class="watchlist-item" data-id="${item.id}">
-                        <div class="watchlist-item-header">
+                        <div class="watchlist-progress-bar">
+                            <div class="watchlist-progress-fill" data-direction="${item.direction}"></div>
+                        </div>
+                        <div class="watchlist-item-content">
+                            <div class="watchlist-item-header">
                             <div class="watchlist-symbol-container">
                                 <strong class="watchlist-symbol ${directionClass}">${item.symbol}</strong>
                                 <span class="watchlist-close-indicator" style="display: none;"></span>
@@ -1235,11 +1239,12 @@ class TradingForm {
                             <span>Margin: $${parseFloat(item.margin_amount).toFixed(2)}</span>
                             <span>${percentageDisplay}</span>
                         </div>
-                        <button 
-                            class="watchlist-remove-btn"
-                            onclick="tradingForm.removeWatchlistItem(${item.id})" 
-                            title="Remove from watchlist"
-                        >×</button>
+                            <button 
+                                class="watchlist-remove-btn"
+                                onclick="tradingForm.removeWatchlistItem(${item.id})" 
+                                title="Remove from watchlist"
+                            >×</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1312,10 +1317,19 @@ class TradingForm {
                         closeIndicator.style.display = 'none';
                         closeIndicator.classList.remove('close', 'reached');
                     }
+                    
+                    // Update progress bar
+                    this.updateProgressBar(watchlistElement, item);
                 } else {
                     priceInfoElement.innerHTML = 'Price unavailable';
                     closeIndicator.style.display = 'none';
                     closeIndicator.classList.remove('close', 'reached');
+                    
+                    // Reset progress bar when price unavailable
+                    const progressFill = watchlistElement.querySelector('.watchlist-progress-fill');
+                    if (progressFill) {
+                        progressFill.style.height = '0%';
+                    }
                 }
             });
 
@@ -1360,6 +1374,46 @@ class TradingForm {
             console.error('Error removing watchlist item:', error);
             this.showNotification('Failed to remove from watchlist', 'error');
         }
+    }
+
+    updateProgressBar(watchlistElement, item) {
+        const progressFill = watchlistElement.querySelector('.watchlist-progress-fill');
+        if (!progressFill) return;
+
+        const currentPrice = parseFloat(item.current_price);
+        const targetPrice = parseFloat(item.entry_price);
+        
+        // Use distance_percent to calculate progress
+        // distance_percent shows how much price needs to change to reach target
+        const distancePercent = parseFloat(item.distance_percent);
+        
+        let progress = 0;
+        
+        if (item.direction === 'long') {
+            // Long: we want price to drop to target
+            // When distance is 0%, we've reached target (100% progress)
+            // When distance is positive, we're above target (less progress)
+            // When distance is negative, we've passed target (100% progress)
+            if (distancePercent <= 0) {
+                progress = 100; // Reached or passed target
+            } else {
+                // Cap at reasonable range - show progress when within 10% of target
+                progress = Math.max(0, Math.min(100, (10 - distancePercent) / 10 * 100));
+            }
+        } else {
+            // Short: we want price to rise to target
+            // When distance is 0%, we've reached target (100% progress)  
+            // When distance is negative, we're below target (less progress)
+            // When distance is positive, we've passed target (100% progress)
+            if (distancePercent >= 0) {
+                progress = 100; // Reached or passed target
+            } else {
+                // Cap at reasonable range - show progress when within 10% of target
+                progress = Math.max(0, Math.min(100, (10 + distancePercent) / 10 * 100));
+            }
+        }
+        
+        progressFill.style.height = `${progress}%`;
     }
 
     showNotification(message, type = 'info') {
