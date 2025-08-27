@@ -730,11 +730,47 @@ input.loading {
 
 /* Watchlist specific styles */
 .watchlist-item {
-    padding: 12px;
+    padding: 12px 12px 12px 22px;
     background: var(--dark-card);
     border-radius: 6px;
     border: 1px solid var(--dark-border);
     position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.watchlist-progress-bar {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 7px;
+    background: #444444;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.watchlist-progress-fill {
+    position: absolute;
+    width: 100%;
+    transition: height 0.3s ease-in-out;
+}
+
+.watchlist-progress-fill[data-direction="long"] {
+    background: var(--red-5);
+    top: 0;
+}
+
+.watchlist-progress-fill[data-direction="short"] {
+    background: var(--green-5);
+    bottom: 0;
+}
+
+.watchlist-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .watchlist-item-header {
