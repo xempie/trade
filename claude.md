@@ -94,3 +94,13 @@ NEVER use inline CSS styles in HTML or JavaScript. ALL styling must be defined i
 
 ## Git Commands Policy
 When user requests git commands (commit, push, pull, etc.), NEVER ask for confirmation or yes/no questions. Always proceed automatically with the requested git operations. Consider all git command requests as pre-approved and execute them immediately without prompting for user confirmation.
+
+## Deployment Configuration
+- **Server**: [REDACTED_HOST]
+- **FTP Host**: [REDACTED_HOST]
+- **FTP Username**: [REDACTED_FTP_USER]
+- **FTP Password**: [REDACTED_FTP_PASSWORD]
+- **FTP Port**: 21
+- [REDACTED_REMOTE_PATH]
+- **Connection Type**: FTP with SSL/TLS support
+- **Deployment Script**: Use simple-deploy.php for file upload

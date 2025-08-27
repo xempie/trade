@@ -827,17 +827,22 @@ class TradingForm {
         }
 
         try {
+            const requestData = {
+                symbol: symbol,
+                direction: direction,
+                watchlist_items: watchlistItems
+            };
+            
+            // Debug logging
+            console.log('Sending to watchlist API:', requestData);
+            
             // Send to database
             const response = await fetch('api/watchlist.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    symbol: symbol,
-                    direction: direction,
-                    watchlist_items: watchlistItems
-                })
+                body: JSON.stringify(requestData)
             });
 
             if (!response.ok) {
@@ -1389,48 +1394,54 @@ class TradingForm {
         const targetPrice = parseFloat(item.entry_price);
         const initialPrice = item.initial_price ? parseFloat(item.initial_price) : null;
         
+        // Debug logging
+        console.log('Progress calculation:', {
+            symbol: item.symbol,
+            direction: item.direction,
+            currentPrice,
+            targetPrice,
+            initialPrice
+        });
+        
         let progress = 0;
         
-        if (initialPrice && initialPrice !== targetPrice) {
-            // Use actual initial price for accurate progress calculation
-            if (item.direction === 'long') {
-                // Long: progress from initial price (top) to target price (bottom)
-                // Progress = (initial - current) / (initial - target)
-                if (initialPrice > targetPrice) {
-                    progress = Math.max(0, Math.min(100, 
-                        ((initialPrice - currentPrice) / (initialPrice - targetPrice)) * 100
-                    ));
-                }
-            } else {
-                // Short: progress from initial price (bottom) to target price (top)
-                // Progress = (current - initial) / (target - initial)
-                if (targetPrice > initialPrice) {
-                    progress = Math.max(0, Math.min(100, 
-                        ((currentPrice - initialPrice) / (targetPrice - initialPrice)) * 100
-                    ));
-                }
-            }
+        // Calculate progress based on remaining distance to target
+        // Progress bar shows how much we've moved toward the target
+        
+        const dbPercentage = parseFloat(item.percentage) || 5; // Default to 5% if no percentage set
+        
+        // Calculate signed distance percentage (positive for short, negative for long when moving toward target)
+        let distancePercent;
+        if (item.direction === 'short') {
+            // For short: positive distance means we need price to go UP to reach target
+            distancePercent = ((targetPrice - currentPrice) / currentPrice) * 100;
         } else {
-            // Fallback to distance_percent method for items without initial_price
-            const distancePercent = parseFloat(item.distance_percent);
-            
-            if (item.direction === 'long') {
-                if (distancePercent <= 0) {
-                    progress = 100; // Reached or passed target
-                } else {
-                    // Show progress when within 10% of target
-                    progress = Math.max(0, Math.min(100, (10 - distancePercent) / 10 * 100));
-                }
-            } else {
-                if (distancePercent >= 0) {
-                    progress = 100; // Reached or passed target
-                } else {
-                    // Show progress when within 10% of target
-                    progress = Math.max(0, Math.min(100, (10 + distancePercent) / 10 * 100));
-                }
-            }
+            // For long: negative distance means we need price to go DOWN to reach target  
+            distancePercent = ((targetPrice - currentPrice) / currentPrice) * 100;
         }
         
+        // Use absolute value for progress calculation (ignore sign for long positions)
+        const absDistancePercent = Math.abs(distancePercent);
+        
+        console.log('Progress calculation:', {
+            direction: item.direction,
+            currentPrice,
+            targetPrice,
+            dbPercentage,
+            distancePercent,
+            absDistancePercent
+        });
+        
+        if (absDistancePercent >= dbPercentage) {
+            // Haven't started moving toward target yet - 0% progress
+            progress = 0;
+        } else {
+            // Moving toward target - calculate how much progress made
+            // Progress = (dbPercentage - remainingDistance) / dbPercentage * 100
+            progress = Math.max(0, ((dbPercentage - absDistancePercent) / dbPercentage) * 100);
+        }
+        
+        console.log('Final progress:', progress + '%');
         progressFill.style.height = `${progress}%`;
     }
 
