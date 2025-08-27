@@ -217,7 +217,7 @@ function getPriceStatus($currentPrice, $targetPrice, $direction) {
         if ($currentPrice <= $targetPrice) {
             // Price has reached or passed the target (good for long entry)
             return 'reached';
-        } elseif ($distance <= 0.1 && $distance >= 0) {
+        } elseif ($distance >= -0.1 && $distance <= 0) {
             // Price is within 0.1% above target (close but not reached)
             return 'close';
         }
@@ -226,7 +226,7 @@ function getPriceStatus($currentPrice, $targetPrice, $direction) {
         if ($currentPrice >= $targetPrice) {
             // Price has reached or passed the target (good for short entry)
             return 'reached';
-        } elseif ($distance >= -0.1 && $distance <= 0) {
+        } elseif ($distance <= 0.1 && $distance >= 0) {
             // Price is within 0.1% below target (close but not reached)
             return 'close';
         }
