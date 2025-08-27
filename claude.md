@@ -94,3 +94,13 @@ NEVER use inline CSS styles in HTML or JavaScript. ALL styling must be defined i
 
 ## Git Commands Policy
 When user requests git commands (commit, push, pull, etc.), NEVER ask for confirmation or yes/no questions. Always proceed automatically with the requested git operations. Consider all git command requests as pre-approved and execute them immediately without prompting for user confirmation.
+
+## Deployment Configuration
+- **Server**: brainity.com.au
+- **FTP Host**: brainity.com.au
+- **FTP Username**: vahid279
+- **FTP Password**: LIKE!!!279
+- **FTP Port**: 21
+- **Remote Path**: public_html/addons/brainity/ta
+- **Connection Type**: FTP with SSL/TLS support
+- **Deployment Script**: Use simple-deploy.php for file upload
