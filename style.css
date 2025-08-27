@@ -769,6 +769,45 @@ input.loading {
     bottom: 0;
 }
 
+/* Position progress bar styles */
+.position-item {
+    position: relative;
+}
+
+.position-progress-bar {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 7px;
+    background: #444444;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.position-progress-fill {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    border-radius: 4px;
+    transition: height 0.3s ease;
+}
+
+.position-progress-fill.positive {
+    background: var(--green-5);
+    bottom: 0;
+}
+
+.position-progress-fill.negative {
+    background: var(--red-5);
+    top: 0;
+}
+
+.position-item-content {
+    margin-left: 24px;
+}
+
 .watchlist-item-content {
     flex: 1;
     display: flex;

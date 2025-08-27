@@ -1017,22 +1017,30 @@ class TradingForm {
             
             return `
                 <div class="signal-item position-item">
-                    <div class="signal-item-header">
-                        <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
-                        <span class="signal-time">${timeAgo}</span>
+                    <div class="position-progress-bar">
+                        <div class="position-progress-fill ${pnlPercent >= 0 ? 'positive' : 'negative'}" data-pnl="${pnlPercent}"></div>
                     </div>
-                    <div class="signal-details">
-                        ${direction?.toUpperCase()} • ${leverage}x • Margin: $${marginUsed}
-                    </div>
-                    <div class="position-pnl ${pnlClass}">
-                        P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
-                    </div>
-                    <div class="position-actions">
-                        ${this.getPositionButton(position.id, symbol, direction)}
+                    <div class="position-item-content">
+                        <div class="signal-item-header">
+                            <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
+                            <span class="signal-time">${timeAgo}</span>
+                        </div>
+                        <div class="signal-details">
+                            ${direction?.toUpperCase()} • ${leverage}x • Margin: $${marginUsed}
+                        </div>
+                        <div class="position-pnl ${pnlClass}">
+                            P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
+                        </div>
+                        <div class="position-actions">
+                            ${this.getPositionButton(position.id, symbol, direction)}
+                        </div>
                     </div>
                 </div>
             `;
         }).filter(html => html !== '').join('');
+        
+        // Update progress bars after rendering
+        setTimeout(() => this.updatePositionProgressBars(), 100);
     }
 
     getPositionButton(positionId, symbol, direction) {
@@ -1443,6 +1451,34 @@ class TradingForm {
         
         console.log('Final progress:', progress + '%');
         progressFill.style.height = `${progress}%`;
+    }
+
+    updatePositionProgressBars() {
+        const progressBars = document.querySelectorAll('.position-progress-fill');
+        
+        progressBars.forEach(progressFill => {
+            const pnlPercent = parseFloat(progressFill.getAttribute('data-pnl'));
+            
+            console.log('Position progress calculation:', { pnlPercent });
+            
+            let progress = 0;
+            
+            if (pnlPercent >= 0) {
+                // Positive PnL: green, bottom-to-top, target 10%
+                progress = Math.min(100, (pnlPercent / 10) * 100);
+                progressFill.style.height = `${progress}%`;
+                progressFill.style.top = 'auto';
+                progressFill.style.bottom = '0';
+            } else {
+                // Negative PnL: red, top-to-bottom, target -10%
+                progress = Math.min(100, (Math.abs(pnlPercent) / 10) * 100);
+                progressFill.style.height = `${progress}%`;
+                progressFill.style.top = '0';
+                progressFill.style.bottom = 'auto';
+            }
+            
+            console.log('Position final progress:', progress + '%', 'PnL:', pnlPercent + '%');
+        });
     }
 
     showNotification(message, type = 'info') {
