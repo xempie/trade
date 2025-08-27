@@ -16,12 +16,10 @@ function getBingXApiUrl() {
     $isDemo = $demoTrading || $tradingMode === 'demo' || $demoMode;
     
     if ($isDemo) {
-        // Use demo URL if available, fallback to live URL
-        $demoUrl = getenv('BINGX_DEMO_URL') ?: '';
+        // BingX doesn't have a separate demo API endpoint
+        // Use live API but with demo trading restrictions in application logic
         $liveUrl = getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com';
-        
-        // If demo URL is available, use it, otherwise use live URL with demo restrictions
-        return !empty($demoUrl) ? $demoUrl : $liveUrl;
+        return $liveUrl;
     } else {
         // Use live URL
         return getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com';
@@ -94,12 +92,10 @@ function validateTradingMode() {
     
     // Check for potential configuration issues
     if ($info['is_demo_mode']) {
-        if ($info['demo_url'] === 'Not configured') {
-            $warnings[] = 'Demo mode enabled but BINGX_DEMO_URL not configured';
-        }
         if (strtolower($info['enable_real_trading']) === 'true') {
             $warnings[] = 'Demo mode enabled but ENABLE_REAL_TRADING is still true';
         }
+        // Note: BingX uses same API for both demo and live, difference is in account type/restrictions
     } else {
         if (strtolower($info['demo_trading']) === 'true') {
             $warnings[] = 'DEMO_TRADING is true but other settings indicate live mode';
