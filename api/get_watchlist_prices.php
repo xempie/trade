@@ -201,21 +201,23 @@ function tryAlternativeEndpoints($symbol) {
 }
 
 function calculateDistance($currentPrice, $targetPrice) {
-    if ($targetPrice == 0) return 0;
-    return (($currentPrice - $targetPrice) / $targetPrice) * 100;
+    if ($currentPrice == 0) return 0;
+    // Calculate percentage from current price perspective
+    // Shows how much price needs to change to reach target
+    return (($targetPrice - $currentPrice) / $currentPrice) * 100;
 }
 
 function getPriceStatus($currentPrice, $targetPrice, $direction) {
     if ($targetPrice == 0) return 'normal';
     
-    $distance = (($currentPrice - $targetPrice) / $targetPrice) * 100;
+    $distance = calculateDistance($currentPrice, $targetPrice);
     
     if ($direction === 'long') {
         // Long position: target is below current, waiting for price to drop
         if ($currentPrice <= $targetPrice) {
             // Price has reached or passed the target (good for long entry)
             return 'reached';
-        } elseif ($distance <= 0.1) {
+        } elseif ($distance <= 0.1 && $distance >= 0) {
             // Price is within 0.1% above target (close but not reached)
             return 'close';
         }
@@ -224,7 +226,7 @@ function getPriceStatus($currentPrice, $targetPrice, $direction) {
         if ($currentPrice >= $targetPrice) {
             // Price has reached or passed the target (good for short entry)
             return 'reached';
-        } elseif ($distance >= -0.1) {
+        } elseif ($distance >= -0.1 && $distance <= 0) {
             // Price is within 0.1% below target (close but not reached)
             return 'close';
         }
