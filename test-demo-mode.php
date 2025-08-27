@@ -104,11 +104,8 @@ if ($modeInfo['is_demo_mode']) {
     echo "🔒 DEMO MODE ACTIVE\n";
     echo "   Current API: {$modeInfo['api_url']}\n";
     echo "   Real trading disabled: " . (strtolower($modeInfo['enable_real_trading']) === 'false' ? 'Yes' : 'No') . "\n";
-    if ($modeInfo['demo_url'] !== 'Not configured' && strpos($modeInfo['api_url'], 'vst') !== false) {
-        echo "   Using dedicated demo environment\n";
-    } else {
-        echo "   Using live API with demo restrictions\n";
-    }
+    echo "   Using live API with demo trading restrictions\n";
+    echo "   ℹ️ Note: BingX uses same API for demo/live, safety enforced by app logic\n";
 } else {
     echo "⚡ LIVE TRADING MODE ACTIVE\n";
     echo "   Current API: {$modeInfo['api_url']}\n";
@@ -120,12 +117,15 @@ echo "DEMO MODE:\n";
 echo "  DEMO_TRADING=true\n";
 echo "  TRADING_MODE=demo\n";
 echo "  ENABLE_REAL_TRADING=false\n";
-echo "  BINGX_BASE_URL=https://open-api-vst.bingx.com\n\n";
+echo "  BINGX_DEMO_MODE=true\n\n";
 
 echo "LIVE MODE:\n";
 echo "  DEMO_TRADING=false\n";
 echo "  TRADING_MODE=live\n";
 echo "  ENABLE_REAL_TRADING=true\n";
-echo "  BINGX_BASE_URL=https://open-api.bingx.com\n\n";
+echo "  BINGX_DEMO_MODE=false\n\n";
+
+echo "ℹ️ Note: Both modes use https://open-api.bingx.com\n";
+echo "Demo safety is enforced by ENABLE_REAL_TRADING=false\n\n";
 
 ?>
