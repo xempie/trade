@@ -1253,7 +1253,7 @@ class TradingForm {
                                 class="watchlist-remove-btn"
                                 onclick="tradingForm.removeWatchlistItem(${item.id})" 
                                 title="Remove from watchlist"
-                            >×</button>
+                            >❌</button>
                         </div>
                     </div>
                 `;
