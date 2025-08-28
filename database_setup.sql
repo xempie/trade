@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS watchlist (
     direction ENUM('long', 'short') NOT NULL,
     margin_amount DECIMAL(18, 8) NOT NULL,
     percentage DECIMAL(8, 4) NULL COMMENT 'Percentage used for calculation',
+    initial_price DECIMAL(18, 8) NULL COMMENT 'Price when watchlist item was created',
     status ENUM('active', 'triggered', 'cancelled') DEFAULT 'active',
     triggered_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

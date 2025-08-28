@@ -367,7 +367,7 @@ input[type=number] {
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 22px;
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -375,6 +375,7 @@ input[type=number] {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    padding-bottom: 4px;
 }
 
 .refresh-balance-btn:hover {
@@ -548,7 +549,7 @@ input[type=number] {
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 22px;
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -556,6 +557,7 @@ input[type=number] {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    padding-bottom: 4px;
 }
 
 .refresh-positions-btn:hover {
@@ -730,11 +732,86 @@ input.loading {
 
 /* Watchlist specific styles */
 .watchlist-item {
-    padding: 12px;
+    padding: 12px 12px 12px 22px;
     background: var(--dark-card);
     border-radius: 6px;
     border: 1px solid var(--dark-border);
     position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.watchlist-progress-bar {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 7px;
+    background: #444444;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.watchlist-progress-fill {
+    position: absolute;
+    width: 100%;
+    transition: height 0.3s ease-in-out;
+}
+
+.watchlist-progress-fill[data-direction="long"] {
+    background: var(--red-5);
+    top: 0;
+}
+
+.watchlist-progress-fill[data-direction="short"] {
+    background: var(--green-5);
+    bottom: 0;
+}
+
+/* Position progress bar styles */
+.position-item {
+    position: relative;
+}
+
+.position-progress-bar {
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 7px;
+    background: #444444;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.position-progress-fill {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    border-radius: 4px;
+    transition: height 0.3s ease;
+}
+
+.position-progress-fill.positive {
+    background: var(--green-5);
+    bottom: 0;
+}
+
+.position-progress-fill.negative {
+    background: var(--red-5);
+    top: 0;
+}
+
+.position-item-content {
+    margin-left: 24px;
+}
+
+.watchlist-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .watchlist-item-header {
@@ -799,23 +876,23 @@ input.loading {
     position: absolute;
     top: 6px;
     right: 6px;
-    background: var(--red-5);
+    background: rgba(255,255,255,0.1);
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 9px;
     padding: 0;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-bottom: 3px;
+    padding-bottom: 2px;
 }
 
 .watchlist-remove-btn:hover {
-    background: var(--red-6);
+    background: rgba(231, 7, 7, 0.3);
     transform: scale(1.1);
 }
 
@@ -832,7 +909,7 @@ input.loading {
     border: none;
     color: white;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 22px;
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -840,6 +917,7 @@ input.loading {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    padding-bottom: 5px;
 }
 
 .refresh-watchlist-btn:hover {

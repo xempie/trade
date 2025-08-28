@@ -36,6 +36,7 @@ function loadEnv($path) {
 // Load .env file
 loadEnv(__DIR__ . '/../.env');
 
+
 // Database connection
 function getDbConnection() {
     $host = getenv('DB_HOST') ?: 'localhost';
@@ -54,8 +55,8 @@ function getDbConnection() {
 
 // Add watchlist items
 function addWatchlistItem($pdo, $data) {
-    $sql = "INSERT INTO watchlist (symbol, entry_price, entry_type, direction, margin_amount, percentage, status) 
-            VALUES (:symbol, :entry_price, :entry_type, :direction, :margin_amount, :percentage, 'active')";
+    $sql = "INSERT INTO watchlist (symbol, entry_price, entry_type, direction, margin_amount, percentage, initial_price, status) 
+            VALUES (:symbol, :entry_price, :entry_type, :direction, :margin_amount, :percentage, :initial_price, 'active')";
     
     $stmt = $pdo->prepare($sql);
     return $stmt->execute([
@@ -64,7 +65,8 @@ function addWatchlistItem($pdo, $data) {
         ':entry_type' => $data['entry_type'],
         ':direction' => $data['direction'],
         ':margin_amount' => $data['margin_amount'],
-        ':percentage' => $data['percentage']
+        ':percentage' => $data['percentage'],
+        ':initial_price' => $data['initial_price'] ?? null
     ]);
 }
 
@@ -156,7 +158,8 @@ try {
                     'entry_type' => $item['entry_type'],
                     'direction' => $direction,
                     'margin_amount' => floatval($item['margin_amount']),
-                    'percentage' => isset($item['percentage']) ? floatval($item['percentage']) : null
+                    'percentage' => isset($item['percentage']) ? floatval($item['percentage']) : null,
+                    'initial_price' => isset($item['initial_price']) ? floatval($item['initial_price']) : null
                 ];
                 
                 if (addWatchlistItem($pdo, $watchlistData)) {

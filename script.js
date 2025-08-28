@@ -737,6 +737,9 @@ class TradingForm {
         const symbol = symbolEl.value.toUpperCase();
         const direction = directionEl.value;
         const watchlistItems = [];
+        
+        // Get current market price from the form to use as initial_price
+        const marketPrice = parseFloat(document.getElementById('entry_market').value) || null;
 
         // Check entry 2 if it has values
         const entry2Value = document.getElementById('entry_2').value;
@@ -751,7 +754,8 @@ class TradingForm {
                     entry_type: 'entry_2',
                     entry_price: entry2Price,
                     margin_amount: entry2MarginNum,
-                    percentage: entry2Percent
+                    percentage: entry2Percent,
+                    initial_price: marketPrice
                 });
             }
         }
@@ -769,7 +773,8 @@ class TradingForm {
                     entry_type: 'entry_3',
                     entry_price: entry3Price,
                     margin_amount: entry3MarginNum,
-                    percentage: entry3Percent
+                    percentage: entry3Percent,
+                    initial_price: marketPrice
                 });
             }
         }
@@ -822,17 +827,22 @@ class TradingForm {
         }
 
         try {
+            const requestData = {
+                symbol: symbol,
+                direction: direction,
+                watchlist_items: watchlistItems
+            };
+            
+            // Debug logging
+            console.log('Sending to watchlist API:', requestData);
+            
             // Send to database
             const response = await fetch('api/watchlist.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    symbol: symbol,
-                    direction: direction,
-                    watchlist_items: watchlistItems
-                })
+                body: JSON.stringify(requestData)
             });
 
             if (!response.ok) {
@@ -1007,22 +1017,30 @@ class TradingForm {
             
             return `
                 <div class="signal-item position-item">
-                    <div class="signal-item-header">
-                        <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
-                        <span class="signal-time">${timeAgo}</span>
+                    <div class="position-progress-bar">
+                        <div class="position-progress-fill ${pnlPercent >= 0 ? 'positive' : 'negative'}" data-pnl="${pnlPercent}"></div>
                     </div>
-                    <div class="signal-details">
-                        ${direction?.toUpperCase()} • ${leverage}x • Margin: $${marginUsed}
-                    </div>
-                    <div class="position-pnl ${pnlClass}">
-                        P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
-                    </div>
-                    <div class="position-actions">
-                        ${this.getPositionButton(position.id, symbol, direction)}
+                    <div class="position-item-content">
+                        <div class="signal-item-header">
+                            <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
+                            <span class="signal-time">${timeAgo}</span>
+                        </div>
+                        <div class="signal-details">
+                            ${direction?.toUpperCase()} • ${leverage}x • Margin: $${marginUsed}
+                        </div>
+                        <div class="position-pnl ${pnlClass}">
+                            P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
+                        </div>
+                        <div class="position-actions">
+                            ${this.getPositionButton(position.id, symbol, direction)}
+                        </div>
                     </div>
                 </div>
             `;
         }).filter(html => html !== '').join('');
+        
+        // Update progress bars after rendering
+        setTimeout(() => this.updatePositionProgressBars(), 100);
     }
 
     getPositionButton(positionId, symbol, direction) {
@@ -1213,7 +1231,11 @@ class TradingForm {
                 
                 return `
                     <div class="watchlist-item" data-id="${item.id}">
-                        <div class="watchlist-item-header">
+                        <div class="watchlist-progress-bar">
+                            <div class="watchlist-progress-fill" data-direction="${item.direction}"></div>
+                        </div>
+                        <div class="watchlist-item-content">
+                            <div class="watchlist-item-header">
                             <div class="watchlist-symbol-container">
                                 <strong class="watchlist-symbol ${directionClass}">${item.symbol}</strong>
                                 <span class="watchlist-close-indicator" style="display: none;"></span>
@@ -1235,11 +1257,12 @@ class TradingForm {
                             <span>Margin: $${parseFloat(item.margin_amount).toFixed(2)}</span>
                             <span>${percentageDisplay}</span>
                         </div>
-                        <button 
-                            class="watchlist-remove-btn"
-                            onclick="tradingForm.removeWatchlistItem(${item.id})" 
-                            title="Remove from watchlist"
-                        >×</button>
+                            <button 
+                                class="watchlist-remove-btn"
+                                onclick="tradingForm.removeWatchlistItem(${item.id})" 
+                                title="Remove from watchlist"
+                            >❌</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1312,10 +1335,19 @@ class TradingForm {
                         closeIndicator.style.display = 'none';
                         closeIndicator.classList.remove('close', 'reached');
                     }
+                    
+                    // Update progress bar
+                    this.updateProgressBar(watchlistElement, item);
                 } else {
                     priceInfoElement.innerHTML = 'Price unavailable';
                     closeIndicator.style.display = 'none';
                     closeIndicator.classList.remove('close', 'reached');
+                    
+                    // Reset progress bar when price unavailable
+                    const progressFill = watchlistElement.querySelector('.watchlist-progress-fill');
+                    if (progressFill) {
+                        progressFill.style.height = '0%';
+                    }
                 }
             });
 
@@ -1360,6 +1392,93 @@ class TradingForm {
             console.error('Error removing watchlist item:', error);
             this.showNotification('Failed to remove from watchlist', 'error');
         }
+    }
+
+    updateProgressBar(watchlistElement, item) {
+        const progressFill = watchlistElement.querySelector('.watchlist-progress-fill');
+        if (!progressFill) return;
+
+        const currentPrice = parseFloat(item.current_price);
+        const targetPrice = parseFloat(item.entry_price);
+        const initialPrice = item.initial_price ? parseFloat(item.initial_price) : null;
+        
+        // Debug logging
+        console.log('Progress calculation:', {
+            symbol: item.symbol,
+            direction: item.direction,
+            currentPrice,
+            targetPrice,
+            initialPrice
+        });
+        
+        let progress = 0;
+        
+        // Calculate progress based on remaining distance to target
+        // Progress bar shows how much we've moved toward the target
+        
+        const dbPercentage = parseFloat(item.percentage) || 5; // Default to 5% if no percentage set
+        
+        // Calculate signed distance percentage (positive for short, negative for long when moving toward target)
+        let distancePercent;
+        if (item.direction === 'short') {
+            // For short: positive distance means we need price to go UP to reach target
+            distancePercent = ((targetPrice - currentPrice) / currentPrice) * 100;
+        } else {
+            // For long: negative distance means we need price to go DOWN to reach target  
+            distancePercent = ((targetPrice - currentPrice) / currentPrice) * 100;
+        }
+        
+        // Use absolute value for progress calculation (ignore sign for long positions)
+        const absDistancePercent = Math.abs(distancePercent);
+        
+        console.log('Progress calculation:', {
+            direction: item.direction,
+            currentPrice,
+            targetPrice,
+            dbPercentage,
+            distancePercent,
+            absDistancePercent
+        });
+        
+        if (absDistancePercent >= dbPercentage) {
+            // Haven't started moving toward target yet - 0% progress
+            progress = 0;
+        } else {
+            // Moving toward target - calculate how much progress made
+            // Progress = (dbPercentage - remainingDistance) / dbPercentage * 100
+            progress = Math.max(0, ((dbPercentage - absDistancePercent) / dbPercentage) * 100);
+        }
+        
+        console.log('Final progress:', progress + '%');
+        progressFill.style.height = `${progress}%`;
+    }
+
+    updatePositionProgressBars() {
+        const progressBars = document.querySelectorAll('.position-progress-fill');
+        
+        progressBars.forEach(progressFill => {
+            const pnlPercent = parseFloat(progressFill.getAttribute('data-pnl'));
+            
+            console.log('Position progress calculation:', { pnlPercent });
+            
+            let progress = 0;
+            
+            if (pnlPercent >= 0) {
+                // Positive PnL: green, bottom-to-top, target 10%
+                progress = Math.min(100, (pnlPercent / 10) * 100);
+                progressFill.style.height = `${progress}%`;
+                progressFill.style.top = 'auto';
+                progressFill.style.bottom = '0';
+            } else {
+                // Negative PnL: red, top-to-bottom, target -10%
+                progress = Math.min(100, (Math.abs(pnlPercent) / 10) * 100);
+                progressFill.style.height = `${progress}%`;
+                progressFill.style.top = '0';
+                progressFill.style.bottom = 'auto';
+            }
+            
+            console.log('Position final progress:', progress + '%', 'PnL:', pnlPercent + '%');
+        });
     }
 
     showNotification(message, type = 'info') {
