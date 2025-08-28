@@ -61,3 +61,6 @@ deployment.log
 
 # Development environment file
 .env.dev
+
+# Project documentation with sensitive info
+CLAUDE.md
