@@ -6,11 +6,10 @@
  */
 
 // Prevent direct browser access
-if (php_sapi_name() !== 'cli' && !defined('CRON_RUNNING')) {
-    die('This script can only be run from command line');
+if (php_sapi_name() !== 'cli') {
+    //die('This script can only be run from command line');
 }
 
-define('CRON_RUNNING', true);
 
 // Change to project directory
 $projectDir = dirname(__DIR__);
