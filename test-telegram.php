@@ -40,8 +40,8 @@ require_once 'api/telegram.php';
 echo "=== Telegram Notification Test ===\n\n";
 
 // Get Telegram configuration
-$botToken = getenv('TELEGRAM_BOT_TOKEN') ?: '';
-$chatId = getenv('TELEGRAM_CHAT_ID') ?: '';
+$botToken = getenv('TELEGRAM_BOT_TOKEN_NOTIF') ?: '';
+$chatId = getenv('TELEGRAM_CHAT_ID_NOTIF') ?: '';
 $notificationsEnabled = strtolower(getenv('TELEGRAM_NOTIFICATIONS_ENABLED') ?: 'false') === 'true';
 
 echo "📋 Configuration Check:\n";
