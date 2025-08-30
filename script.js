@@ -46,6 +46,9 @@ class TradingForm {
         // Symbol price fetching
         this.setupSymbolPriceFetch();
         
+        // Signal pattern converter
+        this.setupSignalPatternConverter();
+        
         // Auto-save draft every 30 seconds
         setInterval(() => this.autoSave(), 30000);
     }
@@ -1479,6 +1482,221 @@ class TradingForm {
             
             console.log('Position final progress:', progress + '%', 'PnL:', pnlPercent + '%');
         });
+    }
+
+    setupSignalPatternConverter() {
+        const patternBtn = document.getElementById('signal-pattern-btn');
+        const patternContainer = document.getElementById('signal-pattern-container');
+        const parseBtn = document.getElementById('parse-signal-btn');
+        const closeBtn = document.getElementById('close-signal-pattern-btn');
+        const patternInput = document.getElementById('signal-pattern-input');
+        
+        if (patternBtn && patternContainer && parseBtn && closeBtn && patternInput) {
+            // Toggle textarea visibility
+            patternBtn.addEventListener('click', () => {
+                const isVisible = patternContainer.style.display !== 'none';
+                patternContainer.style.display = isVisible ? 'none' : 'block';
+                if (!isVisible) {
+                    patternInput.focus();
+                }
+            });
+            
+            // Close textarea
+            closeBtn.addEventListener('click', () => {
+                patternContainer.style.display = 'none';
+                patternInput.value = '';
+            });
+            
+            // Parse signal button
+            parseBtn.addEventListener('click', () => {
+                this.parseSignalPattern(patternInput.value);
+            });
+            
+            // Parse on Enter key (Ctrl+Enter for new line)
+            patternInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.ctrlKey) {
+                    e.preventDefault();
+                    this.parseSignalPattern(patternInput.value);
+                }
+            });
+        }
+    }
+    
+    parseSignalPattern(signalText) {
+        if (!signalText.trim()) {
+            this.showNotification('Please paste a signal pattern first', 'error');
+            return;
+        }
+        
+        try {
+            const parsedData = this.extractSignalData(signalText);
+            this.populateFormWithSignal(parsedData);
+            
+            // Close the pattern input
+            const patternContainer = document.getElementById('signal-pattern-container');
+            const patternInput = document.getElementById('signal-pattern-input');
+            if (patternContainer && patternInput) {
+                patternContainer.style.display = 'none';
+                patternInput.value = '';
+            }
+            
+            this.showNotification('Signal pattern parsed and applied!', 'success');
+        } catch (error) {
+            console.error('Signal parsing error:', error);
+            this.showNotification('Failed to parse signal pattern: ' + error.message, 'error');
+        }
+    }
+    
+    extractSignalData(signalText) {
+        const data = {
+            symbol: null,
+            direction: 'long',
+            leverage: 2,
+            entries: [],
+            targets: [],
+            stopLoss: null
+        };
+        
+        // Extract symbol - look for patterns like "رمزارز SYMBOL" or "رمزارز  SYMBOL"
+        const symbolMatch = signalText.match(/رمزارز\s+([A-Z]+)/);
+        if (symbolMatch) {
+            data.symbol = symbolMatch[1];
+        }
+        
+        // Determine direction based on keywords
+        if (signalText.includes('شورت') || signalText.includes('short')) {
+            data.direction = 'short';
+        } else if (signalText.includes('لانگ') || signalText.includes('long')) {
+            data.direction = 'long';
+        } else if (signalText.includes('📉')) {
+            data.direction = 'short';
+        } else if (signalText.includes('📈')) {
+            data.direction = 'long';
+        }
+        
+        // Extract leverage - look for "لوریج X" or "leverage X"
+        const leverageMatch = signalText.match(/لوریج\s+(\d+)|leverage\s+(\d+)/i);
+        if (leverageMatch) {
+            data.leverage = parseInt(leverageMatch[1] || leverageMatch[2]);
+        }
+        
+        // Extract entry points - look for price patterns
+        // Pattern: "در نقاط X و Y" or "در نقاط X, Y" or numbers separated by و
+        const entrySection = signalText.match(/در نقاط\s+([0-9.,\s و]+)/);
+        if (entrySection) {
+            // Split by 'و' (and) or comma and extract numbers
+            const entryPrices = entrySection[1]
+                .replace(/و/g, ',')
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s)
+                .map(s => parseFloat(s))
+                .filter(n => !isNaN(n));
+            
+            data.entries = entryPrices;
+        }
+        
+        // Extract targets - look for target section
+        const targetSection = signalText.match(/🎯تارگت:\s*\n?([0-9.\s\-,]+)/);
+        if (targetSection) {
+            const targetPrices = targetSection[1]
+                .split(/[-,\s]+/)
+                .map(s => s.trim())
+                .filter(s => s)
+                .map(s => parseFloat(s))
+                .filter(n => !isNaN(n));
+            
+            data.targets = targetPrices;
+        }
+        
+        // Extract stop loss - look for stop section
+        const stopSection = signalText.match(/❌استاپ:\s*\n?([0-9.]+)/);
+        if (stopSection) {
+            data.stopLoss = parseFloat(stopSection[1]);
+        }
+        
+        // Validation
+        if (!data.symbol) {
+            throw new Error('Could not find symbol in signal pattern');
+        }
+        
+        if (data.entries.length === 0) {
+            throw new Error('Could not find entry points in signal pattern');
+        }
+        
+        return data;
+    }
+    
+    populateFormWithSignal(data) {
+        // Set symbol
+        const symbolInput = document.getElementById('symbol');
+        if (symbolInput && data.symbol) {
+            symbolInput.value = data.symbol;
+        }
+        
+        // Set direction
+        const directionRadios = document.querySelectorAll('input[name="direction"]');
+        directionRadios.forEach(radio => {
+            if (radio.value === data.direction) {
+                radio.checked = true;
+            }
+        });
+        
+        // Set leverage
+        const leverageSelect = document.getElementById('leverage');
+        if (leverageSelect && data.leverage) {
+            leverageSelect.value = data.leverage.toString();
+        }
+        
+        // Set entry points
+        if (data.entries.length > 0) {
+            // Market entry (first entry)
+            const marketEntry = document.getElementById('entry_market');
+            const marketEnabled = document.getElementById('entry_market_enabled');
+            if (marketEntry && data.entries[0]) {
+                marketEntry.value = data.entries[0].toString();
+                if (marketEnabled) marketEnabled.checked = true;
+            }
+            
+            // Entry 2 (second entry if available)
+            if (data.entries.length > 1) {
+                const entry2 = document.getElementById('entry_2');
+                const entry2Enabled = document.getElementById('entry_2_enabled');
+                if (entry2 && data.entries[1]) {
+                    entry2.value = data.entries[1].toString();
+                    if (entry2Enabled) entry2Enabled.checked = true;
+                }
+            }
+            
+            // Entry 3 (third entry if available)  
+            if (data.entries.length > 2) {
+                const entry3 = document.getElementById('entry_3');
+                const entry3Enabled = document.getElementById('entry_3_enabled');
+                if (entry3 && data.entries[2]) {
+                    entry3.value = data.entries[2].toString();
+                    if (entry3Enabled) entry3Enabled.checked = true;
+                }
+            }
+        }
+        
+        // Set stop loss
+        if (data.stopLoss) {
+            const stopLossInput = document.getElementById('stop_loss');
+            if (stopLossInput) {
+                stopLossInput.value = data.stopLoss.toString();
+            }
+        }
+        
+        // Add targets info to notes
+        if (data.targets.length > 0) {
+            const notesInput = document.getElementById('notes');
+            if (notesInput) {
+                const targetsList = data.targets.map((target, index) => 
+                    `Target ${index + 1}: ${target}`
+                ).join('\n');
+                notesInput.value = `Targets:\n${targetsList}`;
+            }
+        }
     }
 
     showNotification(message, type = 'info') {

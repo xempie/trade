@@ -331,6 +331,81 @@ input[type=number] {
     color: var(--green-5);
 }
 
+.btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Signal Pattern Converter Styles */
+.symbol-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.symbol-input-container input {
+    flex: 1;
+}
+
+.signal-pattern-btn {
+    background: var(--dark-card);
+    border: 1px solid var(--dark-border);
+    color: var(--dark-text-secondary);
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 45px;
+    height: 45px;
+}
+
+.signal-pattern-btn:hover {
+    background: var(--green-5);
+    border-color: var(--green-5);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.signal-pattern-container {
+    margin-top: 12px;
+    padding: 16px;
+    background: var(--dark-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 8px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.signal-pattern-container textarea {
+    width: 100%;
+    min-height: 100px;
+    resize: vertical;
+    font-family: 'Roboto', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.signal-pattern-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: flex-end;
+}
+
 .info-panel {
     display: flex;
     flex-direction: column;

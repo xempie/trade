@@ -47,7 +47,19 @@ $isLocal = isLocalhost();
             <form id="trading-form" class="trading-form">
                 <div class="form-group">
                     <label for="symbol">Symbol</label>
-                    <input type="text" id="symbol" name="symbol" placeholder="Enter crypto symbol (e.g., BTC, ADA, ETH)" required>
+                    <div class="symbol-input-container">
+                        <input type="text" id="symbol" name="symbol" placeholder="Enter crypto symbol (e.g., BTC, ADA, ETH)" required>
+                        <button type="button" class="signal-pattern-btn" id="signal-pattern-btn" title="Parse signal pattern">
+                            📋
+                        </button>
+                    </div>
+                    <div class="signal-pattern-container" id="signal-pattern-container" style="display: none;">
+                        <textarea id="signal-pattern-input" placeholder="Paste your Persian signal pattern here..." rows="4"></textarea>
+                        <div class="signal-pattern-actions">
+                            <button type="button" class="btn btn-small btn-primary" id="parse-signal-btn">Parse Signal</button>
+                            <button type="button" class="btn btn-small btn-secondary" id="close-signal-pattern-btn">Close</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -88,26 +100,41 @@ $isLocal = isLocalhost();
                     <div class="form-group">
                         <label for="entry_market">Market Entry</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="$" step="0.01" class="margin-input">
+                            <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_market_enabled" name="entry_market_enabled" checked>
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="entry_2">Entry 2</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="$" step="0.01" class="margin-input">
+                            <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
-                            <input type="number" id="entry_2" name="entry_2" placeholder="Price" step="0.00001">
+                            <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_2_enabled" name="entry_2_enabled">
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="entry_3">Entry 3</label>
                         <div class="entry-row">
-                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="$" step="0.01" class="margin-input">
+                            <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                             <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
-                            <input type="number" id="entry_3" name="entry_3" placeholder="Price" step="0.00001">
+                            <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="entry_3_enabled" name="entry_3_enabled">
+                                <span class="checkbox-custom"></span>
+                                Enable
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -115,10 +142,7 @@ $isLocal = isLocalhost();
 
                 <div class="form-group">
                     <label for="stop_loss">Stop Loss</label>
-                    <div class="entry-row">
-                        <input type="number" id="stop_loss_percent" name="stop_loss_percent" placeholder="%" step="0.1" class="percent-input">
-                        <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
-                    </div>
+                    <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
                 </div>
 
                 <div class="form-group">
