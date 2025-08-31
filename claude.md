@@ -1,5 +1,13 @@
 # Claude.md - Crypto Trading Management App Context
 
+## 🚨 CRITICAL UI RULE - READ THIS FIRST!!!
+**NEVER ADD ENABLE CHECKBOXES TO ENTRY POINTS IN INDEX.PHP**
+- NO enable checkboxes for entry_market, entry_2, or entry_3
+- NO checkbox-label elements in entry points
+- NO entry_market_enabled, entry_2_enabled, entry_3_enabled checkboxes
+- Entry points should ONLY have margin input and price input fields
+- User has emphasized this requirement STRONGLY - DO NOT IGNORE
+
 ## 🚨 IMPORTANT DEPLOYMENT RULE
 **DO NOT DEPLOY TO LIVE SERVER UNTIL USER EXPLICITLY SAYS "deploy"**
 - Only deploy when user gives explicit deployment permission
@@ -12,7 +20,7 @@ Personal web application for managing crypto futures trading signals with BingX 
 ## Key Requirements
 - **Exchange**: BingX USDT-M Futures only
 - **Signal Source**: Manual input from Telegram signals (no TradingView integration needed)
-- **Position Sizing**: 3.3% of available funds per entry point (rounded up, no decimals)
+- **Position Sizing**: 3.3% of TOTAL ASSETS per entry point (rounded up, no decimals) - NOT available balance
 - **UI Style**: Match https://new.kripton.app/helpers/tradeform design
 - **Notifications**: Telegram bot integration
 - **Monitoring**: 24/7 background cron jobs

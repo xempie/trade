@@ -91,7 +91,10 @@ class TradingForm {
             entryMarketEl.addEventListener('input', () => {
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
-                this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+                // Only recalculate stop loss if percentage element exists
+                if (document.getElementById('stop_loss_percent')) {
+                    this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+                }
             });
         }
         
@@ -100,7 +103,10 @@ class TradingForm {
             radio.addEventListener('change', () => {
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
-                this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+                // Only recalculate stop loss if percentage element exists
+                if (document.getElementById('stop_loss_percent')) {
+                    this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+                }
                 this.updateSubmitButton();
             });
         });
@@ -167,8 +173,10 @@ class TradingForm {
                 // Recalculate entry points 2 and 3 if they have percentages
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
-                // Recalculate stop loss if it has a percentage
-                this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+                // Recalculate stop loss if it has a percentage element
+                if (document.getElementById('stop_loss_percent')) {
+                    this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+                }
             } else {
                 this.showNotification(`Could not fetch price for ${cleanSymbol}`, 'error');
             }
@@ -244,6 +252,11 @@ class TradingForm {
         const priceEl = document.getElementById(priceFieldId);
         const marketPriceEl = document.getElementById('entry_market');
         const directionEl = document.querySelector('input[name="direction"]:checked');
+        
+        // Exit early if elements don't exist
+        if (!percentEl || !priceEl) {
+            return;
+        }
         
         const percentage = parseFloat(percentEl.value);
         const marketPrice = parseFloat(marketPriceEl.value);
@@ -1650,31 +1663,38 @@ class TradingForm {
         
         // Set entry points
         if (data.entries.length > 0) {
+            // Calculate default margin based on 3.3% of total assets
+            const totalAssets = this.totalAssets || 0;
+            const defaultMargin = Math.ceil((totalAssets * 0.033)).toString();
+            
             // Market entry (first entry)
             const marketEntry = document.getElementById('entry_market');
-            const marketEnabled = document.getElementById('entry_market_enabled');
+            const marketMargin = document.getElementById('entry_market_margin');
             if (marketEntry && data.entries[0]) {
                 marketEntry.value = data.entries[0].toString();
-                if (marketEnabled) marketEnabled.checked = true;
+            }
+            if (marketMargin && defaultMargin) {
+                marketMargin.value = defaultMargin;
             }
             
             // Entry 2 (second entry if available)
             if (data.entries.length > 1) {
                 const entry2 = document.getElementById('entry_2');
-                const entry2Enabled = document.getElementById('entry_2_enabled');
+                const entry2Margin = document.getElementById('entry_2_margin');
                 if (entry2 && data.entries[1]) {
                     entry2.value = data.entries[1].toString();
-                    if (entry2Enabled) entry2Enabled.checked = true;
+                }
+                // Set Entry 2 margin value same as Market Entry margin value
+                if (entry2Margin && defaultMargin) {
+                    entry2Margin.value = defaultMargin;
                 }
             }
             
             // Entry 3 (third entry if available)  
             if (data.entries.length > 2) {
                 const entry3 = document.getElementById('entry_3');
-                const entry3Enabled = document.getElementById('entry_3_enabled');
                 if (entry3 && data.entries[2]) {
                     entry3.value = data.entries[2].toString();
-                    if (entry3Enabled) entry3Enabled.checked = true;
                 }
             }
         }

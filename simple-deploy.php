@@ -64,7 +64,7 @@ function deployFiles($config) {
     
     // List files to upload
     $files = [
-        'index.html',
+        'index.php',
         'style.css', 
         'script.js',
         'api/watchlist.php',
