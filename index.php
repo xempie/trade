@@ -138,7 +138,7 @@ $isLocal = isLocalhost();
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="add-to-watchlist">Add to Watch List</button>
                     <button type="button" class="btn btn-secondary" id="reset-form">Reset Form</button>
-                    <button type="submit" class="btn btn-primary">Create Signal</button>
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Open Long Position</button>
                 </div>
             </form>
         </div>

@@ -121,10 +121,10 @@ class TradingForm {
         
         let fetchTimeout;
         
-        // Auto-uppercase input as user types
+        // Auto-uppercase input as user types (allow letters and numbers)
         symbolField.addEventListener('input', (e) => {
             const cursorPosition = e.target.selectionStart;
-            const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+            const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
             e.target.value = value;
             e.target.setSelectionRange(cursorPosition, cursorPosition);
         });
@@ -1031,6 +1031,10 @@ class TradingForm {
                 return '';
             }
             
+            // Check if position has notes
+            const notes = position.notes && position.notes.trim() ? position.notes.trim() : null;
+            const notesIcon = notes ? `<span class="position-notes-icon" title="${notes.replace(/"/g, '&quot;')}">ℹ️</span>` : '';
+            
             return `
                 <div class="signal-item position-item">
                     <div class="position-progress-bar">
@@ -1038,7 +1042,10 @@ class TradingForm {
                     </div>
                     <div class="position-item-content">
                         <div class="signal-item-header">
-                            <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
+                            <div class="symbol-with-notes">
+                                <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
+                                ${notesIcon}
+                            </div>
                             <span class="signal-time">${timeAgo}</span>
                         </div>
                         <div class="signal-details">
@@ -1655,6 +1662,9 @@ class TradingForm {
             }
         });
         
+        // Update submit button after setting direction
+        this.updateSubmitButton();
+        
         // Set leverage
         const leverageSelect = document.getElementById('leverage');
         if (leverageSelect && data.leverage) {
@@ -1707,13 +1717,28 @@ class TradingForm {
             }
         }
         
-        // Add targets info to notes
+        // Add targets info to notes with percentage calculations
         if (data.targets.length > 0) {
             const notesInput = document.getElementById('notes');
-            if (notesInput) {
-                const targetsList = data.targets.map((target, index) => 
-                    `Target ${index + 1}: ${target}`
-                ).join('\n');
+            if (notesInput && data.entries.length > 0) {
+                const marketPrice = data.entries[0]; // Use first entry as market price
+                const leverage = data.leverage || 1;
+                const direction = data.direction;
+                
+                const targetsList = data.targets.map((target, index) => {
+                    // Calculate price difference percentage
+                    let priceChangePercent;
+                    if (direction === 'long') {
+                        priceChangePercent = ((target - marketPrice) / marketPrice) * 100;
+                    } else {
+                        priceChangePercent = ((marketPrice - target) / marketPrice) * 100;
+                    }
+                    
+                    // Apply leverage to get P&L percentage
+                    const pnlPercent = (priceChangePercent * leverage).toFixed(1);
+                    
+                    return `Target ${index + 1}: ${target} (${pnlPercent}%)`;
+                }).join('\n');
                 notesInput.value = `Targets:\n${targetsList}`;
             }
         }

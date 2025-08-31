@@ -418,6 +418,47 @@ input[type=number] {
     justify-content: flex-end;
 }
 
+/* Position Notes Icon Styles */
+.symbol-with-notes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.position-notes-icon {
+    cursor: help;
+    font-size: 14px;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    position: relative;
+}
+
+.position-notes-icon:hover {
+    opacity: 1;
+}
+
+/* Enhanced tooltip using title attribute - works with hover */
+.position-notes-icon[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    top: 13px;
+    left: 50px;
+    transform: translateX(-50%);
+    background:  rgba(6,6,6,0.8);
+    color: var(--dark-text-primary);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-width: 250px;
+    border: 1px solid var(--dark-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 1000;
+    margin-bottom: 4px;
+    line-height: 1.4;
+    width: 150px;
+}
+
 .info-panel {
     display: flex;
     flex-direction: column;

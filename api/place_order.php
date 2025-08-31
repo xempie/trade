@@ -435,10 +435,10 @@ function savePositionToDb($pdo, $positionData) {
     try {
         $sql = "INSERT INTO positions (
             symbol, side, size, entry_price, leverage, margin_used,
-            signal_id, status, opened_at
+            signal_id, status, opened_at, notes
         ) VALUES (
             :symbol, :side, :size, :entry_price, :leverage, :margin_used,
-            :signal_id, :status, NOW()
+            :signal_id, :status, NOW(), :notes
         )";
         
         $stmt = $pdo->prepare($sql);
@@ -450,7 +450,8 @@ function savePositionToDb($pdo, $positionData) {
             ':leverage' => $positionData['leverage'],
             ':margin_used' => $positionData['margin_used'],
             ':signal_id' => $positionData['signal_id'],
-            ':status' => 'OPEN'
+            ':status' => 'OPEN',
+            ':notes' => $positionData['notes'] ?? null
         ]);
     } catch (Exception $e) {
         error_log("Database error saving position: " . $e->getMessage());
@@ -494,6 +495,7 @@ try {
     $direction = strtolower($input['direction']);
     $leverage = intval($input['leverage']);
     $enabledEntries = $input['enabled_entries'];
+    $notes = trim($input['notes'] ?? '');
     
     // Log the received leverage value for debugging
     error_log("Received order request: Symbol={$symbol}, Direction={$direction}, Leverage={$leverage}");
@@ -598,7 +600,8 @@ try {
                         'entry_price' => $price,
                         'leverage' => $leverage,
                         'margin_used' => $marginUsed,
-                        'signal_id' => $signalId
+                        'signal_id' => $signalId,
+                        'notes' => $notes
                     ]);
                     
                     if ($positionSaved) {
