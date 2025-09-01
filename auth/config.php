@@ -58,10 +58,133 @@ $ALLOWED_EMAILS = array_map('trim', $ALLOWED_EMAILS);
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
 ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_lifetime', 86400 * 30); // 30 days
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+/**
+ * Generate a secure random token
+ */
+function generateSecureToken($length = 32) {
+    return bin2hex(random_bytes($length));
+}
+
+/**
+ * Create persistent login cookie
+ */
+function createPersistentLogin($userEmail, $userName, $userPicture) {
+    $cookieName = 'trade_persistent_login';
+    $expiry = time() + (86400 * 30); // 30 days
+    
+    // Create secure token
+    $token = generateSecureToken();
+    $signature = hash_hmac('sha256', $userEmail . '|' . $expiry, getAppSecretKey());
+    
+    $cookieValue = base64_encode(json_encode([
+        'email' => $userEmail,
+        'name' => $userName,
+        'picture' => $userPicture,
+        'token' => $token,
+        'expiry' => $expiry,
+        'signature' => $signature
+    ]));
+    
+    // Set secure cookie
+    $secure = !isLocalhost() && isset($_SERVER['HTTPS']);
+    setcookie($cookieName, $cookieValue, [
+        'expires' => $expiry,
+        'path' => getAppBasePath() ?: '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    
+    return true;
+}
+
+/**
+ * Check persistent login cookie
+ */
+function checkPersistentLogin() {
+    $cookieName = 'trade_persistent_login';
+    
+    if (!isset($_COOKIE[$cookieName])) {
+        return false;
+    }
+    
+    try {
+        $cookieData = json_decode(base64_decode($_COOKIE[$cookieName]), true);
+        
+        if (!$cookieData || !isset($cookieData['email'], $cookieData['expiry'], $cookieData['signature'])) {
+            clearPersistentLogin();
+            return false;
+        }
+        
+        // Check expiry
+        if (time() > $cookieData['expiry']) {
+            clearPersistentLogin();
+            return false;
+        }
+        
+        // Verify signature
+        $expectedSignature = hash_hmac('sha256', $cookieData['email'] . '|' . $cookieData['expiry'], getAppSecretKey());
+        if (!hash_equals($expectedSignature, $cookieData['signature'])) {
+            clearPersistentLogin();
+            return false;
+        }
+        
+        // Check if email is still allowed
+        if (!isEmailAllowed($cookieData['email'])) {
+            clearPersistentLogin();
+            return false;
+        }
+        
+        // Restore session
+        $_SESSION['user_authenticated'] = true;
+        $_SESSION['user_email'] = $cookieData['email'];
+        $_SESSION['user_name'] = $cookieData['name'] ?? '';
+        $_SESSION['user_picture'] = $cookieData['picture'] ?? '';
+        $_SESSION['login_time'] = time();
+        $_SESSION['persistent_login'] = true;
+        
+        return true;
+        
+    } catch (Exception $e) {
+        clearPersistentLogin();
+        return false;
+    }
+}
+
+/**
+ * Clear persistent login cookie
+ */
+function clearPersistentLogin() {
+    $cookieName = 'trade_persistent_login';
+    if (isset($_COOKIE[$cookieName])) {
+        $secure = !isLocalhost() && isset($_SERVER['HTTPS']);
+        setcookie($cookieName, '', [
+            'expires' => time() - 3600,
+            'path' => getAppBasePath() ?: '/',
+            'domain' => '',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+        unset($_COOKIE[$cookieName]);
+    }
+}
+
+/**
+ * Get application secret key for HMAC
+ */
+function getAppSecretKey() {
+    // Use environment variable or fallback to a default (change this in production)
+    $secret = $_ENV['APP_SECRET_KEY'] ?? 'crypto_trade_secret_2024_change_in_production';
+    return $secret;
 }
 
 /**
@@ -83,7 +206,13 @@ function isAuthenticated() {
         return true;
     }
     
-    return isset($_SESSION['user_authenticated']) && $_SESSION['user_authenticated'] === true;
+    // Check session authentication
+    if (isset($_SESSION['user_authenticated']) && $_SESSION['user_authenticated'] === true) {
+        return true;
+    }
+    
+    // Check for persistent login cookie
+    return checkPersistentLogin();
 }
 
 /**
@@ -148,6 +277,7 @@ function redirectToLogin() {
  * Logout user
  */
 function logout() {
+    clearPersistentLogin();
     session_unset();
     session_destroy();
     $basePath = getAppBasePath();

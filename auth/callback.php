@@ -84,6 +84,9 @@ $_SESSION['user_name'] = $userInfo['name'] ?? '';
 $_SESSION['user_picture'] = $userInfo['picture'] ?? '';
 $_SESSION['login_time'] = time();
 
+// Create persistent login cookie (30 days)
+createPersistentLogin($userEmail, $userInfo['name'] ?? '', $userInfo['picture'] ?? '');
+
 // Clean up OAuth state
 unset($_SESSION['oauth_state']);
 

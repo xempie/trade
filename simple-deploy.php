@@ -81,6 +81,9 @@ function deployFiles($config) {
         'api/telegram.php',
         'auth/api_protection.php',
         'auth/config.php',
+        'auth/login.php',
+        'auth/callback.php',
+        'auth/logout.php',
         'jobs/price-monitor.php',
         'jobs/balance-sync.php',
         'database_setup.sql'

@@ -68,6 +68,7 @@ $showLoggedOut = isset($_GET['logged_out']);
                 <div class="login-info">
                     <p>Only authorized Gmail accounts can access this system.</p>
                     <p>Contact the administrator if you need access.</p>
+                    <p><small>✓ Stay logged in for 30 days</small></p>
                 </div>
             </div>
         </div>
