@@ -65,6 +65,11 @@ function deployFiles($config) {
     // List files to upload
     $files = [
         'index.php',
+        'home.php',
+        'trade.php',
+        'orders.php',
+        'watch.php',
+        'settings.php',
         'style.css', 
         'script.js',
         'manifest.json',
@@ -89,7 +94,14 @@ function deployFiles($config) {
         'jobs/price-monitor.php',
         'jobs/balance-sync.php',
         'database_setup.sql',
-        'icons/create_icons.md'
+        'icons/icon-72x72.png',
+        'icons/icon-96x96.png',
+        'icons/icon-128x128.png',
+        'icons/icon-144x144.png',
+        'icons/icon-152x152.png',
+        'icons/icon-192x192.png',
+        'icons/icon-384x384.png',
+        'icons/icon-512x512.png'
     ];
     
     $uploaded = 0;
