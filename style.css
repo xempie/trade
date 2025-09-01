@@ -1032,6 +1032,45 @@ input.loading {
     margin-bottom: 16px;
 }
 
+/* Watchlist Tab Styles */
+.watchlist-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--dark-card);
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.watchlist-tab {
+    background: transparent;
+    border: none;
+    color: var(--dark-text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.watchlist-tab:hover {
+    color: var(--dark-text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.watchlist-tab.active {
+    background: var(--green-5);
+    color: white;
+}
+
+.watchlist-tab-content {
+    display: none;
+}
+
+.watchlist-tab-content.active {
+    display: block;
+}
+
 .refresh-watchlist-btn {
     background: var(--green-5);
     border: none;
@@ -1096,6 +1135,47 @@ input.loading {
 
 .watchlist-distance.negative {
     color: var(--red-5);
+}
+
+/* Limit Order specific styles */
+.limit-order-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.limit-order-open-btn {
+    background: var(--green-5);
+    border: none;
+    color: white;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.limit-order-open-btn:hover {
+    background: var(--green-6);
+    transform: scale(1.05);
+}
+
+.limit-order-status-indicator {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+.limit-order-status-indicator.triggered {
+    background: var(--green-5);
+    animation: blink 1s infinite;
+}
+
+.limit-order-status-indicator.pending {
+    background: var(--yellow-5);
 }
 
 @keyframes blink {

@@ -187,13 +187,25 @@ $isLocal = isLocalhost();
 
             <div class="watchlist-panel">
                 <div class="watchlist-header">
-                    <h3>Watch List</h3>
+                    <div class="watchlist-tabs">
+                        <button class="watchlist-tab active" data-tab="watchlist">Watch List</button>
+                        <button class="watchlist-tab" data-tab="limit-orders">Limit Orders</button>
+                    </div>
                     <button class="refresh-watchlist-btn" onclick="tradingForm.refreshWatchlist()" title="Refresh prices from BingX">
                         ↻
                     </button>
                 </div>
-                <div class="watchlist-items" id="watchlist-items">
-                    <p class="no-watchlist">No watchlist items</p>
+                
+                <div class="watchlist-tab-content active" id="watchlist-tab">
+                    <div class="watchlist-items" id="watchlist-items">
+                        <p class="no-watchlist">No watchlist items</p>
+                    </div>
+                </div>
+                
+                <div class="watchlist-tab-content" id="limit-orders-tab">
+                    <div class="watchlist-items" id="limit-orders-items">
+                        <p class="no-watchlist">There's no pending orders</p>
+                    </div>
                 </div>
             </div>
         </div>
