@@ -2037,7 +2037,8 @@ class TradingForm {
     }
 }
 
-// PWA Navigation Class
+// PWA Navigation Class - DISABLED (using separate pages now)
+/*
 class PWANavigation {
     constructor() {
         this.currentSection = 'home';
@@ -2283,6 +2284,7 @@ class PWANavigation {
         }
     }
 }
+*/
 
 // Handle PWA install prompt
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -2292,13 +2294,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 // Initialize the trading form when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize PWA navigation first
-    window.pwaNavigation = new PWANavigation();
-    
-    // Then initialize trading form
-    window.tradingForm = new TradingForm();
-    window.tradingForm.loadDraft();
-    window.tradingForm.updateRecentSignals();
-    window.tradingForm.updateWatchlistDisplay();
-    window.tradingForm.initializeTabs();
+    // Only initialize trading form if it exists (for pages that need it)
+    if (document.getElementById('trading-form')) {
+        window.tradingForm = new TradingForm();
+        window.tradingForm.loadDraft();
+        window.tradingForm.updateRecentSignals();
+        window.tradingForm.updateWatchlistDisplay();
+        window.tradingForm.initializeTabs();
+    }
 });
