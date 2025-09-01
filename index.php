@@ -50,7 +50,7 @@ $isLocal = isLocalhost();
             </div>
             <div class="header-right">
                 <div class="user-menu">
-                    <button class="user-menu-btn" onclick="toggleUserMenu()">
+                    <button class="user-menu-btn" id="user-menu-button">
                         <?php if (!$isLocal && $user['picture']): ?>
                             <img src="<?php echo htmlspecialchars($user['picture']); ?>" alt="Profile" class="user-avatar-small">
                         <?php else: ?>
@@ -69,10 +69,13 @@ $isLocal = isLocalhost();
                                 <div class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></div>
                             </div>
                         <?php endif; ?>
-                        <button onclick="showInstallPrompt()" class="dropdown-item">
+                        <button id="install-btn" class="dropdown-item" style="display: none;">
                             📱 Install App
                         </button>
-                        <button onclick="window.location.href='auth/logout.php'" class="dropdown-item logout">
+                        <button id="clear-cache-btn" class="dropdown-item">
+                            🗑️ Clear Cache
+                        </button>
+                        <button id="logout-btn" class="dropdown-item logout">
                             🚪 Logout
                         </button>
                     </div>
@@ -82,39 +85,159 @@ $isLocal = isLocalhost();
 
         <!-- Main Content Area -->
         <main class="pwa-main">
-            <!-- Home Section -->
-            <section class="pwa-section active" id="home-section">
-                <div class="section-header">
-                    <h2>Dashboard</h2>
-                </div>
-                <div class="dashboard-grid">
-                    <div class="account-info-card">
-                        <div class="card-header">
-                            <h3>Account Balance</h3>
-                            <button class="refresh-btn" onclick="tradingForm.refreshBalance()" title="Refresh balance">
+            <!-- Home Section - Only Account Info -->
+            <section class="section active" id="home-section">
+                <div class="info-panel">
+                    <div class="account-info">
+                        <div class="account-header">
+                            <h3>Account Info</h3>
+                            <button class="refresh-balance-btn" onclick="tradingForm.refreshBalance()" title="Refresh balance from BingX">
                                 ↻
                             </button>
                         </div>
-                        <div class="balance-grid">
-                            <div class="balance-item">
-                                <span class="balance-label">Total Assets</span>
-                                <span class="balance-value" id="total-balance">$0.00</span>
-                            </div>
-                            <div class="balance-item">
-                                <span class="balance-label">Available</span>
-                                <span class="balance-value" id="available-balance">$0.00</span>
-                            </div>
-                            <div class="balance-item">
-                                <span class="balance-label">Margin Used</span>
-                                <span class="balance-value" id="margin-used">$0.00</span>
-                            </div>
+                        <div class="info-item">
+                            <span class="label">Total Assets:</span>
+                            <span class="value total-assets" id="total-assets">$0.00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Available Balance:</span>
+                            <span class="value" id="available-balance">$0.00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Margin Used:</span>
+                            <span class="value" id="margin-used">$0.00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Position Size (3.3%):</span>
+                            <span class="value" id="position-size">$0.00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Unrealized PnL:</span>
+                            <span class="value" id="unrealized-pnl">$0.00</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Last Updated:</span>
+                            <span class="value" id="last-updated">Loading...</span>
                         </div>
                     </div>
-                    
-                    <div class="positions-card">
-                        <div class="card-header">
-                            <h3>Open Positions</h3>
-                            <button class="refresh-btn" onclick="tradingForm.updateRecentSignals()" title="Refresh positions">
+                </div>
+            </section>
+
+            <!-- Trade Section - Original Form -->
+            <section class="section" id="form-section">
+                <div class="container">
+                    <div class="form-container">
+                        <div class="header">
+                            <h1>Trading Form</h1>                
+                        </div>
+
+                        <form id="trading-form" class="trading-form">
+                            <div class="form-group">
+                                <label for="symbol">Symbol</label>
+                                <div class="symbol-input-container">
+                                    <input type="text" id="symbol" name="symbol" placeholder="Enter crypto symbol (e.g., BTC, ADA, ETH)" required>
+                                    <button type="button" class="signal-pattern-btn" id="signal-pattern-btn" title="Parse signal pattern">
+                                        📋
+                                    </button>
+                                </div>
+                                <div class="signal-pattern-container" id="signal-pattern-container" style="display: none;">
+                                    <textarea id="signal-pattern-input" placeholder="Paste your Persian signal pattern here..." rows="4"></textarea>
+                                    <div class="signal-pattern-actions">
+                                        <button type="button" class="btn btn-small btn-telegram" id="parse-signal-btn">Extract Signal</button>
+                                        <button type="button" class="btn btn-small btn-secondary" id="close-signal-pattern-btn">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="direction">Direction</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="direction" value="long" checked>
+                                        <span class="radio-custom"></span>
+                                        Long
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="direction" value="short">
+                                        <span class="radio-custom"></span>
+                                        Short
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="leverage">Leverage</label>
+                                <select id="leverage" name="leverage" required>
+                                    <option value="1">1x</option>
+                                    <option value="2">2x</option>
+                                    <option value="3">3x</option>
+                                    <option value="4">4x</option>
+                                    <option value="5">5x</option>
+                                    <option value="6">6x</option>
+                                    <option value="7">7x</option>
+                                    <option value="8">8x</option>
+                                    <option value="9">9x</option>
+                                    <option value="10" selected="true">10x</option>
+                                </select>
+                            </div>
+
+                            <div class="entry-points">
+                                <h3>Entry Points</h3>
+                                
+                                <div class="form-group">
+                                    <label for="entry_market">Market Entry</label>
+                                    <div class="entry-row">
+                                        <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                                        <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="entry_2">Entry 2</label>
+                                    <div class="entry-row">
+                                        <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                                        <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
+                                        <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="entry_3">Entry 3</label>
+                                    <div class="entry-row">
+                                        <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
+                                        <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
+                                        <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="stop_loss">Stop Loss</label>
+                                <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="notes">Notes</label>
+                                <textarea id="notes" name="notes" placeholder="Add any notes about this signal..." rows="3"></textarea>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="add-to-watchlist">Add to Watch List</button>
+                                <button type="button" class="btn btn-secondary" id="reset-form">Reset Form</button>
+                                <button type="submit" class="btn btn-primary" id="submit-btn">Open Long Position</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Orders Section - Open Positions Only -->
+            <section class="section" id="orders-section">
+                <div class="info-panel">
+                    <div class="recent-signals">
+                        <div class="positions-header">
+                            <h3>Active Positions</h3>
+                            <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
                                 ↻
                             </button>
                         </div>
@@ -125,183 +248,55 @@ $isLocal = isLocalhost();
                 </div>
             </section>
 
-            <!-- Form Section -->
-            <section class="pwa-section" id="form-section">
-                <div class="section-header">
-                    <h2>New Trade</h2>
-                </div>
-                <form id="trading-form" class="trading-form-pwa">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="symbol">Symbol</label>
-                            <div class="symbol-input-container">
-                                <input type="text" id="symbol" name="symbol" placeholder="BTC" required>
-                                <div class="symbol-suggestion" id="symbol-suggestion">BTCUSDT</div>
+            <!-- Watch Section - Original Watchlist -->
+            <section class="section" id="watch-section">
+                <div class="info-panel">
+                    <div class="watchlist-panel">
+                        <div class="watchlist-header">
+                            <div class="watchlist-tabs">
+                                <button class="watchlist-tab active" data-tab="watchlist">Watch List</button>
+                                <button class="watchlist-tab" data-tab="limit-orders">Limit Orders</button>
+                            </div>
+                            <button class="refresh-watchlist-btn" onclick="tradingForm.refreshWatchlist()" title="Refresh prices from BingX">
+                                ↻
+                            </button>
+                        </div>
+                        
+                        <div class="watchlist-tab-content active" id="watchlist-tab">
+                            <div class="watchlist-items" id="watchlist-items">
+                                <p class="no-watchlist">No watchlist items</p>
                             </div>
                         </div>
-
-                        <div class="form-group">
-                            <label for="direction">Direction</label>
-                            <select id="direction" name="direction" required>
-                                <option value="">Select direction</option>
-                                <option value="long">Long (Buy)</option>
-                                <option value="short">Short (Sell)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="leverage">Leverage</label>
-                            <select id="leverage" name="leverage" required>
-                                <option value="">Select leverage</option>
-                                <option value="1">1x</option>
-                                <option value="2">2x</option>
-                                <option value="3">3x</option>
-                                <option value="4">4x</option>
-                                <option value="5">5x</option>
-                                <option value="6">6x</option>
-                                <option value="7">7x</option>
-                                <option value="8">8x</option>
-                                <option value="9">9x</option>
-                                <option value="10">10x</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="entry-points-pwa">
-                        <div class="entry-point-pwa" data-entry="market">
-                            <h3>Market Entry</h3>
-                            <div class="entry-inputs-grid">
-                                <div class="form-group">
-                                    <label for="entry_market_margin">Margin ($)</label>
-                                    <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="35.00" step="0.01" min="1">
-                                </div>
-                                <div class="form-group">
-                                    <label for="entry_market_price">Entry Price ($)</label>
-                                    <input type="number" id="entry_market_price" name="entry_market_price" placeholder="Market" step="0.01" readonly>
-                                </div>
+                        
+                        <div class="watchlist-tab-content" id="limit-orders-tab">
+                            <div class="watchlist-items" id="limit-orders-items">
+                                <p class="no-watchlist">There's no pending orders</p>
                             </div>
-                        </div>
-
-                        <div class="entry-point-pwa" data-entry="entry_2">
-                            <h3>Entry 2</h3>
-                            <div class="entry-inputs-grid">
-                                <div class="form-group">
-                                    <label for="entry_2_margin">Margin ($)</label>
-                                    <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="35.00" step="0.01" min="1">
-                                </div>
-                                <div class="form-group">
-                                    <label for="entry_2">Entry Price ($)</label>
-                                    <input type="number" id="entry_2" name="entry_2" placeholder="43000.00" step="0.01">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="entry-point-pwa" data-entry="entry_3">
-                            <h3>Entry 3</h3>
-                            <div class="entry-inputs-grid">
-                                <div class="form-group">
-                                    <label for="entry_3_margin">Margin ($)</label>
-                                    <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="35.00" step="0.01" min="1">
-                                </div>
-                                <div class="form-group">
-                                    <label for="entry_3">Entry Price ($)</label>
-                                    <input type="number" id="entry_3" name="entry_3" placeholder="42000.00" step="0.01">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="notes">Notes</label>
-                        <textarea id="notes" name="notes" placeholder="Add any notes about this signal..." rows="3"></textarea>
-                    </div>
-
-                    <div class="form-actions-pwa">
-                        <button type="button" class="btn btn-secondary" id="add-to-watchlist">Add to Watchlist</button>
-                        <button type="button" class="btn btn-secondary" id="reset-form">Reset</button>
-                        <button type="submit" class="btn btn-primary" id="submit-btn">Open Position</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Orders Section -->
-            <section class="pwa-section" id="orders-section">
-                <div class="section-header">
-                    <h2>Orders</h2>
-                </div>
-                <div class="positions-list" id="orders-positions-list">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </section>
-
-            <!-- Watch Section -->
-            <section class="pwa-section" id="watch-section">
-                <div class="section-header">
-                    <h2>Watchlist</h2>
-                </div>
-                <div class="watchlist-tabs-pwa">
-                    <button class="watchlist-tab-pwa active" data-tab="watchlist">Watchlist</button>
-                    <button class="watchlist-tab-pwa" data-tab="limit-orders">Limit Orders</button>
-                </div>
-                
-                <div class="watchlist-content-pwa">
-                    <div class="watchlist-tab-content-pwa active" id="watchlist-tab-pwa">
-                        <div class="watchlist-items-pwa" id="watchlist-items-pwa">
-                            <p class="no-items">No watchlist items</p>
-                        </div>
-                    </div>
-                    
-                    <div class="watchlist-tab-content-pwa" id="limit-orders-tab-pwa">
-                        <div class="watchlist-items-pwa" id="limit-orders-items-pwa">
-                            <p class="no-items">No pending orders</p>
                         </div>
                     </div>
                 </div>
             </section>
 
             <!-- Settings Section -->
-            <section class="pwa-section" id="settings-section">
-                <div class="section-header">
-                    <h2>Settings</h2>
-                </div>
-                <div class="settings-grid">
-                    <div class="settings-card">
-                        <h3>Account</h3>
-                        <div class="settings-item">
-                            <span>Email</span>
-                            <span><?php echo htmlspecialchars($user['email'] ?? 'Not available'); ?></span>
+            <section class="section" id="settings-section">
+                <div class="info-panel">
+                    <div class="account-info">
+                        <h3>Settings</h3>
+                        <div class="info-item">
+                            <span class="label">Email:</span>
+                            <span class="value"><?php echo htmlspecialchars($user['email'] ?? 'Not available'); ?></span>
                         </div>
-                        <div class="settings-item">
-                            <span>Name</span>
-                            <span><?php echo htmlspecialchars($user['name'] ?? 'Not available'); ?></span>
+                        <div class="info-item">
+                            <span class="label">Name:</span>
+                            <span class="value"><?php echo htmlspecialchars($user['name'] ?? 'Not available'); ?></span>
                         </div>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <h3>App</h3>
-                        <div class="settings-item">
-                            <button onclick="showInstallPrompt()" class="settings-btn">
-                                📱 Install PWA
-                            </button>
+                        <div class="info-item">
+                            <span class="label">Cache Status:</span>
+                            <span class="value" id="cache-info">Loading...</span>
                         </div>
-                        <div class="settings-item">
-                            <button onclick="clearAppCache()" class="settings-btn">
-                                🗑️ Clear Cache
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <h3>Trading</h3>
-                        <div class="settings-item">
-                            <span>Default Leverage</span>
-                            <select id="default-leverage" onchange="saveDefaultLeverage()">
-                                <option value="1">1x</option>
-                                <option value="2">2x</option>
-                                <option value="3">3x</option>
-                                <option value="5" selected>5x</option>
-                                <option value="10">10x</option>
-                            </select>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="window.pwaNavigation.clearCache()">Clear Cache</button>
+                            <button type="button" class="btn btn-secondary" onclick="window.pwaNavigation.installPWA()">Install PWA</button>
                         </div>
                     </div>
                 </div>
@@ -347,70 +342,6 @@ $isLocal = isLocalhost();
         </nav>
     </div>
 
-    <!-- PWA Install Banner -->
-    <div class="install-banner" id="install-banner" style="display: none;">
-        <div class="install-content">
-            <div class="install-icon">📱</div>
-            <div class="install-text">
-                <strong>Install CryptoTrade</strong>
-                <span>Get the full app experience</span>
-            </div>
-            <div class="install-actions">
-                <button onclick="installPWA()" class="install-btn">Install</button>
-                <button onclick="dismissInstall()" class="dismiss-btn">Later</button>
-            </div>
-        </div>
-    </div>
-
     <script src="script.js"></script>
-    <script>
-        // PWA Registration and functionality
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/trade/sw.js')
-                    .then(registration => {
-                        console.log('PWA: Service Worker registered successfully');
-                    })
-                    .catch(error => {
-                        console.log('PWA: Service Worker registration failed');
-                    });
-            });
-        }
-
-        // PWA Install prompt
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('install-banner').style.display = 'block';
-        });
-
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('PWA: Install accepted');
-                    }
-                    deferredPrompt = null;
-                    document.getElementById('install-banner').style.display = 'none';
-                });
-            }
-        }
-
-        function showInstallPrompt() {
-            if (deferredPrompt) {
-                installPWA();
-            } else {
-                alert('App is already installed or install prompt not available');
-            }
-        }
-
-        function dismissInstall() {
-            document.getElementById('install-banner').style.display = 'none';
-            localStorage.setItem('pwa-install-dismissed', Date.now());
-        }
-    </script>
 </body>
 </html>
