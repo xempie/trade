@@ -67,6 +67,8 @@ function deployFiles($config) {
         'index.php',
         'style.css', 
         'script.js',
+        'manifest.json',
+        'sw.js',
         'api/watchlist.php',
         'api/get_balance.php',
         'api/place_order.php',
@@ -86,7 +88,8 @@ function deployFiles($config) {
         'auth/logout.php',
         'jobs/price-monitor.php',
         'jobs/balance-sync.php',
-        'database_setup.sql'
+        'database_setup.sql',
+        'icons/create_icons.md'
     ];
     
     $uploaded = 0;

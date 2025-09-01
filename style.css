@@ -1366,3 +1366,645 @@ input.loading {
     margin-bottom: 20px;
     border-bottom: 2px solid var(--green-7);
 }
+
+/* PWA Styles */
+.pwa-app {
+    overflow: hidden;
+    height: 100vh;
+    background: var(--dark-bg);
+}
+
+.pwa-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* PWA Header */
+.pwa-header {
+    background: var(--dark-surface);
+    border-bottom: 1px solid var(--dark-border);
+    padding: 0 16px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-left .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-icon {
+    font-size: 24px;
+    color: var(--green-5);
+    font-weight: bold;
+}
+
+.logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--dark-text-primary);
+}
+
+.user-menu {
+    position: relative;
+}
+
+.user-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: var(--dark-text-primary);
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.user-menu-btn:hover {
+    background: var(--dark-card);
+}
+
+.user-avatar-small {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+.user-avatar-fallback {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--green-5);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.user-name-small {
+    font-size: 14px;
+    font-weight: 500;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropdown-icon {
+    transition: transform 0.2s ease;
+}
+
+.user-menu-btn[aria-expanded="true"] .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--dark-surface);
+    border: 1px solid var(--dark-border);
+    border-radius: 8px;
+    padding: 8px;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: none;
+}
+
+.user-dropdown.active {
+    display: block;
+}
+
+.user-info-dropdown {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--dark-border);
+    margin-bottom: 8px;
+}
+
+.user-email {
+    font-size: 12px;
+    color: var(--dark-text-muted);
+}
+
+.dropdown-item {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--dark-text-primary);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    display: block;
+}
+
+.dropdown-item:hover {
+    background: var(--dark-card);
+}
+
+.dropdown-item.logout {
+    color: var(--red-5);
+}
+
+.dropdown-item.logout:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* PWA Main Content */
+.pwa-main {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px; /* Space for bottom nav */
+    background: var(--dark-bg);
+}
+
+.pwa-section {
+    display: none;
+    padding: 20px 16px;
+    min-height: calc(100vh - 140px);
+}
+
+.pwa-section.active {
+    display: block;
+}
+
+.section-header {
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    color: var(--dark-text-primary);
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.account-info-card,
+.positions-card {
+    background: var(--dark-surface);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--dark-border);
+}
+
+.card-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.card-header h3 {
+    color: var(--green-5);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+}
+
+.refresh-btn {
+    background: var(--green-5);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+    background: var(--green-6);
+    transform: rotate(180deg);
+}
+
+.balance-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.balance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--dark-card);
+    border-radius: 8px;
+}
+
+.balance-label {
+    color: var(--dark-text-secondary);
+    font-size: 14px;
+}
+
+.balance-value {
+    color: var(--dark-text-primary);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* PWA Trading Form */
+.trading-form-pwa {
+    max-width: 100%;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.entry-points-pwa {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.entry-point-pwa {
+    background: var(--dark-surface);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--dark-border);
+}
+
+.entry-point-pwa h3 {
+    color: var(--green-5);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+.entry-inputs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.form-actions-pwa {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-actions-pwa .btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.form-actions-pwa .btn-primary {
+    background: var(--green-5);
+    color: white;
+}
+
+.form-actions-pwa .btn-primary:hover {
+    background: var(--green-6);
+}
+
+.form-actions-pwa .btn-secondary {
+    background: var(--dark-card);
+    color: var(--dark-text-primary);
+    border: 1px solid var(--dark-border);
+}
+
+.form-actions-pwa .btn-secondary:hover {
+    background: var(--dark-surface);
+}
+
+/* PWA Watchlist */
+.watchlist-tabs-pwa {
+    display: flex;
+    gap: 2px;
+    background: var(--dark-card);
+    border-radius: 8px;
+    padding: 2px;
+    margin-bottom: 16px;
+}
+
+.watchlist-tab-pwa {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--dark-text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.watchlist-tab-pwa:hover {
+    color: var(--dark-text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.watchlist-tab-pwa.active {
+    background: var(--green-5);
+    color: white;
+}
+
+.watchlist-content-pwa {
+    position: relative;
+}
+
+.watchlist-tab-content-pwa {
+    display: none;
+}
+
+.watchlist-tab-content-pwa.active {
+    display: block;
+}
+
+.watchlist-items-pwa {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.positions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.no-items {
+    text-align: center;
+    color: var(--dark-text-muted);
+    font-style: italic;
+    padding: 40px 20px;
+}
+
+/* Settings Grid */
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.settings-card {
+    background: var(--dark-surface);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--dark-border);
+}
+
+.settings-card h3 {
+    color: var(--green-5);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+.settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--dark-border);
+}
+
+.settings-item:last-child {
+    border-bottom: none;
+}
+
+.settings-item span:first-child {
+    color: var(--dark-text-secondary);
+    font-size: 14px;
+}
+
+.settings-item span:last-child {
+    color: var(--dark-text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.settings-btn {
+    background: var(--green-5);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+    background: var(--green-6);
+}
+
+.settings-item select {
+    background: var(--dark-card);
+    border: 1px solid var(--dark-border);
+    color: var(--dark-text-primary);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--dark-surface);
+    border-top: 1px solid var(--dark-border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    z-index: 100;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--dark-text-muted);
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    min-width: 60px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: var(--green-5);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.nav-icon {
+    margin-bottom: 4px;
+}
+
+.nav-label {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+/* PWA Install Banner */
+.install-banner {
+    position: fixed;
+    bottom: 90px;
+    left: 16px;
+    right: 16px;
+    background: var(--green-5);
+    color: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.install-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.install-icon {
+    font-size: 24px;
+}
+
+.install-text {
+    flex: 1;
+}
+
+.install-text strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 2px;
+}
+
+.install-text span {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.install-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.install-btn,
+.dismiss-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.install-btn {
+    background: white;
+    color: var(--green-5);
+}
+
+.install-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.dismiss-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.dismiss-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .pwa-main {
+        padding: 20px 40px 100px;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .form-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .entry-inputs-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .form-actions-pwa {
+        flex-direction: row;
+    }
+    
+    .settings-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .balance-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .pwa-main {
+        padding: 20px 80px 100px;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+    
+    .settings-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Hide original containers in PWA mode */
+.pwa-app .container,
+.pwa-app .user-header {
+    display: none;
+}

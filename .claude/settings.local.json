@@ -4,7 +4,9 @@
       "Bash(git pull:*)",
       "Bash(php:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(rm:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": [],

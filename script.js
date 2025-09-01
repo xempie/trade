@@ -2037,8 +2037,265 @@ class TradingForm {
     }
 }
 
+// PWA Navigation Class
+class PWANavigation {
+    constructor() {
+        this.currentSection = 'home';
+        this.init();
+        this.registerServiceWorker();
+    }
+
+    init() {
+        this.setupBottomNavigation();
+        this.setupUserMenu();
+        this.showSection('home');
+    }
+
+    setupBottomNavigation() {
+        const navButtons = document.querySelectorAll('.nav-item');
+        navButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = button.getAttribute('data-section');
+                this.navigateToSection(section);
+            });
+        });
+    }
+
+    setupUserMenu() {
+        const userMenuButton = document.getElementById('user-menu-button');
+        const userDropdown = document.getElementById('user-dropdown');
+
+        if (userMenuButton && userDropdown) {
+            userMenuButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userDropdown.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                    userDropdown.classList.remove('show');
+                }
+            });
+
+            // Handle dropdown menu items
+            const logoutBtn = document.getElementById('logout-btn');
+            const clearCacheBtn = document.getElementById('clear-cache-btn');
+            const installBtn = document.getElementById('install-btn');
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => this.logout());
+            }
+
+            if (clearCacheBtn) {
+                clearCacheBtn.addEventListener('click', () => this.clearCache());
+            }
+
+            if (installBtn) {
+                installBtn.addEventListener('click', () => this.installPWA());
+            }
+        }
+    }
+
+    navigateToSection(section) {
+        // Update active nav button
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        document.querySelector(`[data-section="${section}"]`).classList.add('active');
+
+        // Show/hide sections
+        this.showSection(section);
+        this.currentSection = section;
+
+        // Load section-specific data
+        this.loadSectionData(section);
+    }
+
+    showSection(section) {
+        // Hide all sections
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        
+        // Show target section
+        const targetSection = document.getElementById(`${section}-section`);
+        if (targetSection) {
+            targetSection.classList.add('active');
+        }
+    }
+
+    loadSectionData(section) {
+        switch(section) {
+            case 'home':
+                if (window.tradingForm) {
+                    window.tradingForm.loadBalanceData();
+                    window.tradingForm.updateRecentSignals();
+                }
+                break;
+            case 'trade':
+                if (window.tradingForm) {
+                    window.tradingForm.loadBalanceData();
+                }
+                break;
+            case 'orders':
+                if (window.tradingForm) {
+                    window.tradingForm.updateRecentSignals();
+                }
+                break;
+            case 'watch':
+                if (window.tradingForm) {
+                    window.tradingForm.updateWatchlistDisplay();
+                    window.tradingForm.initializeTabs();
+                }
+                break;
+            case 'settings':
+                this.loadSettingsData();
+                break;
+        }
+    }
+
+    loadSettingsData() {
+        // Update cache info
+        this.updateCacheInfo();
+        
+        // Show install button if PWA can be installed
+        this.checkInstallPrompt();
+    }
+
+    async updateCacheInfo() {
+        const cacheInfoEl = document.getElementById('cache-info');
+        if (!cacheInfoEl) return;
+
+        try {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                const totalSize = await this.calculateCacheSize(cacheNames);
+                cacheInfoEl.innerHTML = `
+                    <p>Cache Status: Active</p>
+                    <p>Cached Resources: ${cacheNames.length} caches</p>
+                    <p>Estimated Size: ${(totalSize / 1024 / 1024).toFixed(2)} MB</p>
+                `;
+            } else {
+                cacheInfoEl.innerHTML = '<p>Cache not supported</p>';
+            }
+        } catch (error) {
+            cacheInfoEl.innerHTML = '<p>Error loading cache info</p>';
+        }
+    }
+
+    async calculateCacheSize(cacheNames) {
+        let totalSize = 0;
+        for (const cacheName of cacheNames) {
+            const cache = await caches.open(cacheName);
+            const keys = await cache.keys();
+            for (const request of keys) {
+                try {
+                    const response = await cache.match(request);
+                    if (response) {
+                        const blob = await response.blob();
+                        totalSize += blob.size;
+                    }
+                } catch (error) {
+                    console.warn('Error calculating cache size:', error);
+                }
+            }
+        }
+        return totalSize;
+    }
+
+    async clearCache() {
+        if (!confirm('Clear all cached data? This will require re-downloading resources.')) {
+            return;
+        }
+
+        try {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                    cacheNames.map(cacheName => caches.delete(cacheName))
+                );
+                
+                // Also clear localStorage
+                localStorage.clear();
+                
+                if (window.tradingForm) {
+                    window.tradingForm.showNotification('Cache cleared successfully', 'success');
+                }
+                
+                // Update cache info
+                this.updateCacheInfo();
+            }
+        } catch (error) {
+            console.error('Error clearing cache:', error);
+            if (window.tradingForm) {
+                window.tradingForm.showNotification('Error clearing cache', 'error');
+            }
+        }
+    }
+
+    checkInstallPrompt() {
+        const installBtn = document.getElementById('install-btn');
+        if (installBtn && window.deferredPrompt) {
+            installBtn.style.display = 'block';
+        }
+    }
+
+    async installPWA() {
+        if (window.deferredPrompt) {
+            window.deferredPrompt.prompt();
+            const choiceResult = await window.deferredPrompt.userChoice;
+            
+            if (choiceResult.outcome === 'accepted') {
+                if (window.tradingForm) {
+                    window.tradingForm.showNotification('App installed successfully!', 'success');
+                }
+            }
+            
+            window.deferredPrompt = null;
+            document.getElementById('install-btn').style.display = 'none';
+        }
+    }
+
+    logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            window.location.href = 'auth/logout.php';
+        }
+    }
+
+    async registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register('/trade/sw.js');
+                console.log('PWA: Service Worker registered successfully:', registration);
+                
+                // Listen for updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            if (window.tradingForm) {
+                                window.tradingForm.showNotification('App updated! Refresh to use new version.', 'info');
+                            }
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('PWA: Service Worker registration failed:', error);
+            }
+        }
+    }
+}
+
+// Handle PWA install prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.deferredPrompt = e;
+});
+
 // Initialize the trading form when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize PWA navigation first
+    window.pwaNavigation = new PWANavigation();
+    
+    // Then initialize trading form
     window.tradingForm = new TradingForm();
     window.tradingForm.loadDraft();
     window.tradingForm.updateRecentSignals();
