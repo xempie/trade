@@ -2292,14 +2292,5 @@ window.addEventListener('beforeinstallprompt', (e) => {
     window.deferredPrompt = e;
 });
 
-// Initialize the trading form when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    // Only initialize trading form if it exists (for pages that need it)
-    if (document.getElementById('trading-form')) {
-        window.tradingForm = new TradingForm();
-        window.tradingForm.loadDraft();
-        window.tradingForm.updateRecentSignals();
-        window.tradingForm.updateWatchlistDisplay();
-        window.tradingForm.initializeTabs();
-    }
-});
+// TradingForm initialization is now handled by individual pages
+// This prevents duplicate event handler attachments

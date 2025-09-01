@@ -156,10 +156,12 @@ $isLocal = isLocalhost();
     <script>
         // Initialize PWA navigation and user menu only
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize trading form for this page
-            window.tradingForm = new TradingForm();
-            window.tradingForm.updateWatchlistDisplay();
-            window.tradingForm.initializeTabs();
+            // Initialize trading form for this page (only once)
+            if (!window.tradingForm) {
+                window.tradingForm = new TradingForm();
+                window.tradingForm.updateWatchlistDisplay();
+                window.tradingForm.initializeTabs();
+            }
             
             // Setup user menu functionality
             const userMenuButton = document.getElementById('user-menu-button');
