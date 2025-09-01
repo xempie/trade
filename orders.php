@@ -147,6 +147,7 @@ $isLocal = isLocalhost();
             // Initialize trading form for this page (only once)
             if (!window.tradingForm) {
                 window.tradingForm = new TradingForm();
+                // Don't load balance data - only do this on home page
                 window.tradingForm.updateRecentSignals();
             }
             

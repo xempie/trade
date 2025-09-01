@@ -239,7 +239,7 @@ $isLocal = isLocalhost();
             if (!window.tradingForm) {
                 window.tradingForm = new TradingForm();
                 window.tradingForm.loadDraft();
-                window.tradingForm.loadBalanceData();
+                // Don't load balance data - only do this on home page
                 window.tradingForm.updateRecentSignals();
                 window.tradingForm.updateWatchlistDisplay();
                 window.tradingForm.initializeTabs();
