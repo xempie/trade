@@ -580,8 +580,8 @@ input[type=number] {
 
 .signal-list,
 .watchlist-items {
-    max-height: 250px;
-    overflow-y: auto;
+    /* Remove max-height to show all items */
+    overflow-y: visible;
     padding-right: 4px;
 }
 
@@ -2004,8 +2004,7 @@ input.loading {
     }
 }
 
-/* Hide original containers in PWA mode */
-.pwa-app .container,
+/* Hide original user header in PWA mode */
 .pwa-app .user-header {
     display: none;
 }
