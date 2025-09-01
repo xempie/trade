@@ -183,6 +183,26 @@ try {
             if (markTriggered($pdo, $item['id'])) {
                 $triggeredCount++;
                 
+                // Find the corresponding limit order for this watchlist item
+                $orderId = null;
+                $sql = "SELECT id FROM orders 
+                        WHERE symbol = :symbol 
+                        AND price = :price 
+                        AND entry_level = :entry_level 
+                        AND status IN ('NEW', 'PENDING') 
+                        ORDER BY created_at DESC 
+                        LIMIT 1";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
+                    ':symbol' => $symbol . '-USDT',
+                    ':price' => $entryPrice,
+                    ':entry_level' => strtoupper($entryType)
+                ]);
+                $orderResult = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($orderResult) {
+                    $orderId = $orderResult['id'];
+                }
+                
                 // Send notification with interactive buttons
                 $telegram = new TelegramMessenger();
                 $telegram->sendPriceAlert(
@@ -192,10 +212,11 @@ try {
                     $currentPrice,
                     $direction,
                     $marginAmount,
-                    $item['id']
+                    $item['id'],
+                    $orderId  // Pass order ID for token generation
                 );
                 
-                echo "Triggered: {$symbol} {$direction} at {$currentPrice} (target: {$entryPrice})\n";
+                echo "Triggered: {$symbol} {$direction} at {$currentPrice} (target: {$entryPrice}) - Order ID: {$orderId}\n";
             }
         }
     }

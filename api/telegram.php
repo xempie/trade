@@ -66,7 +66,7 @@ class TelegramMessenger {
     /**
      * Send price alert with trading buttons
      */
-    public function sendPriceAlert($symbol, $entryType, $targetPrice, $currentPrice, $direction, $marginAmount, $watchlistId, $chatId = null, $botToken = null) {
+    public function sendPriceAlert($symbol, $entryType, $targetPrice, $currentPrice, $direction, $marginAmount, $watchlistId, $orderId = null, $chatId = null, $botToken = null) {
         $directionEmoji = $direction === 'long' ? '📈' : '📉';
         $entryTypeFormatted = str_replace('_', ' ', strtoupper($entryType));
         
@@ -77,31 +77,46 @@ class TelegramMessenger {
                   "📊 Direction: " . strtoupper($direction) . "\n" .
                   "💵 Margin: \${$marginAmount}";
         
+        // Generate secure tokens for API access
+        require_once __DIR__ . '/auth_token.php';
+        $baseUrl = $this->getBaseUrl();
+        
+        $openToken = TokenAuth::generateToken($orderId, 'open_position', 3600); // 1 hour expiry
+        $cancelToken = TokenAuth::generateToken($orderId, 'cancel_order', 3600); // 1 hour expiry
+        
+        $openUrl = $baseUrl . "/api/open_limit_position.php?token=" . urlencode($openToken);
+        $cancelUrl = $baseUrl . "/api/cancel_limit_order.php?token=" . urlencode($cancelToken);
+        
         // Create inline buttons
         $buttons = [
             [
                 [
                     'text' => ($direction === 'long' ? '📈 Open LONG' : '📉 Open SHORT'),
-                    'callback_data' => json_encode([
-                        'action' => 'open_position',
-                        'symbol' => $symbol,
-                        'direction' => strtoupper($direction),
-                        'price' => $currentPrice,
-                        'entry_type' => $entryType
-                    ])
+                    'url' => $openUrl
                 ],
                 [
-                    'text' => '🗑️ Remove Alert',
-                    'callback_data' => json_encode([
-                        'action' => 'remove_watchlist',
-                        'watchlist_id' => $watchlistId,
-                        'symbol' => $symbol
-                    ])
+                    'text' => '🗑️ Ignore/Cancel',
+                    'url' => $cancelUrl
                 ]
             ]
         ];
         
         return $this->sendMessageWithButtons($message, $buttons, $chatId, $botToken, 'HIGH');
+    }
+    
+    /**
+     * Get base URL for API endpoints
+     */
+    private function getBaseUrl() {
+        // You can configure this in environment or use auto-detection
+        $baseUrl = getenv('APP_BASE_URL');
+        if (!$baseUrl) {
+            // Auto-detect based on server configuration
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $baseUrl = $protocol . $host . '/trade';
+        }
+        return rtrim($baseUrl, '/');
     }
     
     /**
@@ -443,8 +458,8 @@ function sendTelegramMessage($message, $chatId = null, $botToken = null, $priori
     return $telegram->sendMessage($message, $chatId, $botToken, $priority);
 }
 
-function sendTelegramPriceAlert($symbol, $entryType, $targetPrice, $currentPrice, $direction, $marginAmount, $watchlistId, $chatId = null, $botToken = null) {
+function sendTelegramPriceAlert($symbol, $entryType, $targetPrice, $currentPrice, $direction, $marginAmount, $watchlistId, $orderId = null, $chatId = null, $botToken = null) {
     $telegram = new TelegramMessenger($botToken, $chatId);
-    return $telegram->sendPriceAlert($symbol, $entryType, $targetPrice, $currentPrice, $direction, $marginAmount, $watchlistId, $chatId, $botToken);
+    return $telegram->sendPriceAlert($symbol, $entryType, $targetPrice, $currentPrice, $direction, $marginAmount, $watchlistId, $orderId, $chatId, $botToken);
 }
 ?>
