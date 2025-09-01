@@ -5,12 +5,16 @@ class TradingForm {
         this.totalBalance = 0;
         this.totalAssets = 0;
         this.marginUsed = 0;
-        this.positionSizePercent = 3.3;
+        this.positionSizePercent = 3.3; // Default, will be loaded from settings
+        this.defaultEntry2Percent = 2.0; // Default, will be loaded from settings
+        this.defaultEntry3Percent = 4.0; // Default, will be loaded from settings
         this.positionStatus = {}; // Track which positions exist on exchange
         
-        this.init();
-        this.loadBalanceData();
-        this.refreshPositions();
+        this.loadSettings().then(() => {
+            this.init();
+            this.loadBalanceData();
+            this.refreshPositions();
+        });
     }
 
     init() {
@@ -393,6 +397,47 @@ class TradingForm {
         errorEl.className = 'error-message';
         errorEl.textContent = message;
         formGroup.appendChild(errorEl);
+    }
+
+    async loadSettings() {
+        try {
+            const response = await fetch('api/get_settings.php');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update dynamic values from settings
+                this.positionSizePercent = data.settings.position_size_percent || 3.3;
+                this.defaultEntry2Percent = data.settings.entry_2_percent || 2.0;
+                this.defaultEntry3Percent = data.settings.entry_3_percent || 4.0;
+                
+                // Update default values in form fields if they exist
+                const entry2PercentField = document.getElementById('entry_2_percent');
+                const entry3PercentField = document.getElementById('entry_3_percent');
+                
+                if (entry2PercentField && !entry2PercentField.value) {
+                    entry2PercentField.value = this.defaultEntry2Percent;
+                }
+                if (entry3PercentField && !entry3PercentField.value) {
+                    entry3PercentField.value = this.defaultEntry3Percent;
+                }
+                
+                // Update position size percentage display on home page
+                const positionSizePercentElement = document.getElementById('position-size-percent');
+                if (positionSizePercentElement) {
+                    positionSizePercentElement.textContent = this.positionSizePercent;
+                }
+            } else {
+                console.warn('Failed to load settings:', data.error);
+            }
+        } catch (error) {
+            console.warn('Settings load error:', error);
+            // Continue with defaults if settings fail to load
+        }
     }
 
     async loadBalanceData() {

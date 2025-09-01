@@ -107,7 +107,7 @@ $isLocal = isLocalhost();
                         <span class="value" id="margin-used">$0.00</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">Position Size (3.3%):</span>
+                        <span class="label">Position Size (<span id="position-size-percent">3.3</span>%):</span>
                         <span class="value" id="position-size">$0.00</span>
                     </div>
                     <div class="info-item">

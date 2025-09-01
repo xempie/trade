@@ -86,6 +86,8 @@ function deployFiles($config) {
         'api/generate_token.php',
         'api/get_limit_orders.php',
         'api/telegram.php',
+        'api/get_settings.php',
+        'api/save_settings.php',
         'auth/api_protection.php',
         'auth/config.php',
         'auth/login.php',

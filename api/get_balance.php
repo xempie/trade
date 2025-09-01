@@ -9,6 +9,52 @@ protectAPI();
 ini_set('display_errors', 0);
 error_reporting(0);
 
+// Helper function to load settings
+function loadSettings() {
+    $settings = [
+        'position_size_percent' => 3.3,
+        'entry_2_percent' => 2.0,
+        'entry_3_percent' => 4.0,
+        'send_balance_alerts' => false,
+        'send_profit_loss_alerts' => false
+    ];
+    
+    $envPath = '../.env';
+    if (file_exists($envPath)) {
+        $envContent = file_get_contents($envPath);
+        $lines = explode("\n", $envContent);
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line && !str_starts_with($line, '#') && strpos($line, '=') !== false) {
+                list($key, $value) = explode('=', $line, 2);
+                $key = trim($key);
+                $value = trim($value);
+                
+                switch ($key) {
+                    case 'POSITION_SIZE_PERCENT':
+                        $settings['position_size_percent'] = (float)$value;
+                        break;
+                    case 'ENTRY_2_PERCENT':
+                        $settings['entry_2_percent'] = (float)$value;
+                        break;
+                    case 'ENTRY_3_PERCENT':
+                        $settings['entry_3_percent'] = (float)$value;
+                        break;
+                    case 'SEND_BALANCE_ALERTS':
+                        $settings['send_balance_alerts'] = $value === 'true';
+                        break;
+                    case 'SEND_PROFIT_LOSS_ALERTS':
+                        $settings['send_profit_loss_alerts'] = $value === 'true';
+                        break;
+                }
+            }
+        }
+    }
+    
+    return $settings;
+}
+
 // Load environment variables
 function loadEnv($path) {
     if (!file_exists($path)) {
@@ -249,7 +295,11 @@ function tryBingXEndpoint($apiKey, $apiSecret, $endpoint) {
         }
         
         $marginUsed = $totalBalance - $availableBalance;
-        $positionSize = $totalBalance * 0.033; // 3.3% of total balance
+        
+        // Load settings for dynamic position size
+        $settings = loadSettings();
+        $positionSizePercent = $settings['position_size_percent'] / 100; // Convert to decimal
+        $positionSize = $totalBalance * $positionSizePercent;
         
         return [
             'success' => true,

@@ -85,26 +85,125 @@ $isLocal = isLocalhost();
 
         <!-- Main Content Area -->
         <main class="pwa-main" style="padding-bottom: 100px;">
-            <!-- Settings Section -->
-            <div class="info-panel">
-                <div class="account-info">
-                    <h3>Settings</h3>
-                    <div class="info-item">
-                        <span class="label">Email:</span>
-                        <span class="value"><?php echo htmlspecialchars($user['email'] ?? 'Not available'); ?></span>
+            <!-- Settings Form -->
+            <div class="container">
+                <div class="form-container">
+                    <div class="header">
+                        <h1>Application Settings</h1>
+                        <p>Configure your trading preferences and API connections</p>
                     </div>
-                    <div class="info-item">
-                        <span class="label">Name:</span>
-                        <span class="value"><?php echo htmlspecialchars($user['name'] ?? 'Not available'); ?></span>
-                    </div>
-                    <div class="info-item">
-                        <span class="label">Cache Status:</span>
-                        <span class="value" id="cache-info">Loading...</span>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="clearAppCache()">Clear Cache</button>
-                        <button type="button" class="btn btn-secondary" onclick="installPWA()">Install PWA</button>
-                    </div>
+
+                    <form id="settings-form" class="trading-form">
+                        <!-- Account Information -->
+                        <div class="settings-group">
+                            <h3>👤 Account Information</h3>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="text" value="<?php echo htmlspecialchars($user['email'] ?? 'Not available'); ?>" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" value="<?php echo htmlspecialchars($user['name'] ?? 'Not available'); ?>" disabled>
+                            </div>
+                        </div>
+
+                        <!-- BingX API Configuration -->
+                        <div class="settings-group">
+                            <h3>🔑 BingX API Configuration</h3>
+                            <div class="form-group">
+                                <label for="bingx_api_key">API Key</label>
+                                <input type="text" id="bingx_api_key" name="bingx_api_key" placeholder="Enter your BingX API Key" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="bingx_secret_key">Secret Key</label>
+                                <input type="password" id="bingx_secret_key" name="bingx_secret_key" placeholder="Enter your BingX Secret Key" required>
+                                <button type="button" class="toggle-password" onclick="togglePassword('bingx_secret_key')">👁️</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="bingx_passphrase">Passphrase</label>
+                                <input type="password" id="bingx_passphrase" name="bingx_passphrase" placeholder="Enter your BingX Passphrase" required>
+                                <button type="button" class="toggle-password" onclick="togglePassword('bingx_passphrase')">👁️</button>
+                            </div>
+                        </div>
+
+                        <!-- Telegram Configuration -->
+                        <div class="settings-group">
+                            <h3>📱 Telegram Bot Configuration</h3>
+                            <div class="form-group">
+                                <label for="telegram_bot_token">Bot Token</label>
+                                <input type="text" id="telegram_bot_token" name="telegram_bot_token" placeholder="Enter Telegram Bot Token" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="telegram_chat_id">Chat ID</label>
+                                <input type="text" id="telegram_chat_id" name="telegram_chat_id" placeholder="Enter Telegram Chat ID" required>
+                            </div>
+                        </div>
+
+                        <!-- Trading Preferences -->
+                        <div class="settings-group">
+                            <h3>⚙️ Trading Preferences</h3>
+                            <div class="form-group">
+                                <label for="position_size_percent">Position Size (%)</label>
+                                <input type="number" id="position_size_percent" name="position_size_percent" 
+                                       placeholder="3.3" step="0.1" min="0.1" max="50" required>
+                                <small>Percentage of available balance to use per position</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="entry_2_percent">Default Entry 2 Percentage (%)</label>
+                                <input type="number" id="entry_2_percent" name="entry_2_percent" 
+                                       placeholder="2.0" step="0.1" min="0.1" max="20" required>
+                                <small>Default percentage for Entry 2 calculations</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="entry_3_percent">Default Entry 3 Percentage (%)</label>
+                                <input type="number" id="entry_3_percent" name="entry_3_percent" 
+                                       placeholder="4.0" step="0.1" min="0.1" max="20" required>
+                                <small>Default percentage for Entry 3 calculations</small>
+                            </div>
+                        </div>
+
+                        <!-- Alert Preferences -->
+                        <div class="settings-group">
+                            <h3>🔔 Alert Preferences</h3>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="send_balance_alerts" name="send_balance_alerts">
+                                    <span class="checkbox-custom"></span>
+                                    Send Balance Change Alerts
+                                </label>
+                                <small>Get notified when your account balance changes significantly</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="send_profit_loss_alerts" name="send_profit_loss_alerts">
+                                    <span class="checkbox-custom"></span>
+                                    Send Profit/Loss Alerts
+                                </label>
+                                <small>Get notified about position profit and loss updates</small>
+                            </div>
+                        </div>
+
+                        <!-- App Settings -->
+                        <div class="settings-group">
+                            <h3>📲 App Settings</h3>
+                            <div class="form-group">
+                                <label>Cache Status</label>
+                                <div class="info-item">
+                                    <span class="value" id="cache-info">Loading...</span>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="clearAppCache()">Clear Cache</button>
+                                <button type="button" class="btn btn-secondary" onclick="installPWA()">Install PWA</button>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="loadSettings()">Reset</button>
+                            <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </main>
@@ -150,6 +249,9 @@ $isLocal = isLocalhost();
 
     <script src="script.js"></script>
     <script>
+        // Settings management
+        let currentSettings = {};
+
         // PWA Install functionality
         let deferredPrompt;
         
@@ -164,14 +266,13 @@ $isLocal = isLocalhost();
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        console.log('PWA: User accepted the install prompt');
-                        alert('App installed successfully!');
+                        showNotification('App installed successfully!', 'success');
                     }
                     deferredPrompt = null;
                     document.getElementById('install-btn').style.display = 'none';
                 });
             } else {
-                alert('App is already installed or installation is not available.');
+                showNotification('App is already installed or installation is not available.', 'info');
             }
         }
 
@@ -186,7 +287,7 @@ $isLocal = isLocalhost();
                         caches.delete(name);
                     });
                     localStorage.clear();
-                    alert('Cache cleared successfully!');
+                    showNotification('Cache cleared successfully!', 'success');
                     updateCacheInfo();
                 });
             }
@@ -205,9 +306,164 @@ $isLocal = isLocalhost();
             }
         }
 
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling;
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                field.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('api/get_settings.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSettings = data.settings;
+                    
+                    // Populate form fields
+                    document.getElementById('bingx_api_key').value = currentSettings.bingx_api_key;
+                    document.getElementById('bingx_secret_key').value = currentSettings.bingx_secret_key;
+                    document.getElementById('bingx_passphrase').value = currentSettings.bingx_passphrase;
+                    document.getElementById('telegram_bot_token').value = currentSettings.telegram_bot_token;
+                    document.getElementById('telegram_chat_id').value = currentSettings.telegram_chat_id;
+                    document.getElementById('position_size_percent').value = currentSettings.position_size_percent;
+                    document.getElementById('entry_2_percent').value = currentSettings.entry_2_percent;
+                    document.getElementById('entry_3_percent').value = currentSettings.entry_3_percent;
+                    document.getElementById('send_balance_alerts').checked = currentSettings.send_balance_alerts;
+                    document.getElementById('send_profit_loss_alerts').checked = currentSettings.send_profit_loss_alerts;
+                    
+                    showNotification('Settings loaded successfully', 'success');
+                } else {
+                    showNotification('Error loading settings: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Load settings error:', error);
+                showNotification('Failed to load settings', 'error');
+            }
+        }
+
+        async function saveSettings(formData) {
+            try {
+                const response = await fetch('api/save_settings.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Settings saved successfully!', 'success');
+                    return true;
+                } else {
+                    showNotification('Error saving settings: ' + data.error, 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Save settings error:', error);
+                showNotification('Failed to save settings', 'error');
+                return false;
+            }
+        }
+
+        function showNotification(message, type) {
+            // Create a simple notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             updateCacheInfo();
+            loadSettings();
+            
+            // Setup user menu functionality
+            const userMenuButton = document.getElementById('user-menu-button');
+            const userDropdown = document.getElementById('user-dropdown');
+
+            if (userMenuButton && userDropdown) {
+                userMenuButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    userDropdown.classList.toggle('show');
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('show');
+                    }
+                });
+
+                // Handle dropdown menu items
+                const logoutBtn = document.getElementById('logout-btn');
+                const clearCacheBtn = document.getElementById('clear-cache-btn');
+                const installBtn = document.getElementById('install-btn');
+
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => {
+                        if (confirm('Are you sure you want to logout?')) {
+                            window.location.href = 'auth/logout.php';
+                        }
+                    });
+                }
+
+                if (clearCacheBtn) {
+                    clearCacheBtn.addEventListener('click', () => clearAppCache());
+                }
+
+                if (installBtn) {
+                    installBtn.addEventListener('click', () => installPWA());
+                }
+            }
+            
+            // Handle form submission
+            document.getElementById('settings-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const settings = {
+                    bingx_api_key: formData.get('bingx_api_key'),
+                    bingx_secret_key: formData.get('bingx_secret_key'),
+                    bingx_passphrase: formData.get('bingx_passphrase'),
+                    telegram_bot_token: formData.get('telegram_bot_token'),
+                    telegram_chat_id: formData.get('telegram_chat_id'),
+                    position_size_percent: parseFloat(formData.get('position_size_percent')),
+                    entry_2_percent: parseFloat(formData.get('entry_2_percent')),
+                    entry_3_percent: parseFloat(formData.get('entry_3_percent')),
+                    send_balance_alerts: formData.has('send_balance_alerts'),
+                    send_profit_loss_alerts: formData.has('send_profit_loss_alerts')
+                };
+                
+                await saveSettings(settings);
+            });
         });
     </script>
 </body>
