@@ -70,8 +70,7 @@ try {
     
     // Auto-cancel orders older than 2 hours
     $sql = "UPDATE orders SET 
-            status = 'CANCELLED', 
-            updated_at = NOW() 
+            status = 'CANCELLED' 
             WHERE type = 'LIMIT' 
             AND status IN ('NEW', 'PENDING') 
             AND created_at < DATE_SUB(NOW(), INTERVAL 2 HOUR)";

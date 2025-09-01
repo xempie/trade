@@ -103,8 +103,7 @@ try {
     
     // Update order status to cancelled
     $sql = "UPDATE orders SET 
-            status = 'CANCELLED', 
-            updated_at = NOW() 
+            status = 'CANCELLED'
             WHERE id = :order_id";
     $stmt = $pdo->prepare($sql);
     $success = $stmt->execute([':order_id' => $orderId]);
@@ -119,8 +118,7 @@ try {
         $symbol = str_replace('-USDT', '', $order['symbol']);
         
         $sql = "UPDATE watchlist SET 
-                status = 'cancelled', 
-                updated_at = NOW() 
+                status = 'cancelled'
                 WHERE symbol = :symbol 
                 AND entry_type = :entry_type 
                 AND entry_price = :entry_price 
