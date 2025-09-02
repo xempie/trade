@@ -294,7 +294,7 @@ $isLocal = isLocalhost();
                                         Auto Close
                                     </label>
                                     <label class="radio-label">
-                                        <input type="radio" name="target_action" value="telegram_notify" id="target_telegram_notify">
+                                        <input type="radio" name="target_action" value="telegram_notify" id="target_telegram_notify" checked>
                                         <span class="radio-custom"></span>
                                         Telegram Notify
                                     </label>
