@@ -12,7 +12,10 @@ class TradingForm {
         
         this.loadSettings().then(() => {
             this.init();
-            this.loadBalanceData();
+            // Only load balance data on home page
+            if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+                this.loadBalanceData();
+            }
             this.refreshPositions();
         });
     }
@@ -761,7 +764,10 @@ class TradingForm {
             
             // Update displays
             this.updateRecentSignals();
-            this.loadBalanceData(); // Refresh balance after order placement
+            // Refresh balance only on home page
+            if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+                this.loadBalanceData();
+            }
             
             return result;
             
@@ -1192,7 +1198,9 @@ class TradingForm {
                 this.showNotification(`Position closed successfully: ${result.message}`, 'success');
                 // Refresh positions list and balance
                 this.updateRecentSignals();
-                this.loadBalanceData();
+                if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+                    this.loadBalanceData();
+                }
             } else {
                 throw new Error(result.error || 'Failed to close position');
             }
@@ -1234,7 +1242,9 @@ class TradingForm {
                 this.showNotification(`Position removed: ${result.message}`, 'success');
                 // Refresh positions list and balance
                 this.updateRecentSignals();
-                this.loadBalanceData();
+                if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+                    this.loadBalanceData();
+                }
             } else {
                 throw new Error(result.error || 'Failed to remove position');
             }
@@ -2178,7 +2188,7 @@ class PWANavigation {
                 break;
             case 'trade':
                 if (window.tradingForm) {
-                    window.tradingForm.loadBalanceData();
+                    // No balance loading needed on trade page
                 }
                 break;
             case 'orders':

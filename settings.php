@@ -96,7 +96,12 @@ $isLocal = isLocalhost();
                     <form id="settings-form" class="trading-form">
                         <!-- Account Information -->
                         <div class="settings-group">
-                            <h3>👤 Account Information</h3>
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                                Account Information
+                            </h3>
                             <div class="form-group">
                                 <label>Email</label>
                                 <input type="text" value="<?php echo htmlspecialchars($user['email'] ?? 'Not available'); ?>" disabled>
@@ -109,7 +114,12 @@ $isLocal = isLocalhost();
 
                         <!-- BingX API Configuration -->
                         <div class="settings-group">
-                            <h3>🔑 BingX API Configuration</h3>
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M6 10v-4a6 6 0 116 6v4h2a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2v-7a2 2 0 012-2h2zm2-4a4 4 0 118 0v4H8V6z"/>
+                                </svg>
+                                BingX API Configuration
+                            </h3>
                             <div class="form-group">
                                 <label for="bingx_api_key">API Key</label>
                                 <input type="text" id="bingx_api_key" name="bingx_api_key" placeholder="Enter your BingX API Key" required>
@@ -117,18 +127,31 @@ $isLocal = isLocalhost();
                             <div class="form-group">
                                 <label for="bingx_secret_key">Secret Key</label>
                                 <input type="password" id="bingx_secret_key" name="bingx_secret_key" placeholder="Enter your BingX Secret Key" required>
-                                <button type="button" class="toggle-password" onclick="togglePassword('bingx_secret_key')">👁️</button>
+                                <button type="button" class="toggle-password" onclick="togglePassword('bingx_secret_key')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                    </svg>
+                                </button>
                             </div>
                             <div class="form-group">
                                 <label for="bingx_passphrase">Passphrase</label>
                                 <input type="password" id="bingx_passphrase" name="bingx_passphrase" placeholder="Enter your BingX Passphrase" required>
-                                <button type="button" class="toggle-password" onclick="togglePassword('bingx_passphrase')">👁️</button>
+                                <button type="button" class="toggle-password" onclick="togglePassword('bingx_passphrase')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
                         <!-- Telegram Configuration -->
                         <div class="settings-group">
-                            <h3>📱 Telegram Bot Configuration</h3>
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M20.665 3.717l-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l.002.001-.314 4.692c.46 0 .663-.211.924-.458l2.211-2.15 4.599 3.397c.848.467 1.457.227 1.668-.785L21.95 4.725c.309-1.239-.473-1.8-1.285-1.008z"/>
+                                </svg>
+                                Telegram Bot Configuration
+                            </h3>
                             <div class="form-group">
                                 <label for="telegram_bot_token">Bot Token</label>
                                 <input type="text" id="telegram_bot_token" name="telegram_bot_token" placeholder="Enter Telegram Bot Token" required>
@@ -141,7 +164,12 @@ $isLocal = isLocalhost();
 
                         <!-- Trading Preferences -->
                         <div class="settings-group">
-                            <h3>⚙️ Trading Preferences</h3>
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.82,11.69,4.82,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                                </svg>
+                                Trading Preferences
+                            </h3>
                             <div class="form-group">
                                 <label for="position_size_percent">Position Size (%)</label>
                                 <input type="number" id="position_size_percent" name="position_size_percent" 
@@ -164,7 +192,12 @@ $isLocal = isLocalhost();
 
                         <!-- Alert Preferences -->
                         <div class="settings-group">
-                            <h3>🔔 Alert Preferences</h3>
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                                Alert Preferences
+                            </h3>
                             <div class="form-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="send_balance_alerts" name="send_balance_alerts">
@@ -185,7 +218,12 @@ $isLocal = isLocalhost();
 
                         <!-- App Settings -->
                         <div class="settings-group">
-                            <h3>📲 App Settings</h3>
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M7 4V2C7 1.45 7.45 1 8 1H16C16.55 1 17 1.45 17 2V4H20C20.55 4 21 4.45 21 5S20.55 6 20 6H19V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6H4C3.45 6 3 5.55 3 5S3.45 4 4 4H7ZM9 3V4H15V3H9ZM7 6V19H17V6H7Z"/>
+                                </svg>
+                                App Settings
+                            </h3>
                             <div class="form-group">
                                 <label>Cache Status</label>
                                 <div class="info-item">
@@ -201,7 +239,12 @@ $isLocal = isLocalhost();
                         <!-- Form Actions -->
                         <div class="form-actions">
                             <button type="button" class="btn btn-secondary" onclick="loadSettings()">Reset</button>
-                            <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+                            <button type="submit" class="btn btn-primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
+                                    <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3ZM12 19C10.34 19 9 17.66 9 16S10.34 13 12 13 15 14.34 15 16 13.66 19 12 19ZM15 9H5V5H15V9Z"/>
+                                </svg>
+                                Save Settings
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -309,13 +352,16 @@ $isLocal = isLocalhost();
         function togglePassword(fieldId) {
             const field = document.getElementById(fieldId);
             const button = field.nextElementSibling;
+            const svg = button.querySelector('svg path');
             
             if (field.type === 'password') {
                 field.type = 'text';
-                button.textContent = '🙈';
+                // Change to "hide" icon (eye with slash)
+                svg.setAttribute('d', 'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92 1.41-1.41L3.51 1.93 2.1 3.34l2.36 2.36C4.06 6.26 3.73 6.61 3.73 7c0 4.39 6 7.5 11 7.5.79 0 1.57-.09 2.32-.27l.81.81c-.78.18-1.58.27-2.39.27-5.52 0-10-3.11-11-7.5.4-1.61 1.35-3.14 2.64-4.36l-.83-.83zm9.27 2.83c-.13-.13-.27-.26-.42-.38L12 7c2.76 0 5 2.24 5 5l-2.73-2.73c.13-1.09-.87-2.09-1.96-1.96z');
             } else {
                 field.type = 'password';
-                button.textContent = '👁️';
+                // Change back to normal eye icon
+                svg.setAttribute('d', 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z');
             }
         }
 
@@ -339,7 +385,6 @@ $isLocal = isLocalhost();
                     document.getElementById('send_balance_alerts').checked = currentSettings.send_balance_alerts;
                     document.getElementById('send_profit_loss_alerts').checked = currentSettings.send_profit_loss_alerts;
                     
-                    showNotification('Settings loaded successfully', 'success');
                 } else {
                     showNotification('Error loading settings: ' + data.error, 'error');
                 }

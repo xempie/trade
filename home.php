@@ -168,7 +168,7 @@ $isLocal = isLocalhost();
             // Initialize trading form for this page (only once)
             if (!window.tradingForm) {
                 window.tradingForm = new TradingForm();
-                window.tradingForm.loadBalanceData();
+                // Balance data loading is handled automatically in constructor
             }
             
             // Setup user menu functionality
