@@ -231,13 +231,11 @@ $isLocal = isLocalhost();
                                         <input type="radio" name="trading_mode" value="live" id="trading_mode_live">
                                         <span class="radio-custom"></span>
                                         <strong>Live Trading</strong>
-                                        <small>Real money trading with actual BingX account</small>
                                     </label>
                                     <label class="radio-label">
                                         <input type="radio" name="trading_mode" value="demo" id="trading_mode_demo">
                                         <span class="radio-custom"></span>
                                         <strong>Demo Trading</strong>
-                                        <small>Paper trading for testing strategies</small>
                                     </label>
                                 </div>
                             </div>
@@ -287,7 +285,6 @@ $isLocal = isLocalhost();
                             <div class="form-group">
                                 <label for="target_percentage">Target Percentage (%)</label>
                                 <input type="number" id="target_percentage" name="target_percentage" min="1" max="1000" step="0.1" placeholder="10">
-                                <small>Default target percentage for positions</small>
                             </div>
                             <div class="form-group">
                                 <label>Target Action</label>
@@ -296,7 +293,6 @@ $isLocal = isLocalhost();
                                         <input type="radio" name="target_action" value="auto_close" id="target_auto_close">
                                         <span class="radio-custom"></span>
                                         Auto Close
-                                        <small>Automatically close position at target</small>
                                     </label>
                                     <label class="radio-label">
                                         <input type="radio" name="target_action" value="telegram_notify" id="target_telegram_notify">
