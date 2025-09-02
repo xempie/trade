@@ -68,8 +68,8 @@ function getDbConnection() {
 try {
     $pdo = getDbConnection();
     
-    // Simple query - get ALL limit orders from orders table
-    $sql = "SELECT * FROM orders WHERE type = 'LIMIT' ORDER BY created_at DESC";
+    // Get only pending limit orders from orders table
+    $sql = "SELECT * FROM orders WHERE type = 'LIMIT' AND status IN ('NEW', 'PENDING') ORDER BY created_at DESC";
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
