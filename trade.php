@@ -84,7 +84,7 @@ $isLocal = isLocalhost();
         </header>
 
         <!-- Main Content Area -->
-        <main class="pwa-main" style="padding-bottom: 100px;">
+        <main class="pwa-main" style="padding-bottom: 150px;">
             <!-- Trade Section - Original Form -->
             <div class="container">
                 <div class="form-container">

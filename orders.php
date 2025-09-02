@@ -84,10 +84,9 @@ $isLocal = isLocalhost();
         </header>
 
         <!-- Main Content Area -->
-        <main class="pwa-main" style="padding-bottom: 100px;">
+        <main class="pwa-main" style="padding-bottom: 150px;">
             <!-- Orders Section - Open Positions Only -->
-            <div class="info-panel">
-                <div class="recent-signals">
+            <div class="recent-signals">
                     <div class="positions-header">
                         <h3>Active Positions</h3>
                         <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
@@ -98,7 +97,6 @@ $isLocal = isLocalhost();
                         <p class="no-signals">No active positions</p>
                     </div>
                 </div>
-            </div>
         </main>
 
         <!-- Bottom Navigation -->

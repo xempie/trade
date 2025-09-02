@@ -12,8 +12,8 @@ class TradingForm {
         
         this.loadSettings().then(() => {
             this.init();
-            // Only load balance data on home page
-            if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+            // Load balance data on home page and trade page (needed for position sizing)
+            if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php' || window.location.pathname.includes('trade.php')) {
                 this.loadBalanceData();
             }
             this.refreshPositions();
@@ -434,12 +434,40 @@ class TradingForm {
                 if (positionSizePercentElement) {
                     positionSizePercentElement.textContent = this.positionSizePercent;
                 }
+                
+                // Update entry values on trade form if balance data is available
+                this.updateEntryValues();
             } else {
                 console.warn('Failed to load settings:', data.error);
             }
         } catch (error) {
             console.warn('Settings load error:', error);
             // Continue with defaults if settings fail to load
+        }
+    }
+
+    updateEntryValues() {
+        // Only populate entry values if we have balance data and are on trade page
+        if (!this.totalAssets || this.totalAssets <= 0) return;
+        if (!window.location.pathname.includes('trade.php')) return;
+        
+        // Calculate position size based on settings percentage and total assets
+        const positionSize = Math.ceil((this.totalAssets * (this.positionSizePercent / 100)));
+        
+        // Get entry value input fields
+        const marketMargin = document.getElementById('entry_market_margin');
+        const entry2Margin = document.getElementById('entry_2_margin');
+        const entry3Margin = document.getElementById('entry_3_margin');
+        
+        // Only populate if fields are empty (don't override user input)
+        if (marketMargin && !marketMargin.value) {
+            marketMargin.value = positionSize;
+        }
+        if (entry2Margin && !entry2Margin.value) {
+            entry2Margin.value = positionSize;
+        }
+        if (entry3Margin && !entry3Margin.value) {
+            entry3Margin.value = positionSize;
         }
     }
 
@@ -464,6 +492,9 @@ class TradingForm {
                 
                 // Update UI
                 this.updateAccountInfo();
+                
+                // Update entry values on trade form
+                this.updateEntryValues();
                 
                 // Update last updated time
                 const lastUpdated = new Date().toLocaleTimeString();
@@ -764,8 +795,8 @@ class TradingForm {
             
             // Update displays
             this.updateRecentSignals();
-            // Refresh balance only on home page
-            if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+            // Refresh balance only on home page and trade page
+            if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php' || window.location.pathname.includes('trade.php')) {
                 this.loadBalanceData();
             }
             
@@ -1198,7 +1229,7 @@ class TradingForm {
                 this.showNotification(`Position closed successfully: ${result.message}`, 'success');
                 // Refresh positions list and balance
                 this.updateRecentSignals();
-                if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+                if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php' || window.location.pathname.includes('trade.php')) {
                     this.loadBalanceData();
                 }
             } else {
@@ -1242,7 +1273,7 @@ class TradingForm {
                 this.showNotification(`Position removed: ${result.message}`, 'success');
                 // Refresh positions list and balance
                 this.updateRecentSignals();
-                if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php') {
+                if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php' || window.location.pathname.includes('trade.php')) {
                     this.loadBalanceData();
                 }
             } else {

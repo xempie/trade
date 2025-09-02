@@ -84,7 +84,7 @@ $isLocal = isLocalhost();
         </header>
 
         <!-- Main Content Area -->
-        <main class="pwa-main" style="padding-bottom: 100px;">
+        <main class="pwa-main" style="padding-bottom: 150px;">
             <!-- Home Section - Only Account Info -->
             <div class="info-panel">
                 <div class="account-info">

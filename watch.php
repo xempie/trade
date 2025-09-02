@@ -84,10 +84,9 @@ $isLocal = isLocalhost();
         </header>
 
         <!-- Main Content Area -->
-        <main class="pwa-main" style="padding-bottom: 100px;">
+        <main class="pwa-main" style="padding-bottom: 150px;">
             <!-- Watch Section - Original Watchlist -->
-            <div class="info-panel">
-                <div class="watchlist-panel">
+            <div class="watchlist-panel">
                     <div class="watchlist-header">
                         <div class="watchlist-tabs">
                             <button class="watchlist-tab active" data-tab="watchlist">Watch List</button>
@@ -110,7 +109,6 @@ $isLocal = isLocalhost();
                         </div>
                     </div>
                 </div>
-            </div>
         </main>
 
         <!-- Bottom Navigation -->
