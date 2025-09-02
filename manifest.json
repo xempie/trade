@@ -2,12 +2,12 @@
   "name": "Crypto Trading Manager",
   "short_name": "CryptoTrade",
   "description": "Professional crypto futures trading management with BingX integration",
-  "start_url": "/trade/",
+  "start_url": "home.php",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1a1a1a",
   "orientation": "portrait-primary",
-  "scope": "/trade/",
+  "scope": "./",
   "lang": "en",
   "icons": [
     {
@@ -66,14 +66,14 @@
       "name": "New Trade",
       "short_name": "Trade",
       "description": "Open new trading position",
-      "url": "/trade/?page=form",
+      "url": "trade.php",
       "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
       "name": "Watchlist",
       "short_name": "Watch",
       "description": "View price alerts",
-      "url": "/trade/?page=watch",
+      "url": "watch.php",
       "icons": [{ "src": "icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ]

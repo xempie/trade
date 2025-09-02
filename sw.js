@@ -5,12 +5,17 @@
 
 const CACHE_NAME = 'crypto-trade-v1.0.0';
 const urlsToCache = [
-  '/trade/',
-  '/trade/index.php',
-  '/trade/style.css',
-  '/trade/script.js',
-  '/trade/manifest.json',
-  '/trade/favicon-32x32.png'
+  './',
+  './index.php',
+  './home.php',
+  './trade.php', 
+  './orders.php',
+  './watch.php',
+  './settings.php',
+  './style.css',
+  './script.js',
+  './manifest.json',
+  './icons/icon-192x192.png'
 ];
 
 // Install event - cache resources

@@ -17,6 +17,9 @@ class TradingForm {
                 this.loadBalanceData();
             }
             this.refreshPositions();
+            
+            // Listen for settings updates from other pages
+            this.setupSettingsListener();
         });
     }
 
@@ -446,7 +449,22 @@ class TradingForm {
         }
     }
 
-    updateEntryValues() {
+    setupSettingsListener() {
+        // Listen for settings updates via BroadcastChannel
+        if ('BroadcastChannel' in window) {
+            const channel = new BroadcastChannel('settings-update');
+            channel.onmessage = (event) => {
+                if (event.data.type === 'settings-updated') {
+                    console.log('Settings updated, reloading settings and updating entry values');
+                    this.loadSettings().then(() => {
+                        this.updateEntryValues(true); // Force update when settings change
+                    });
+                }
+            };
+        }
+    }
+
+    updateEntryValues(forceUpdate = false) {
         // Only populate entry values if we have balance data and are on trade page
         if (!this.totalAssets || this.totalAssets <= 0) return;
         if (!window.location.pathname.includes('trade.php')) return;
@@ -459,16 +477,34 @@ class TradingForm {
         const entry2Margin = document.getElementById('entry_2_margin');
         const entry3Margin = document.getElementById('entry_3_margin');
         
-        // Only populate if fields are empty (don't override user input)
-        if (marketMargin && !marketMargin.value) {
+        // Store the previous position size to detect if we should force update
+        if (!this.lastCalculatedPositionSize) {
+            this.lastCalculatedPositionSize = positionSize;
+        }
+        
+        // Determine if we should update fields
+        const shouldUpdate = (field) => {
+            if (!field) return false;
+            if (forceUpdate) return true;
+            if (!field.value) return true; // Empty field
+            // If the current value matches our last calculated value, update it
+            if (field.value == this.lastCalculatedPositionSize) return true;
+            return false;
+        };
+        
+        // Update fields if appropriate
+        if (shouldUpdate(marketMargin)) {
             marketMargin.value = positionSize;
         }
-        if (entry2Margin && !entry2Margin.value) {
+        if (shouldUpdate(entry2Margin)) {
             entry2Margin.value = positionSize;
         }
-        if (entry3Margin && !entry3Margin.value) {
+        if (shouldUpdate(entry3Margin)) {
             entry3Margin.value = positionSize;
         }
+        
+        // Update our tracking variable
+        this.lastCalculatedPositionSize = positionSize;
     }
 
     async loadBalanceData() {

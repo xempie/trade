@@ -408,6 +408,14 @@ $isLocal = isLocalhost();
                 
                 if (data.success) {
                     showNotification('Settings saved successfully!', 'success');
+                    
+                    // Broadcast settings update to other pages
+                    if ('BroadcastChannel' in window) {
+                        const channel = new BroadcastChannel('settings-update');
+                        channel.postMessage({ type: 'settings-updated' });
+                        channel.close();
+                    }
+                    
                     return true;
                 } else {
                     showNotification('Error saving settings: ' + data.error, 'error');
