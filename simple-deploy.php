@@ -66,8 +66,11 @@ function deployFiles($config) {
     $files = [
         'index.php',
         'home.php',
+        'debug-orders.php',
         'trade.php',
         'orders.php',
+        'limit-orders.php',
+        'test-deploy.txt',
         'watch.php',
         'settings.php',
         'style.css', 
@@ -88,6 +91,7 @@ function deployFiles($config) {
         'api/telegram.php',
         'api/get_settings.php',
         'api/save_settings.php',
+        'api/debug_orders.php',
         'auth/api_protection.php',
         'auth/config.php',
         'auth/login.php',
@@ -119,6 +123,9 @@ function deployFiles($config) {
             if ($dir !== $config['remote_path']) {
                 @ftp_mkdir($connection, $dir);
             }
+            
+            // Also create the main remote_path directory
+            @ftp_mkdir($connection, $config['remote_path']);
             
             if (ftp_put($connection, $remotePath, $file, FTP_BINARY)) {
                 echo "✅ Uploaded: $file\n";

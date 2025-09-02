@@ -1,14 +1,7 @@
 <?php
 /**
- * Get Limit Orders API
- * Returns pending limit orders for the limit orders tab
+ * Debug API to check orders in database
  */
-
-// Include authentication protection
-require_once '../auth/api_protection.php';
-
-// Protect this API endpoint
-protectAPI();
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -44,9 +37,7 @@ function loadEnv($path) {
     }
 }
 
-// Load .env file
-$envPath = __DIR__ . '/../.env';
-loadEnv($envPath);
+loadEnv(__DIR__ . '/../.env');
 
 // Database connection
 function getDbConnection() {
@@ -64,27 +55,58 @@ function getDbConnection() {
     }
 }
 
-// Main execution
 try {
     $pdo = getDbConnection();
     
-    // Simple query - get ALL limit orders from orders table
-    $sql = "SELECT * FROM orders WHERE type = 'LIMIT' ORDER BY created_at DESC";
+    // Get all orders with PENDING or NEW status
+    $sql = "SELECT id, symbol, side, type, entry_level, quantity, price, leverage, status, created_at, signal_id, bingx_order_id 
+            FROM orders 
+            WHERE status IN ('NEW', 'PENDING') 
+            ORDER BY created_at DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $allOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get orders that match current get_limit_orders.php query
+    $sql = "SELECT 
+                o.id,
+                o.symbol,
+                o.side,
+                o.type,
+                o.entry_level,
+                o.quantity,
+                o.price as entry_price,
+                o.leverage,
+                o.status,
+                o.created_at,
+                o.bingx_order_id,
+                s.signal_type as direction
+            FROM orders o
+            LEFT JOIN signals s ON o.signal_id = s.id
+            WHERE o.type = 'LIMIT' 
+            AND o.status IN ('NEW', 'PENDING', 'TRIGGERED')
+            AND o.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ORDER BY o.created_at DESC";
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
-    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $limitOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode([
         'success' => true,
-        'data' => $orders,
-        'count' => count($orders)
+        'all_pending_orders' => $allOrders,
+        'limit_orders_matching_query' => $limitOrders,
+        'all_pending_count' => count($allOrders),
+        'limit_orders_count' => count($limitOrders),
+        'query_conditions' => [
+            'type' => 'LIMIT',
+            'status' => 'NEW, PENDING, TRIGGERED',
+            'created_within' => '24 HOUR',
+            'current_time' => date('Y-m-d H:i:s')
+        ]
     ]);
     
 } catch (Exception $e) {
-    error_log("Get Limit Orders API Error: " . $e->getMessage());
-    
-    http_response_code($e->getCode() ?: 500);
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()

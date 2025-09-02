@@ -86,7 +86,9 @@ $isLocal = isLocalhost();
         <!-- Main Content Area -->
         <main class="pwa-main" style="padding-bottom: 150px;">
             <!-- Orders Section - Open Positions Only -->
-            <div class="recent-signals">
+            <div class="container">
+                <div class="form-container">
+                    <div class="recent-signals">
                     <div class="positions-header">
                         <h3>Active Positions</h3>
                         <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
@@ -96,7 +98,9 @@ $isLocal = isLocalhost();
                     <div class="signal-list" id="signal-list">
                         <p class="no-signals">No active positions</p>
                     </div>
+                    </div>
                 </div>
+            </div>
         </main>
 
         <!-- Bottom Navigation -->
@@ -122,6 +126,13 @@ $isLocal = isLocalhost();
                 <span class="nav-label">Orders</span>
             </a>
             
+            <a href="limit-orders.php" class="nav-item">
+                <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-4-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zM16 4v3.5l-4 4-4-4V4h8z"/>
+                </svg>
+                <span class="nav-label">Limits</span>
+            </a>
+            
             <a href="watch.php" class="nav-item">
                 <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
@@ -138,7 +149,7 @@ $isLocal = isLocalhost();
         </nav>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=<?php echo time(); ?>"></script>
     <script>
         // Initialize PWA navigation and user menu only
         document.addEventListener('DOMContentLoaded', () => {

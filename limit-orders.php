@@ -15,7 +15,7 @@ $isLocal = isLocalhost();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Trade - Crypto Trading Manager</title>
+    <title>Limits - Crypto Trading Manager</title>
     
     <!-- PWA Meta Tags -->
     <meta name="description" content="Professional crypto futures trading management with BingX integration">
@@ -37,7 +37,7 @@ $isLocal = isLocalhost();
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="pwa-app trade-page">
+<body class="pwa-app">
     <!-- PWA App Shell -->
     <div class="pwa-container">
         <!-- Top Header -->
@@ -85,109 +85,21 @@ $isLocal = isLocalhost();
 
         <!-- Main Content Area -->
         <main class="pwa-main" style="padding-bottom: 150px;">
-            <!-- Trade Section - Original Form -->
+            <!-- Limit Orders Section - Same structure as Watchlist -->
             <div class="container">
                 <div class="form-container">
-                    <div class="header">
-                        <h1>Trading Form</h1>                
+                    <div class="watchlist-panel">
+                    <div class="watchlist-header">
+                        <h2>Limit Orders</h2>
+                        <button class="refresh-watchlist-btn" onclick="tradingForm.refreshLimitOrders()" title="Refresh limit orders from BingX">
+                            ↻
+                        </button>
                     </div>
-
-                    <form id="trading-form" class="trading-form">
-                        <div class="form-group">
-                            <label for="symbol">Symbol</label>
-                            <div class="symbol-input-container">
-                                <input type="text" id="symbol" name="symbol" placeholder="Enter crypto symbol (e.g., BTC, ADA, ETH)" required>
-                                <button type="button" class="signal-pattern-btn" id="signal-pattern-btn" title="Parse signal pattern">
-                                    📋
-                                </button>
-                            </div>
-                            <div class="signal-pattern-container" id="signal-pattern-container" style="display: none;">
-                                <textarea id="signal-pattern-input" placeholder="Paste your Persian signal pattern here..." rows="4"></textarea>
-                                <div class="signal-pattern-actions">
-                                    <button type="button" class="btn btn-small btn-telegram" id="parse-signal-btn">Extract Signal</button>
-                                    <button type="button" class="btn btn-small btn-secondary" id="close-signal-pattern-btn">Close</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="direction">Direction</label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio" name="direction" value="long" checked>
-                                    <span class="radio-custom"></span>
-                                    Long
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="direction" value="short">
-                                    <span class="radio-custom"></span>
-                                    Short
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="leverage">Leverage</label>
-                            <select id="leverage" name="leverage" required>
-                                <option value="1">1x</option>
-                                <option value="2">2x</option>
-                                <option value="3">3x</option>
-                                <option value="4">4x</option>
-                                <option value="5">5x</option>
-                                <option value="6">6x</option>
-                                <option value="7">7x</option>
-                                <option value="8">8x</option>
-                                <option value="9">9x</option>
-                                <option value="10" selected="true">10x</option>
-                            </select>
-                        </div>
-
-                        <div class="entry-points">
-                            <h3>Entry Points</h3>
-                            
-                            <div class="form-group">
-                                <label for="entry_market">Market Entry</label>
-                                <div class="entry-row">
-                                    <input type="number" id="entry_market_margin" name="entry_market_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
-                                    <input type="number" id="entry_market" name="entry_market" placeholder="Market price" step="0.00001">
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="entry_2">Entry 2</label>
-                                <div class="entry-row">
-                                    <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
-                                    <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
-                                    <input type="number" id="entry_2" name="entry_2" placeholder="Calculated price" step="0.00001" readonly>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="entry_3">Entry 3</label>
-                                <div class="entry-row">
-                                    <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
-                                    <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
-                                    <input type="number" id="entry_3" name="entry_3" placeholder="Calculated price" step="0.00001" readonly>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="stop_loss">Stop Loss</label>
-                            <input type="number" id="stop_loss" name="stop_loss" placeholder="Stop loss price" step="0.00001">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="notes">Notes</label>
-                            <textarea id="notes" name="notes" placeholder="Add any notes about this signal..." rows="3"></textarea>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" id="add-to-watchlist">Add to Watch List</button>
-                            <button type="button" class="btn btn-secondary" id="reset-form">Reset Form</button>
-                            <button type="submit" class="btn btn-primary" id="submit-btn">Open Long Position</button>
-                        </div>
-                    </form>
+                    
+                    <div class="watchlist-items" id="watchlist-items">
+                        <p class="no-watchlist">No limit orders</p>
+                    </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -201,7 +113,7 @@ $isLocal = isLocalhost();
                 <span class="nav-label">Home</span>
             </a>
             
-            <a href="trade.php" class="nav-item active">
+            <a href="trade.php" class="nav-item">
                 <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                 </svg>
@@ -215,7 +127,7 @@ $isLocal = isLocalhost();
                 <span class="nav-label">Orders</span>
             </a>
             
-            <a href="limit-orders.php" class="nav-item">
+            <a href="limit-orders.php" class="nav-item active">
                 <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-4-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zM16 4v3.5l-4 4-4-4V4h8z"/>
                 </svg>
@@ -231,7 +143,7 @@ $isLocal = isLocalhost();
             
             <a href="settings.php" class="nav-item">
                 <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.82,11.69,4.82,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                    <path d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0014 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
                 </svg>
                 <span class="nav-label">Settings</span>
             </a>
@@ -245,11 +157,8 @@ $isLocal = isLocalhost();
             // Initialize trading form for this page (only once)
             if (!window.tradingForm) {
                 window.tradingForm = new TradingForm();
-                window.tradingForm.loadDraft();
                 // Don't load balance data - only do this on home page
-                window.tradingForm.updateRecentSignals();
-                window.tradingForm.updateWatchlistDisplay();
-                window.tradingForm.initializeTabs();
+                window.tradingForm.updateLimitOrdersDisplay();
             }
             
             // Setup user menu functionality

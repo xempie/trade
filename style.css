@@ -51,6 +51,11 @@ body {
     max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
+}
+
+/* Grid layout only for settings/trade forms */
+.settings .container,
+.trade-page .container {
     display: grid;
     grid-template-columns: 1fr 350px;
     gap: 30px;
@@ -468,10 +473,7 @@ input[type=number] {
 .account-info,
 .recent-signals,
 .watchlist-panel {
-    background: var(--dark-surface);
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid var(--dark-border);
+    /* Removed container styling for cleaner layout */
 }
 
 .account-header {
@@ -744,7 +746,8 @@ input[type=number] {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-    .container {
+    .settings .container,
+    .trade-page .container {
         grid-template-columns: 1fr;
         gap: 20px;
     }
@@ -1566,10 +1569,7 @@ input.loading {
 
 .account-info-card,
 .positions-card {
-    background: var(--dark-surface);
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid var(--dark-border);
+    /* Removed container styling for cleaner layout */
 }
 
 .card-header {

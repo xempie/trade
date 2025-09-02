@@ -92,13 +92,15 @@ try {
     $envVars['SEND_BALANCE_ALERTS'] = isset($input['send_balance_alerts']) && $input['send_balance_alerts'] ? 'true' : 'false';
     $envVars['SEND_PROFIT_LOSS_ALERTS'] = isset($input['send_profit_loss_alerts']) && $input['send_profit_loss_alerts'] ? 'true' : 'false';
     
-    // Add database settings if they don't exist
-    if (!isset($envVars['DB_HOST'])) $envVars['DB_HOST'] = 'localhost';
-    if (!isset($envVars['DB_USER'])) $envVars['DB_USER'] = '';
-    if (!isset($envVars['DB_PASSWORD'])) $envVars['DB_PASSWORD'] = '';
-    if (!isset($envVars['DB_NAME'])) $envVars['DB_NAME'] = 'crypto_trading';
+    // Preserve all existing environment variables that are not part of settings
+    $preservedVars = [
+        'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME',
+        'BINGX_LIVE_URL', 'BINGX_DEMO_URL', 'BINGX_BASE_URL', 'BINGX_DEMO_MODE',
+        'APP_ENV', 'APP_DEBUG', 'TRADING_MODE', 'ENABLE_REAL_TRADING', 'DEMO_TRADING',
+        'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'APP_URL', 'ALLOWED_EMAILS'
+    ];
     
-    // Build new .env content
+    // Build new .env content with proper structure
     $newEnvContent = "# Crypto Trading App Configuration\n";
     $newEnvContent .= "# Updated: " . date('Y-m-d H:i:s') . "\n\n";
     
@@ -111,6 +113,12 @@ try {
     $newEnvContent .= "[REDACTED_BOT_TOKEN]
     $newEnvContent .= "[REDACTED_CHAT_ID]
     
+    $newEnvContent .= "# API URLs for different trading modes\n";
+    $newEnvContent .= "BINGX_LIVE_URL=" . ($envVars['BINGX_LIVE_URL'] ?? 'https://open-api.bingx.com') . "\n";
+    $newEnvContent .= "BINGX_DEMO_URL=" . ($envVars['BINGX_DEMO_URL'] ?? 'https://open-api-vst.bingx.com') . "\n";
+    $newEnvContent .= "BINGX_BASE_URL=" . ($envVars['BINGX_BASE_URL'] ?? 'https://open-api.bingx.com') . "\n";
+    $newEnvContent .= "BINGX_DEMO_MODE=" . ($envVars['BINGX_DEMO_MODE'] ?? 'false') . "\n\n";
+    
     $newEnvContent .= "# Trading Configuration\n";
     $newEnvContent .= "POSITION_SIZE_PERCENT={$envVars['POSITION_SIZE_PERCENT']}\n";
     $newEnvContent .= "ENTRY_2_PERCENT={$envVars['ENTRY_2_PERCENT']}\n";
@@ -121,10 +129,22 @@ try {
     $newEnvContent .= "SEND_PROFIT_LOSS_ALERTS={$envVars['SEND_PROFIT_LOSS_ALERTS']}\n\n";
     
     $newEnvContent .= "# Database Configuration\n";
-    $newEnvContent .= "DB_HOST={$envVars['DB_HOST']}\n";
-    $newEnvContent .= "DB_USER={$envVars['DB_USER']}\n";
+    $newEnvContent .= "DB_HOST=" . ($envVars['DB_HOST'] ?? 'localhost') . "\n";
+    $newEnvContent .= "DB_USER=" . ($envVars['DB_USER'] ?? '[REDACTED_DB_USER]') . "\n";
     $newEnvContent .= "[REDACTED_DB_PASSWORD]
-    $newEnvContent .= "DB_NAME={$envVars['DB_NAME']}\n";
+    $newEnvContent .= "DB_NAME=" . ($envVars['DB_NAME'] ?? '[REDACTED_FTP_USER]_trade_assistant') . "\n\n";
+    
+    $newEnvContent .= "# Application Settings\n";
+    $newEnvContent .= "APP_ENV=" . ($envVars['APP_ENV'] ?? 'production') . "\n";
+    $newEnvContent .= "APP_DEBUG=" . ($envVars['APP_DEBUG'] ?? 'false') . "\n";
+    $newEnvContent .= "TRADING_MODE=" . ($envVars['TRADING_MODE'] ?? 'live') . "\n";
+    $newEnvContent .= "ENABLE_REAL_TRADING=" . ($envVars['ENABLE_REAL_TRADING'] ?? 'true') . "\n";
+    $newEnvContent .= "DEMO_TRADING=" . ($envVars['DEMO_TRADING'] ?? 'false') . "\n\n\n";
+    
+    $newEnvContent .= "[REDACTED_CLIENT_ID]
+    $newEnvContent .= "[REDACTED_CLIENT_SECRET]
+    $newEnvContent .= "APP_URL=" . ($envVars['APP_URL'] ?? 'https://[REDACTED_HOST]/ta') . "\n";
+    $newEnvContent .= "ALLOWED_EMAILS=" . ($envVars['ALLOWED_EMAILS'] ?? 'afhayati@gmail.com') . "\n\n\n";
     
     // Write to .env file
     if (file_put_contents($envPath, $newEnvContent) === false) {

@@ -428,6 +428,15 @@ function saveOrderToDb($pdo, $orderData, $bingxOrderId = null) {
         )";
         
         $stmt = $pdo->prepare($sql);
+        
+        // Determine status based on order type and execution
+        $status = 'FAILED'; // Default
+        if ($orderData['type'] === 'MARKET') {
+            $status = $bingxOrderId ? 'NEW' : 'FAILED';
+        } else if ($orderData['type'] === 'LIMIT') {
+            $status = 'PENDING'; // Limit orders start as pending until executed
+        }
+        
         return $stmt->execute([
             ':signal_id' => $orderData['signal_id'] ?? null,
             ':bingx_order_id' => $bingxOrderId,
@@ -438,7 +447,7 @@ function saveOrderToDb($pdo, $orderData, $bingxOrderId = null) {
             ':quantity' => $orderData['quantity'],
             ':price' => $orderData['price'] ?? null,
             ':leverage' => $orderData['leverage'],
-            ':status' => $bingxOrderId ? 'NEW' : 'FAILED'
+            ':status' => $status
         ]);
     } catch (Exception $e) {
         error_log("Database error saving order: " . $e->getMessage());

@@ -50,6 +50,11 @@ class TradingForm {
         // Enable/disable entry points
         this.setupEntryPointToggles();
         
+        // Try to update entry values if on trade page (DOM is ready now)
+        setTimeout(() => {
+            this.updateEntryValues();
+        }, 100);
+        
         // Form validation
         this.setupValidation();
         
@@ -465,17 +470,43 @@ class TradingForm {
     }
 
     updateEntryValues(forceUpdate = false) {
-        // Only populate entry values if we have balance data and are on trade page
-        if (!this.totalAssets || this.totalAssets <= 0) return;
+        // Only populate entry values if we are on trade page
         if (!window.location.pathname.includes('trade.php')) return;
+        
+        console.log('Debug - updateEntryValues called:', {
+            totalAssets: this.totalAssets,
+            positionSizePercent: this.positionSizePercent,
+            forceUpdate: forceUpdate
+        });
+        
+        // Check if we have the required data
+        if (!this.totalAssets || this.totalAssets <= 0) {
+            console.log('Debug - No totalAssets available, trying to load balance...');
+            // Try to load balance data if not available
+            this.loadBalanceData();
+            return;
+        }
+        
+        if (!this.positionSizePercent || this.positionSizePercent <= 0) {
+            console.log('Debug - No positionSizePercent available, using default 3.3%');
+            this.positionSizePercent = 3.3;
+        }
         
         // Calculate position size based on settings percentage and total assets
         const positionSize = Math.ceil((this.totalAssets * (this.positionSizePercent / 100)));
+        
+        console.log('Debug - Calculated position size:', positionSize);
         
         // Get entry value input fields
         const marketMargin = document.getElementById('entry_market_margin');
         const entry2Margin = document.getElementById('entry_2_margin');
         const entry3Margin = document.getElementById('entry_3_margin');
+        
+        console.log('Debug - Found fields:', {
+            marketMargin: !!marketMargin,
+            entry2Margin: !!entry2Margin,
+            entry3Margin: !!entry3Margin
+        });
         
         // Store the previous position size to detect if we should force update
         if (!this.lastCalculatedPositionSize) {
@@ -495,12 +526,15 @@ class TradingForm {
         // Update fields if appropriate
         if (shouldUpdate(marketMargin)) {
             marketMargin.value = positionSize;
+            console.log('Debug - Updated market margin to:', positionSize);
         }
         if (shouldUpdate(entry2Margin)) {
             entry2Margin.value = positionSize;
+            console.log('Debug - Updated entry 2 margin to:', positionSize);
         }
         if (shouldUpdate(entry3Margin)) {
             entry3Margin.value = positionSize;
+            console.log('Debug - Updated entry 3 margin to:', positionSize);
         }
         
         // Update our tracking variable
@@ -1626,6 +1660,189 @@ class TradingForm {
         });
     }
 
+    // ===== LIMIT ORDERS METHODS (Mirror of Watchlist Methods) =====
+    
+    async updateLimitOrdersDisplay() {
+        try {
+            const response = await fetch('api/get_limit_orders.php?limit=10');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const watchlistContainer = document.getElementById('watchlist-items');
+            if (!watchlistContainer) return;
+            
+            if (!result.success || result.data.length === 0) {
+                watchlistContainer.innerHTML = '<p class="no-watchlist">No limit orders</p>';
+                return;
+            }
+
+            const orders = result.data;
+            
+            watchlistContainer.innerHTML = orders.map(order => {
+                const directionClass = order.side === 'Buy' ? 'long' : 'short';
+                const directionText = order.side.toUpperCase();
+                const timeAgo = this.getTimeAgo(order.time);
+                const orderType = order.type || 'LIMIT';
+                
+                return `
+                    <div class="watchlist-item" data-id="${order.order_id}">
+                        <div class="watchlist-progress-bar">
+                            <div class="watchlist-progress-fill" data-direction="${directionClass}"></div>
+                        </div>
+                        <div class="watchlist-item-content">
+                            <div class="watchlist-item-header">
+                            <div class="watchlist-symbol-container">
+                                <strong class="watchlist-symbol ${directionClass}">${order.symbol}</strong>
+                                <span class="watchlist-close-indicator" style="display: none;"></span>
+                            </div>
+                            <span class="watchlist-time">${timeAgo}</span>
+                        </div>
+                        <div class="watchlist-price-row">
+                            <div class="watchlist-entry-info">
+                                <strong>${orderType}:</strong> $${parseFloat(order.price).toFixed(5)}
+                            </div>
+                            <div class="watchlist-direction ${directionClass}">
+                                ${directionText}
+                            </div>
+                        </div>
+                        <div class="watchlist-current-price">
+                            <span class="price-info">Loading price...</span>
+                        </div>
+                        <div class="watchlist-bottom-row">
+                            <span>Quantity: ${parseFloat(order.quantity).toFixed(4)}</span>
+                            <span>Status: ${order.status}</span>
+                        </div>
+                            <button 
+                                class="watchlist-remove-btn"
+                                onclick="tradingForm.cancelLimitOrder('${order.order_id}')" 
+                                title="Cancel order"
+                            >❌</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Auto-refresh prices after displaying items
+            this.refreshLimitOrderPrices(false);
+
+        } catch (error) {
+            console.error('Error loading limit orders:', error);
+            const watchlistContainer = document.getElementById('watchlist-items');
+            if (watchlistContainer) {
+                watchlistContainer.innerHTML = '<p class="no-watchlist">Error loading limit orders</p>';
+            }
+        }
+    }
+
+    async refreshLimitOrders() {
+        this.showNotification('Refreshing limit orders...', 'info');
+        await this.updateLimitOrdersDisplay();
+    }
+
+    async refreshLimitOrderPrices(showNotification = true) {
+        try {
+            const response = await fetch('api/get_watchlist_prices.php');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch prices');
+            }
+
+            const priceData = result.data;
+
+            // Update each limit order item with current prices
+            document.querySelectorAll('.watchlist-item').forEach(watchlistElement => {
+                const symbolElement = watchlistElement.querySelector('.watchlist-symbol');
+                const priceInfoElement = watchlistElement.querySelector('.price-info');
+                const closeIndicator = watchlistElement.querySelector('.watchlist-close-indicator');
+                
+                if (!symbolElement || !priceInfoElement) return;
+                
+                const symbol = symbolElement.textContent;
+                const item = priceData.find(p => p.symbol === symbol);
+                
+                if (item && item.current_price) {
+                    const currentPrice = parseFloat(item.current_price);
+                    const targetPrice = parseFloat(watchlistElement.querySelector('.watchlist-entry-info strong').nextSibling.textContent.replace(/[^\d.-]/g, ''));
+                    const direction = watchlistElement.querySelector('.watchlist-direction').textContent.toLowerCase();
+                    
+                    priceInfoElement.innerHTML = `Current: $${currentPrice.toFixed(5)}`;
+                    
+                    // Calculate distance to target for limit orders
+                    const distancePercent = Math.abs((targetPrice - currentPrice) / currentPrice * 100);
+                    
+                    if (distancePercent <= 1) { // Within 1% of target
+                        closeIndicator.style.display = 'inline';
+                        closeIndicator.classList.add('reached');
+                        closeIndicator.classList.remove('close');
+                        closeIndicator.textContent = '🎯';
+                        closeIndicator.title = 'Near target price!';
+                    } else {
+                        closeIndicator.style.display = 'none';
+                        closeIndicator.classList.remove('close', 'reached');
+                    }
+                } else {
+                    priceInfoElement.innerHTML = 'Price unavailable';
+                    closeIndicator.style.display = 'none';
+                    closeIndicator.classList.remove('close', 'reached');
+                }
+            });
+
+            if (showNotification) {
+                this.showNotification('Limit order prices updated', 'success');
+            }
+
+        } catch (error) {
+            console.error('Error refreshing limit order prices:', error);
+            
+            // Update all price info elements to show error
+            document.querySelectorAll('.price-info').forEach(element => {
+                element.innerHTML = 'Error loading price';
+            });
+            
+            if (showNotification) {
+                this.showNotification('Failed to refresh prices: ' + error.message, 'error');
+            }
+        }
+    }
+
+    async cancelLimitOrder(orderId) {
+        try {
+            const response = await fetch(`api/cancel_order.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ order_id: orderId })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showNotification('Order cancelled successfully', 'success');
+                this.updateLimitOrdersDisplay();
+            } else {
+                throw new Error(result.error || 'Failed to cancel order');
+            }
+
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            this.showNotification('Failed to cancel order: ' + error.message, 'error');
+        }
+    }
+
     setupSignalPatternConverter() {
         const patternBtn = document.getElementById('signal-pattern-btn');
         const patternContainer = document.getElementById('signal-pattern-container');
@@ -1968,9 +2185,9 @@ class TradingForm {
             return;
         }
 
-        // Get current prices for all symbols
+        // Get current prices for all symbols - FIXED getCurrentPrice to getBingXPrice
         const symbols = [...new Set(orders.map(order => order.symbol))];
-        const pricePromises = symbols.map(symbol => this.getCurrentPrice(symbol));
+        const pricePromises = symbols.map(symbol => this.getBingXPrice(symbol));
         const prices = await Promise.all(pricePromises);
         const priceMap = {};
         symbols.forEach((symbol, index) => {

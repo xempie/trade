@@ -69,18 +69,57 @@ Personal web application for managing crypto futures trading signals with BingX 
 - **History**: Closed positions are preserved in database but not shown in main view (history page to be implemented later)
 - **Status Sync**: App maintains position status synchronization with BingX exchange
 
-## Environment Variables Needed
+## Environment Variables Structure
+Complete .env file structure (preserve this format when saving settings):
 ```
+# Crypto Trading App Configuration
+# Updated: 2025-09-02 15:25:10
+
+# BingX API Configuration
 [REDACTED_API_KEY]
 [REDACTED_SECRET_KEY] 
 [REDACTED_PASSPHRASE]
+
+# Telegram Bot Configuration
 [REDACTED_BOT_TOKEN]
 [REDACTED_CHAT_ID]
+
+# API URLs for different trading modes
+BINGX_LIVE_URL=https://open-api.bingx.com
+BINGX_DEMO_URL=https://open-api-vst.bingx.com
+BINGX_BASE_URL=https://open-api.bingx.com
+BINGX_DEMO_MODE=false
+
+# Trading Configuration
+POSITION_SIZE_PERCENT=3
+ENTRY_2_PERCENT=2
+ENTRY_3_PERCENT=4
+
+# Alert Configuration
+SEND_BALANCE_ALERTS=false
+SEND_PROFIT_LOSS_ALERTS=false
+
+# Database Configuration
 DB_HOST=localhost
-DB_USER=
+DB_USER=[REDACTED_DB_USER]
 [REDACTED_DB_PASSWORD]
-DB_NAME=crypto_trading
+DB_NAME=[REDACTED_FTP_USER]_trade_assistant
+
+# Application Settings
+APP_ENV=production
+APP_DEBUG=false
+TRADING_MODE=live
+ENABLE_REAL_TRADING=true
+DEMO_TRADING=false
+
+# Google OAuth Configuration
+[REDACTED_CLIENT_ID]
+[REDACTED_CLIENT_SECRET]
+APP_URL=https://[REDACTED_HOST]/ta
+ALLOWED_EMAILS=afhayati@gmail.com
 ```
+
+**IMPORTANT**: The save_settings.php API now preserves ALL environment variables that are not part of the settings form, ensuring database credentials, Google OAuth, and other system configuration is never lost when saving settings.
 
 ## Development Phases
 1. Database setup and BingX API integration
@@ -99,6 +138,17 @@ NEVER use inline CSS styles in HTML or JavaScript. ALL styling must be defined i
 - Maintain consistent naming conventions (kebab-case for CSS classes)
 - When creating dynamic content in JavaScript, apply CSS classes instead of inline styles
 - Example: Use `class="watchlist-item"` instead of `style="padding: 12px; background: var(--dark-card);"`
+
+## 🚨 LIMIT ORDERS PAGE STRUCTURE - CRITICAL REQUIREMENT
+**THE LIMIT ORDERS PAGE MUST MATCH WATCHLIST PAGE STRUCTURE EXACTLY**
+- **Data Source**: Orders table instead of watchlist table
+- **Display Style**: IDENTICAL to watchlist page styling and layout
+- **Structure**: Same HTML structure, CSS classes, and JavaScript functionality
+- **Components**: Same card-based layout, same action buttons, same responsive design
+- **API Integration**: Use get_limit_orders.php API to fetch data from orders table
+- **Page Layout**: Copy watchlist page structure 1:1, only change data source
+- **User Interface**: Maintain exact same visual appearance and user experience
+- **EMPHASIS**: This is NOT a new design - it's the watchlist page with different data
 
 ## Git Commands Policy
 When user requests git commands (commit, push, pull, etc.), NEVER ask for confirmation or yes/no questions. Always proceed automatically with the requested git operations. Consider all git command requests as pre-approved and execute them immediately without prompting for user confirmation.
