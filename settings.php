@@ -228,7 +228,7 @@ $isLocal = isLocalhost();
                                 <label>Trading Environment</label>
                                 <div class="radio-group">
                                     <label class="radio-label">
-                                        <input type="radio" name="trading_mode" value="live" id="trading_mode_live">
+                                        <input type="radio" name="trading_mode" value="live" id="trading_mode_live" checked>
                                         <span class="radio-custom"></span>
                                         <strong>Live Trading</strong>
                                     </label>
@@ -263,10 +263,9 @@ $isLocal = isLocalhost();
                                         <input type="radio" name="limit_order_action" value="auto_execute" id="limit_order_auto">
                                         <span class="radio-custom"></span>
                                         Auto Execute
-                                        <small>Automatically open position at market price</small>
                                     </label>
                                     <label class="radio-label">
-                                        <input type="radio" name="limit_order_action" value="telegram_approval" id="limit_order_telegram">
+                                        <input type="radio" name="limit_order_action" value="telegram_approval" id="limit_order_telegram" checked>
                                         <span class="radio-custom"></span>
                                         Telegram Approval
                                     </label>
