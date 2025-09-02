@@ -216,6 +216,108 @@ $isLocal = isLocalhost();
                             </div>
                         </div>
 
+                        <!-- Trading Mode Configuration -->
+                        <div class="settings-group">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                                Trading Mode
+                            </h3>
+                            <div class="form-group">
+                                <label>Trading Environment</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="trading_mode" value="live" id="trading_mode_live">
+                                        <span class="radio-custom"></span>
+                                        <strong>Live Trading</strong>
+                                        <small>Real money trading with actual BingX account</small>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="trading_mode" value="demo" id="trading_mode_demo">
+                                        <span class="radio-custom"></span>
+                                        <strong>Demo Trading</strong>
+                                        <small>Paper trading for testing strategies</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trading Automation Settings -->
+                        <div class="settings-group">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97L4.5,12L4.57,11.03L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.79,8.95 21.73,9.22 21.54,9.37L19.43,11.03L19.5,12L19.43,12.97L21.54,14.63C21.73,14.78 21.79,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.04 19.05,18.95L16.56,17.95C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10M11.25,4L10.88,6.61C9.68,6.86 8.62,7.5 7.85,8.39L5.44,7.35L4.69,8.65L6.8,10.2C6.4,11.37 6.4,12.64 6.8,13.8L4.68,15.36L5.43,16.66L7.86,15.62C8.63,16.5 9.68,17.14 10.87,17.38L11.24,20H12.76L13.13,17.39C14.32,17.14 15.37,16.5 16.14,15.62L18.57,16.66L19.32,15.36L17.2,13.81C17.6,12.64 17.6,11.37 17.2,10.2L19.31,8.65L18.56,7.35L16.15,8.39C15.38,7.5 14.32,6.86 13.12,6.62L12.75,4H11.25Z"/>
+                                </svg>
+                                Trading Automation
+                            </h3>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="auto_trading_enabled" name="auto_trading_enabled">
+                                    <span class="checkbox-custom"></span>
+                                    Enable Auto Trading
+                                </label>
+                                <small>Automatically execute limit orders when entry price is reached</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Limit Order Action</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="limit_order_action" value="auto_execute" id="limit_order_auto">
+                                        <span class="radio-custom"></span>
+                                        Auto Execute
+                                        <small>Automatically open position at market price</small>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="limit_order_action" value="telegram_approval" id="limit_order_telegram">
+                                        <span class="radio-custom"></span>
+                                        Telegram Approval
+                                        <small>Send message for manual approval</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target & Stop Loss Automation -->
+                        <div class="settings-group">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
+                                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M7.07,18.28C7.5,17.38 8.12,16.5 8.91,15.77L9.5,16.36C8.75,17.13 8.15,18 7.75,18.87L7.07,18.28M5.72,16.93C5.38,16.14 5.17,15.29 5.1,14.47L5.96,14.35C6.03,15.04 6.21,15.71 6.5,16.32L5.72,16.93M5.09,10.91C5.62,9.29 6.69,7.95 8.1,7.06L8.61,7.85C7.5,8.55 6.63,9.63 6.21,10.89L5.09,10.91M12,5A7,7 0 0,0 5,12C5,13.64 5.55,15.15 6.46,16.36C6.55,16.13 6.65,15.91 6.77,15.69A6,6 0 1,1 18,12A6,6 0 0,1 12,18C11.68,18 11.37,17.97 11.06,17.92C11.32,18.19 11.61,18.45 11.91,18.69C12,18.69 12,18.7 12,18.7A7,7 0 0,0 19,12A7,7 0 0,0 12,5Z"/>
+                                </svg>
+                                Target & Stop Loss
+                            </h3>
+                            <div class="form-group">
+                                <label for="target_percentage">Target Percentage (%)</label>
+                                <input type="number" id="target_percentage" name="target_percentage" min="1" max="1000" step="0.1" placeholder="10">
+                                <small>Default target percentage for positions</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Target Action</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="target_action" value="auto_close" id="target_auto_close">
+                                        <span class="radio-custom"></span>
+                                        Auto Close
+                                        <small>Automatically close position at target</small>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="target_action" value="telegram_notify" id="target_telegram_notify">
+                                        <span class="radio-custom"></span>
+                                        Telegram Notify
+                                        <small>Send notification for manual closure</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="auto_stop_loss" name="auto_stop_loss">
+                                    <span class="checkbox-custom"></span>
+                                    Auto Stop Loss
+                                </label>
+                                <small>Automatically close positions at stop loss price</small>
+                            </div>
+                        </div>
+
                         <!-- App Settings -->
                         <div class="settings-group">
                             <h3>

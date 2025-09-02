@@ -92,6 +92,14 @@ try {
     $envVars['SEND_BALANCE_ALERTS'] = isset($input['send_balance_alerts']) && $input['send_balance_alerts'] ? 'true' : 'false';
     $envVars['SEND_PROFIT_LOSS_ALERTS'] = isset($input['send_profit_loss_alerts']) && $input['send_profit_loss_alerts'] ? 'true' : 'false';
     
+    // New trading automation settings
+    $envVars['TRADING_MODE'] = $input['trading_mode'] ?? 'live';
+    $envVars['AUTO_TRADING_ENABLED'] = isset($input['auto_trading_enabled']) && $input['auto_trading_enabled'] ? 'true' : 'false';
+    $envVars['LIMIT_ORDER_ACTION'] = $input['limit_order_action'] ?? 'telegram_approval';
+    $envVars['TARGET_PERCENTAGE'] = $input['target_percentage'] ?? '10';
+    $envVars['TARGET_ACTION'] = $input['target_action'] ?? 'telegram_notify';
+    $envVars['AUTO_STOP_LOSS'] = isset($input['auto_stop_loss']) && $input['auto_stop_loss'] ? 'true' : 'false';
+    
     // Preserve all existing environment variables that are not part of settings
     $preservedVars = [
         'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME',
@@ -127,6 +135,14 @@ try {
     $newEnvContent .= "# Alert Configuration\n";
     $newEnvContent .= "SEND_BALANCE_ALERTS={$envVars['SEND_BALANCE_ALERTS']}\n";
     $newEnvContent .= "SEND_PROFIT_LOSS_ALERTS={$envVars['SEND_PROFIT_LOSS_ALERTS']}\n\n";
+    
+    $newEnvContent .= "# Trading Automation Configuration\n";
+    $newEnvContent .= "TRADING_MODE={$envVars['TRADING_MODE']}\n";
+    $newEnvContent .= "AUTO_TRADING_ENABLED={$envVars['AUTO_TRADING_ENABLED']}\n";
+    $newEnvContent .= "LIMIT_ORDER_ACTION={$envVars['LIMIT_ORDER_ACTION']}\n";
+    $newEnvContent .= "TARGET_PERCENTAGE={$envVars['TARGET_PERCENTAGE']}\n";
+    $newEnvContent .= "TARGET_ACTION={$envVars['TARGET_ACTION']}\n";
+    $newEnvContent .= "AUTO_STOP_LOSS={$envVars['AUTO_STOP_LOSS']}\n\n";
     
     $newEnvContent .= "# Database Configuration\n";
     $newEnvContent .= "DB_HOST=" . ($envVars['DB_HOST'] ?? 'localhost') . "\n";

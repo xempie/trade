@@ -69,6 +69,24 @@ try {
                     case 'SEND_PROFIT_LOSS_ALERTS':
                         $settings['send_profit_loss_alerts'] = $value === 'true';
                         break;
+                    case 'TRADING_MODE':
+                        $settings['trading_mode'] = $value;
+                        break;
+                    case 'AUTO_TRADING_ENABLED':
+                        $settings['auto_trading_enabled'] = $value === 'true';
+                        break;
+                    case 'LIMIT_ORDER_ACTION':
+                        $settings['limit_order_action'] = $value;
+                        break;
+                    case 'TARGET_PERCENTAGE':
+                        $settings['target_percentage'] = (float)$value;
+                        break;
+                    case 'TARGET_ACTION':
+                        $settings['target_action'] = $value;
+                        break;
+                    case 'AUTO_STOP_LOSS':
+                        $settings['auto_stop_loss'] = $value === 'true';
+                        break;
                 }
             }
         }
