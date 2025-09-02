@@ -99,6 +99,8 @@ function deployFiles($config) {
         'auth/logout.php',
         'jobs/price-monitor.php',
         'jobs/balance-sync.php',
+        'jobs/limit-order-monitor.php',
+        'jobs/target-stoploss-monitor.php',
         'database_setup.sql',
         'icons/icon-72x72.png',
         'icons/icon-96x96.png',

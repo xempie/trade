@@ -257,7 +257,6 @@ $isLocal = isLocalhost();
                                     <span class="checkbox-custom"></span>
                                     Enable Auto Trading
                                 </label>
-                                <small>Automatically execute limit orders when entry price is reached</small>
                             </div>
                             <div class="form-group">
                                 <label>Limit Order Action</label>
@@ -272,7 +271,6 @@ $isLocal = isLocalhost();
                                         <input type="radio" name="limit_order_action" value="telegram_approval" id="limit_order_telegram">
                                         <span class="radio-custom"></span>
                                         Telegram Approval
-                                        <small>Send message for manual approval</small>
                                     </label>
                                 </div>
                             </div>
@@ -304,7 +302,6 @@ $isLocal = isLocalhost();
                                         <input type="radio" name="target_action" value="telegram_notify" id="target_telegram_notify">
                                         <span class="radio-custom"></span>
                                         Telegram Notify
-                                        <small>Send notification for manual closure</small>
                                     </label>
                                 </div>
                             </div>
@@ -314,7 +311,6 @@ $isLocal = isLocalhost();
                                     <span class="checkbox-custom"></span>
                                     Auto Stop Loss
                                 </label>
-                                <small>Automatically close positions at stop loss price</small>
                             </div>
                         </div>
 
