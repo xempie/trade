@@ -14,6 +14,15 @@
 - Test changes locally first before any deployment
 - Wait for user approval before running deploy.php
 
+## 🚨 TRADING MODE CONFIGURATION - CRITICAL
+**ONLY USE TRADING_MODE VARIABLE FOR DEMO/LIVE SWITCHING**
+- **TRADING_MODE**: Set to "live" or "demo" - THIS IS THE ONLY VARIABLE NEEDED
+- **DO NOT USE**: DEMO_TRADING, ENABLE_REAL_TRADING, BINGX_DEMO_MODE (removed)
+- **All files must use**: Only `getenv('TRADING_MODE')` for trading mode detection
+- **api_helper.php**: Uses TRADING_MODE to determine API URLs and demo mode
+- **Settings page**: Only shows TRADING_MODE radio buttons (live/demo)
+- **EMPHASIS**: Single source of truth for trading mode configuration
+
 ## Project Overview
 Personal web application for managing crypto futures trading signals with BingX exchange integration, automated order placement, watchlist management, and Telegram notifications.
 

@@ -8,18 +8,11 @@
  * Get the appropriate BingX API base URL based on trading mode
  */
 function getBingXApiUrl() {
-    $demoTrading = strtolower(getenv('DEMO_TRADING') ?: 'false') === 'true';
     $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
-    $demoMode = strtolower(getenv('BINGX_DEMO_MODE') ?: 'false') === 'true';
     
-    // Check if we're in demo mode
-    $isDemo = $demoTrading || $tradingMode === 'demo' || $demoMode;
-    
-    if ($isDemo) {
-        // BingX doesn't have a separate demo API endpoint
-        // Use live API but with demo trading restrictions in application logic
-        $liveUrl = getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com';
-        return $liveUrl;
+    if ($tradingMode === 'demo') {
+        // Use demo URL if available, otherwise live URL
+        return getenv('BINGX_DEMO_URL') ?: getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com';
     } else {
         // Use live URL
         return getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com';
@@ -30,32 +23,22 @@ function getBingXApiUrl() {
  * Check if we're in demo trading mode
  */
 function isDemoMode() {
-    $demoTrading = strtolower(getenv('DEMO_TRADING') ?: 'false') === 'true';
     $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
-    $demoMode = strtolower(getenv('BINGX_DEMO_MODE') ?: 'false') === 'true';
-    $enableRealTrading = strtolower(getenv('ENABLE_REAL_TRADING') ?: 'true') === 'true';
-    
-    return $demoTrading || $tradingMode === 'demo' || $demoMode || !$enableRealTrading;
+    return $tradingMode === 'demo';
 }
 
 /**
  * Get trading mode information for debugging
  */
 function getTradingModeInfo() {
-    $demoTrading = getenv('DEMO_TRADING') ?: 'false';
     $tradingMode = getenv('TRADING_MODE') ?: 'live';
-    $demoMode = getenv('BINGX_DEMO_MODE') ?: 'false';
-    $enableRealTrading = getenv('ENABLE_REAL_TRADING') ?: 'true';
     $apiUrl = getBingXApiUrl();
     $isDemo = isDemoMode();
     
     return [
         'is_demo_mode' => $isDemo,
         'api_url' => $apiUrl,
-        'demo_trading' => $demoTrading,
         'trading_mode' => $tradingMode,
-        'bingx_demo_mode' => $demoMode,
-        'enable_real_trading' => $enableRealTrading,
         'live_url' => getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com',
         'demo_url' => getenv('BINGX_DEMO_URL') ?: 'Not configured'
     ];

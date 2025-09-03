@@ -103,8 +103,8 @@ try {
     // Preserve all existing environment variables that are not part of settings
     $preservedVars = [
         'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME',
-        'BINGX_LIVE_URL', 'BINGX_DEMO_URL', 'BINGX_BASE_URL', 'BINGX_DEMO_MODE',
-        'APP_ENV', 'APP_DEBUG', 'TRADING_MODE', 'ENABLE_REAL_TRADING', 'DEMO_TRADING',
+        'BINGX_LIVE_URL', 'BINGX_DEMO_URL', 'BINGX_BASE_URL',
+        'APP_ENV', 'APP_DEBUG',
         'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'APP_URL', 'ALLOWED_EMAILS'
     ];
     
@@ -124,8 +124,7 @@ try {
     $newEnvContent .= "# API URLs for different trading modes\n";
     $newEnvContent .= "BINGX_LIVE_URL=" . ($envVars['BINGX_LIVE_URL'] ?? 'https://open-api.bingx.com') . "\n";
     $newEnvContent .= "BINGX_DEMO_URL=" . ($envVars['BINGX_DEMO_URL'] ?? 'https://open-api-vst.bingx.com') . "\n";
-    $newEnvContent .= "BINGX_BASE_URL=" . ($envVars['BINGX_BASE_URL'] ?? 'https://open-api.bingx.com') . "\n";
-    $newEnvContent .= "BINGX_DEMO_MODE=" . ($envVars['BINGX_DEMO_MODE'] ?? 'false') . "\n\n";
+    $newEnvContent .= "BINGX_BASE_URL=" . ($envVars['BINGX_BASE_URL'] ?? 'https://open-api.bingx.com') . "\n\n";
     
     $newEnvContent .= "# Trading Configuration\n";
     $newEnvContent .= "POSITION_SIZE_PERCENT={$envVars['POSITION_SIZE_PERCENT']}\n";
@@ -152,10 +151,7 @@ try {
     
     $newEnvContent .= "# Application Settings\n";
     $newEnvContent .= "APP_ENV=" . ($envVars['APP_ENV'] ?? 'production') . "\n";
-    $newEnvContent .= "APP_DEBUG=" . ($envVars['APP_DEBUG'] ?? 'false') . "\n";
-    $newEnvContent .= "TRADING_MODE=" . ($envVars['TRADING_MODE'] ?? 'live') . "\n";
-    $newEnvContent .= "ENABLE_REAL_TRADING=" . ($envVars['ENABLE_REAL_TRADING'] ?? 'true') . "\n";
-    $newEnvContent .= "DEMO_TRADING=" . ($envVars['DEMO_TRADING'] ?? 'false') . "\n\n\n";
+    $newEnvContent .= "APP_DEBUG=" . ($envVars['APP_DEBUG'] ?? 'false') . "\n\n";
     
     $newEnvContent .= "[REDACTED_CLIENT_ID]
     $newEnvContent .= "[REDACTED_CLIENT_SECRET]
