@@ -11,8 +11,8 @@ class TelegramMessenger {
     
     public function __construct($botToken = null, $chatId = null) {
         // Load from environment if not provided
-        $this->defaultBotToken = $botToken ?: (getenv('TELEGRAM_BOT_TOKEN_NOTIF') ?: '');
-        $this->defaultChatId = $chatId ?: (getenv('TELEGRAM_CHAT_ID_NOTIF') ?: '');
+        $this->defaultBotToken = $botToken ?: (getenv('TELEGRAM_BOT_TOKEN') ?: getenv('TELEGRAM_BOT_TOKEN_NOTIF') ?: '');
+        $this->defaultChatId = $chatId ?: (getenv('TELEGRAM_CHAT_ID') ?: getenv('TELEGRAM_CHAT_ID_NOTIF') ?: '');
     }
     
     /**
