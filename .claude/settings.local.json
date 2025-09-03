@@ -9,7 +9,9 @@
       "Bash(git push:*)",
       "Bash(copy:*)",
       "Bash(mysql:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:[REDACTED_HOST])",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": [],

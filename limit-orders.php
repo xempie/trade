@@ -15,7 +15,7 @@ $isLocal = isLocalhost();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Limits - Crypto Trading Manager</title>
+    <title>Watch - Crypto Trading Manager</title>
     
     <!-- PWA Meta Tags -->
     <meta name="description" content="Professional crypto futures trading management with BingX integration">
@@ -85,19 +85,19 @@ $isLocal = isLocalhost();
 
         <!-- Main Content Area -->
         <main class="pwa-main" style="padding-bottom: 150px;">
-            <!-- Limit Orders Section - Same structure as Watchlist -->
+            <!-- Watch Section - Original Watchlist -->
             <div class="container">
                 <div class="form-container">
                     <div class="watchlist-panel">
                     <div class="watchlist-header">
-                        <h2>Limit Orders</h2>
-                        <button class="refresh-watchlist-btn" onclick="tradingForm.refreshLimitOrders()" title="Refresh limit orders from BingX">
+                        <h2>Watch List - Updated</h2>
+                        <button class="refresh-watchlist-btn" onclick="tradingForm.refreshWatchlist()" title="Refresh prices from BingX">
                             ↻
                         </button>
                     </div>
                     
                     <div class="watchlist-items" id="watchlist-items">
-                        <p class="no-watchlist">No limit orders</p>
+                        <p class="no-watchlist">No watchlist items</p>
                     </div>
                     </div>
                 </div>
@@ -127,14 +127,14 @@ $isLocal = isLocalhost();
                 <span class="nav-label">Orders</span>
             </a>
             
-            <a href="limit-orders.php" class="nav-item active">
+            <a href="limit-orders.php" class="nav-item">
                 <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-4-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zM16 4v3.5l-4 4-4-4V4h8z"/>
                 </svg>
                 <span class="nav-label">Limits</span>
             </a>
             
-            <a href="watch.php" class="nav-item">
+            <a href="watch.php" class="nav-item active">
                 <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
                 </svg>
@@ -143,7 +143,7 @@ $isLocal = isLocalhost();
             
             <a href="settings.php" class="nav-item">
                 <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0014 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.82,11.69,4.82,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
                 </svg>
                 <span class="nav-label">Settings</span>
             </a>
@@ -158,7 +158,7 @@ $isLocal = isLocalhost();
             if (!window.tradingForm) {
                 window.tradingForm = new TradingForm();
                 // Don't load balance data - only do this on home page
-                window.tradingForm.updateLimitOrdersDisplay();
+                window.tradingForm.updateWatchlistDisplay();
             }
             
             // Setup user menu functionality

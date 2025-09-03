@@ -997,7 +997,7 @@ class TradingForm {
         try {
             const requestData = {
                 symbol: symbol,
-                direction: direction,
+                direction: item.direction,
                 watchlist_items: watchlistItems
             };
             
@@ -1487,7 +1487,7 @@ class TradingForm {
                 const priceInfoElement = watchlistElement.querySelector('.price-info');
                 const closeIndicator = watchlistElement.querySelector('.watchlist-close-indicator');
                 
-                if (item.price_status === 'available' && item.current_price !== null) {
+                if (item.entry_price_status === 'available' && item.current_price !== null) {
                     const distanceClass = item.distance_percent >= 0 ? 'positive' : 'negative';
                     const distanceSign = item.distance_percent >= 0 ? '+' : '';
                     
@@ -1662,186 +1662,10 @@ class TradingForm {
 
     // ===== LIMIT ORDERS METHODS (Mirror of Watchlist Methods) =====
     
-    async updateLimitOrdersDisplay() {
-        try {
-            const response = await fetch('api/get_limit_orders.php?limit=10');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
 
-            const result = await response.json();
-            const watchlistContainer = document.getElementById('watchlist-items');
-            if (!watchlistContainer) return;
-            
-            if (!result.success || result.data.length === 0) {
-                watchlistContainer.innerHTML = '<p class="no-watchlist">No limit orders</p>';
-                return;
-            }
 
-            const orders = result.data;
-            
-            watchlistContainer.innerHTML = orders.map(order => {
-                const directionClass = order.side === 'Buy' ? 'long' : 'short';
-                const directionText = order.side.toUpperCase();
-                const timeAgo = this.getTimeAgo(order.time);
-                const orderType = order.type || 'LIMIT';
-                
-                return `
-                    <div class="watchlist-item" data-id="${order.order_id}">
-                        <div class="watchlist-progress-bar">
-                            <div class="watchlist-progress-fill" data-direction="${directionClass}"></div>
-                        </div>
-                        <div class="watchlist-item-content">
-                            <div class="watchlist-item-header">
-                            <div class="watchlist-symbol-container">
-                                <strong class="watchlist-symbol ${directionClass}">${order.symbol}</strong>
-                                <span class="watchlist-close-indicator" style="display: none;"></span>
-                            </div>
-                            <span class="watchlist-time">${timeAgo}</span>
-                        </div>
-                        <div class="watchlist-price-row">
-                            <div class="watchlist-entry-info">
-                                <strong>${orderType}:</strong> $${parseFloat(order.price).toFixed(5)}
-                            </div>
-                            <div class="watchlist-direction ${directionClass}">
-                                ${directionText}
-                            </div>
-                        </div>
-                        <div class="watchlist-current-price">
-                            <span class="price-info">Loading price...</span>
-                        </div>
-                        <div class="watchlist-bottom-row">
-                            <span>Quantity: ${parseFloat(order.quantity).toFixed(4)}</span>
-                            <span>Status: ${order.status}</span>
-                        </div>
-                            <button 
-                                class="watchlist-remove-btn"
-                                onclick="tradingForm.cancelLimitOrder('${order.order_id}')" 
-                                title="Cancel order"
-                            >❌</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
 
-            // Auto-refresh prices after displaying items
-            this.refreshLimitOrderPrices(false);
 
-        } catch (error) {
-            console.error('Error loading limit orders:', error);
-            const watchlistContainer = document.getElementById('watchlist-items');
-            if (watchlistContainer) {
-                watchlistContainer.innerHTML = '<p class="no-watchlist">Error loading limit orders</p>';
-            }
-        }
-    }
-
-    async refreshLimitOrders() {
-        this.showNotification('Refreshing limit orders...', 'info');
-        await this.updateLimitOrdersDisplay();
-    }
-
-    async refreshLimitOrderPrices(showNotification = true) {
-        try {
-            const response = await fetch('api/get_watchlist_prices.php');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to fetch prices');
-            }
-
-            const priceData = result.data;
-
-            // Update each limit order item with current prices
-            document.querySelectorAll('.watchlist-item').forEach(watchlistElement => {
-                const symbolElement = watchlistElement.querySelector('.watchlist-symbol');
-                const priceInfoElement = watchlistElement.querySelector('.price-info');
-                const closeIndicator = watchlistElement.querySelector('.watchlist-close-indicator');
-                
-                if (!symbolElement || !priceInfoElement) return;
-                
-                const symbol = symbolElement.textContent;
-                const item = priceData.find(p => p.symbol === symbol);
-                
-                if (item && item.current_price) {
-                    const currentPrice = parseFloat(item.current_price);
-                    const targetPrice = parseFloat(watchlistElement.querySelector('.watchlist-entry-info strong').nextSibling.textContent.replace(/[^\d.-]/g, ''));
-                    const direction = watchlistElement.querySelector('.watchlist-direction').textContent.toLowerCase();
-                    
-                    priceInfoElement.innerHTML = `Current: $${currentPrice.toFixed(5)}`;
-                    
-                    // Calculate distance to target for limit orders
-                    const distancePercent = Math.abs((targetPrice - currentPrice) / currentPrice * 100);
-                    
-                    if (distancePercent <= 1) { // Within 1% of target
-                        closeIndicator.style.display = 'inline';
-                        closeIndicator.classList.add('reached');
-                        closeIndicator.classList.remove('close');
-                        closeIndicator.textContent = '🎯';
-                        closeIndicator.title = 'Near target price!';
-                    } else {
-                        closeIndicator.style.display = 'none';
-                        closeIndicator.classList.remove('close', 'reached');
-                    }
-                } else {
-                    priceInfoElement.innerHTML = 'Price unavailable';
-                    closeIndicator.style.display = 'none';
-                    closeIndicator.classList.remove('close', 'reached');
-                }
-            });
-
-            if (showNotification) {
-                this.showNotification('Limit order prices updated', 'success');
-            }
-
-        } catch (error) {
-            console.error('Error refreshing limit order prices:', error);
-            
-            // Update all price info elements to show error
-            document.querySelectorAll('.price-info').forEach(element => {
-                element.innerHTML = 'Error loading price';
-            });
-            
-            if (showNotification) {
-                this.showNotification('Failed to refresh prices: ' + error.message, 'error');
-            }
-        }
-    }
-
-    async cancelLimitOrder(orderId) {
-        try {
-            const response = await fetch(`api/cancel_order.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ order_id: orderId })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.showNotification('Order cancelled successfully', 'success');
-                this.updateLimitOrdersDisplay();
-            } else {
-                throw new Error(result.error || 'Failed to cancel order');
-            }
-
-        } catch (error) {
-            console.error('Error cancelling order:', error);
-            this.showNotification('Failed to cancel order: ' + error.message, 'error');
-        }
-    }
 
     setupSignalPatternConverter() {
         const patternBtn = document.getElementById('signal-pattern-btn');
@@ -2135,126 +1959,10 @@ class TradingForm {
                 
                 // Load content for the active tab
                 if (targetTab === 'limit-orders') {
-                    this.loadLimitOrders();
-                } else if (targetTab === 'watchlist') {
-                    this.updateWatchlistDisplay();
-                }
-            });
-        });
-
-        // Load limit orders initially if that tab is active
-        const activeLimitTab = document.querySelector('.watchlist-tab[data-tab="limit-orders"].active');
-        if (activeLimitTab) {
-            this.loadLimitOrders();
-        }
-    }
 
     // Load limit orders
-    async loadLimitOrders() {
-        try {
-            const response = await fetch('api/get_limit_orders.php');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to load limit orders');
-            }
-
-            this.displayLimitOrders(result.data);
-            
-        } catch (error) {
-            console.error('Error loading limit orders:', error);
-            const container = document.getElementById('limit-orders-items');
-            if (container) {
-                container.innerHTML = '<p class="no-watchlist">Error loading limit orders</p>';
-            }
-        }
-    }
 
     // Display limit orders (similar to watchlist display)
-    async displayLimitOrders(orders) {
-        const container = document.getElementById('limit-orders-items');
-        if (!container) return;
-
-        if (!orders || orders.length === 0) {
-            container.innerHTML = '<p class="no-watchlist">There\'s no pending orders</p>';
-            return;
-        }
-
-        // Get current prices for all symbols - FIXED getCurrentPrice to getBingXPrice
-        const symbols = [...new Set(orders.map(order => order.symbol))];
-        const pricePromises = symbols.map(symbol => this.getBingXPrice(symbol));
-        const prices = await Promise.all(pricePromises);
-        const priceMap = {};
-        symbols.forEach((symbol, index) => {
-            priceMap[symbol] = prices[index];
-        });
-
-        container.innerHTML = orders.map(order => {
-            const currentPrice = priceMap[order.symbol] || 0;
-            const percentage = this.calculateWatchlistPercentage(order, currentPrice);
-            const isTriggered = order.is_triggered || order.status === 'TRIGGERED';
-            
-            // Status indicator
-            const statusClass = isTriggered ? 'triggered' : 'pending';
-            const statusText = isTriggered ? 'TRIGGERED' : 'PENDING';
-
-            return `
-                <div class="watchlist-item" data-symbol="${order.symbol}" data-id="${order.id}">
-                    <div class="watchlist-progress-bar">
-                        <div class="watchlist-progress-fill" 
-                             data-direction="${order.direction}" 
-                             style="height: ${Math.abs(percentage)}%">
-                        </div>
-                    </div>
-                    <div class="watchlist-item-content">
-                        <div class="watchlist-item-header">
-                            <div class="watchlist-symbol-container">
-                                <div class="limit-order-status-indicator ${statusClass}"></div>
-                                <span class="watchlist-symbol ${order.direction}">${order.symbol}</span>
-                            </div>
-                            <span class="watchlist-time">${this.formatTime(order.created_at)}</span>
-                        </div>
-                        <div class="watchlist-price-row">
-                            <span class="watchlist-entry-info">
-                                ${order.entry_type.replace('_', ' ').toUpperCase()}: $${parseFloat(order.entry_price).toFixed(4)}
-                            </span>
-                            <span class="watchlist-direction ${order.direction}">
-                                ${order.direction.toUpperCase()} • ${statusText}
-                            </span>
-                        </div>
-                        <div class="watchlist-current-price">
-                            Current: $${parseFloat(currentPrice).toFixed(4)}
-                        </div>
-                        <div class="watchlist-bottom-row">
-                            <span class="watchlist-margin">$${parseFloat(order.margin_amount).toFixed(2)}</span>
-                            <span class="watchlist-distance ${percentage >= 0 ? 'positive' : 'negative'}">
-                                ${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%
-                            </span>
-                        </div>
-                        ${isTriggered ? `
-                            <div class="limit-order-actions">
-                                <button class="limit-order-open-btn" onclick="tradingForm.openLimitOrder(${order.id})" title="Open Position">
-                                    Open Position
-                                </button>
-                            </div>
-                        ` : ''}
-                        <div class="watchlist-actions">
-                            <button 
-                                class="watchlist-remove-btn"
-                                onclick="tradingForm.removeLimitOrder(${order.id})" 
-                                title="Cancel limit order"
-                            >❌</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
 
     // Calculate percentage for limit orders (same as watchlist)
     calculateWatchlistPercentage(item, currentPrice) {
@@ -2275,91 +1983,8 @@ class TradingForm {
     }
 
     // Open limit order position
-    async openLimitOrder(orderId) {
-        if (!confirm('Open position for this limit order?')) {
-            return;
-        }
-
-        try {
-            // Generate token and call the API
-            const response = await fetch('api/generate_token.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    order_id: orderId, 
-                    action: 'open_position' 
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to generate token');
-            }
-
-            const tokenResult = await response.json();
-            if (!tokenResult.success) {
-                throw new Error(tokenResult.error);
-            }
-
-            // Call the open position API
-            const openResponse = await fetch(`api/open_limit_position.php?token=${encodeURIComponent(tokenResult.token)}`);
-            const openResult = await openResponse.json();
-
-            if (openResult.success) {
-                this.showNotification('Position opened successfully!', 'success');
-                this.loadLimitOrders(); // Refresh the limit orders
-                this.updateRecentSignals(); // Refresh positions
-            } else {
-                throw new Error(openResult.error || 'Failed to open position');
-            }
-
-        } catch (error) {
-            console.error('Error opening limit order:', error);
-            this.showNotification('Failed to open position: ' + error.message, 'error');
-        }
-    }
 
     // Remove/cancel limit order
-    async removeLimitOrder(orderId) {
-        if (!confirm('Cancel this limit order?')) {
-            return;
-        }
-
-        try {
-            // Generate token and call the cancel API
-            const response = await fetch('api/generate_token.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    order_id: orderId, 
-                    action: 'cancel_order' 
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to generate token');
-            }
-
-            const tokenResult = await response.json();
-            if (!tokenResult.success) {
-                throw new Error(tokenResult.error);
-            }
-
-            // Call the cancel order API
-            const cancelResponse = await fetch(`api/cancel_limit_order.php?token=${encodeURIComponent(tokenResult.token)}`);
-            const cancelResult = await cancelResponse.json();
-
-            if (cancelResult.success) {
-                this.showNotification('Limit order cancelled successfully!', 'success');
-                this.loadLimitOrders(); // Refresh the limit orders
-            } else {
-                throw new Error(cancelResult.error || 'Failed to cancel order');
-            }
-
-        } catch (error) {
-            console.error('Error cancelling limit order:', error);
-            this.showNotification('Failed to cancel order: ' + error.message, 'error');
-        }
-    }
 
     // Enhanced refresh function to handle both tabs
     async refreshWatchlist() {
@@ -2368,12 +1993,6 @@ class TradingForm {
         
         if (tabType === 'limit-orders') {
             this.showNotification('Refreshing limit orders...', 'info');
-            await this.loadLimitOrders();
-        } else {
-            this.showNotification('Refreshing watchlist prices...', 'info');
-            await this.refreshWatchlistPrices(true);
-        }
-    }
 }
 
 // PWA Navigation Class - DISABLED (using separate pages now)
