@@ -5,9 +5,10 @@
  * Sends Telegram notifications when price targets are reached
  */
 
-// Prevent direct browser access
+// Prevent direct browser access (commented for debugging)
 if (php_sapi_name() !== 'cli') {
-    //die('This script can only be run from command line');
+    // Allow browser access for debugging
+    // die('This script can only be run from command line');
 }
 
 // Change to project directory
@@ -146,6 +147,18 @@ try {
     
     echo "Found " . count($watchlistItems) . " active watchlist items\n";
     
+    // Debug: Also check total watchlist items and their statuses
+    $sql = "SELECT status, COUNT(*) as count FROM watchlist GROUP BY status";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $statusCounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo "Watchlist status breakdown:\n";
+    foreach ($statusCounts as $status) {
+        echo "  - {$status['status']}: {$status['count']} items\n";
+    }
+    echo "\n";
+    
     $checkedSymbols = [];
     $triggeredCount = 0;
     
@@ -170,12 +183,16 @@ try {
         // Check if price target is reached
         $triggered = false;
         
+        echo "Checking {$symbol}: current={$currentPrice}, target={$entryPrice}, direction={$direction}\n";
+        
         if ($direction === 'long') {
             // For long positions, trigger when price goes down to entry level
             $triggered = $currentPrice <= $entryPrice;
+            echo "  Long trigger check: {$currentPrice} <= {$entryPrice} = " . ($triggered ? 'TRUE' : 'FALSE') . "\n";
         } else {
             // For short positions, trigger when price goes up to entry level
             $triggered = $currentPrice >= $entryPrice;
+            echo "  Short trigger check: {$currentPrice} >= {$entryPrice} = " . ($triggered ? 'TRUE' : 'FALSE') . "\n";
         }
         
         if ($triggered) {
@@ -204,8 +221,9 @@ try {
                 }
                 
                 // Send notification with interactive buttons
+                echo "  Sending Telegram notification...\n";
                 $telegram = new TelegramMessenger();
-                $telegram->sendPriceAlert(
+                $telegramResult = $telegram->sendPriceAlert(
                     $symbol,
                     $entryType, 
                     $entryPrice,
@@ -215,6 +233,8 @@ try {
                     $item['id'],
                     $orderId  // Pass order ID for token generation
                 );
+                
+                echo "  Telegram notification result: " . ($telegramResult ? 'SUCCESS' : 'FAILED') . "\n";
                 
                 echo "Triggered: {$symbol} {$direction} at {$currentPrice} (target: {$entryPrice}) - Order ID: {$orderId}\n";
             }
