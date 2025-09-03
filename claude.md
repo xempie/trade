@@ -82,7 +82,7 @@ Personal web application for managing crypto futures trading signals with BingX 
 Complete .env file structure (preserve this format when saving settings):
 ```
 # Crypto Trading App Configuration
-# Updated: 2025-09-02 15:25:10
+# Updated: 2025-09-03
 
 # BingX API Configuration
 [REDACTED_API_KEY]
@@ -97,7 +97,6 @@ Complete .env file structure (preserve this format when saving settings):
 BINGX_LIVE_URL=https://open-api.bingx.com
 BINGX_DEMO_URL=https://open-api-vst.bingx.com
 BINGX_BASE_URL=https://open-api.bingx.com
-BINGX_DEMO_MODE=false
 
 # Trading Configuration
 POSITION_SIZE_PERCENT=3
@@ -108,6 +107,14 @@ ENTRY_3_PERCENT=4
 SEND_BALANCE_ALERTS=false
 SEND_PROFIT_LOSS_ALERTS=false
 
+# Trading Automation Configuration
+TRADING_MODE=live
+AUTO_TRADING_ENABLED=false
+LIMIT_ORDER_ACTION=telegram_approval
+TARGET_PERCENTAGE=10
+TARGET_ACTION=telegram_notify
+AUTO_STOP_LOSS=false
+
 # Database Configuration
 DB_HOST=localhost
 DB_USER=[REDACTED_DB_USER]
@@ -117,9 +124,6 @@ DB_NAME=[REDACTED_FTP_USER]_trade_assistant
 # Application Settings
 APP_ENV=production
 APP_DEBUG=false
-TRADING_MODE=live
-ENABLE_REAL_TRADING=true
-DEMO_TRADING=false
 
 # Google OAuth Configuration
 [REDACTED_CLIENT_ID]
@@ -127,6 +131,19 @@ DEMO_TRADING=false
 APP_URL=https://[REDACTED_HOST]/ta
 ALLOWED_EMAILS=afhayati@gmail.com
 ```
+
+### 🚨 REMOVED VARIABLES (OBSOLETE AFTER CONSOLIDATION)
+The following variables have been removed and should NOT be used:
+- **BINGX_DEMO_MODE** (replaced by TRADING_MODE)
+- **DEMO_TRADING** (replaced by TRADING_MODE) 
+- **ENABLE_REAL_TRADING** (replaced by TRADING_MODE)
+
+### 🚨 TELEGRAM VARIABLE NAMING
+**CRITICAL**: All Telegram settings use _NOTIF suffix:
+- **TELEGRAM_BOT_TOKEN_NOTIF** (NOT TELEGRAM_BOT_TOKEN)
+- **TELEGRAM_CHAT_ID_NOTIF** (NOT TELEGRAM_CHAT_ID)
+- **Settings page reads/writes**: Uses _NOTIF variables
+- **telegram.php**: Uses _NOTIF variables for notifications
 
 **IMPORTANT**: The save_settings.php API now preserves ALL environment variables that are not part of the settings form, ensuring database credentials, Google OAuth, and other system configuration is never lost when saving settings.
 

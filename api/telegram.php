@@ -108,13 +108,14 @@ class TelegramMessenger {
      * Get base URL for API endpoints
      */
     private function getBaseUrl() {
-        // You can configure this in environment or use auto-detection
-        $baseUrl = getenv('APP_BASE_URL');
+        // Use configured APP_URL from environment
+        $baseUrl = getenv('APP_URL');
         if (!$baseUrl) {
-            // Auto-detect based on server configuration
+            // Fallback to auto-detection
             $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $baseUrl = $protocol . $host . '/trade';
+            $host = $_SERVER['HTTP_HOST'] ?? '[REDACTED_HOST]';
+            $path = '/ta'; // Default path for the trading app
+            $baseUrl = $protocol . $host . $path;
         }
         return rtrim($baseUrl, '/');
     }

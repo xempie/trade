@@ -48,10 +48,10 @@ try {
                     case 'BINGX_PASSPHRASE':
                         $settings['bingx_passphrase'] = $value;
                         break;
-                    case 'TELEGRAM_BOT_TOKEN':
+                    case 'TELEGRAM_BOT_TOKEN_NOTIF':
                         $settings['telegram_bot_token'] = $value;
                         break;
-                    case 'TELEGRAM_CHAT_ID':
+                    case 'TELEGRAM_CHAT_ID_NOTIF':
                         $settings['telegram_chat_id'] = $value;
                         break;
                     case 'POSITION_SIZE_PERCENT':
