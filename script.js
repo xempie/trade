@@ -1959,40 +1959,11 @@ class TradingForm {
                 
                 // Load content for the active tab
                 if (targetTab === 'limit-orders') {
-
-    // Load limit orders
-
-    // Display limit orders (similar to watchlist display)
-
-    // Calculate percentage for limit orders (same as watchlist)
-    calculateWatchlistPercentage(item, currentPrice) {
-        if (!currentPrice || currentPrice <= 0) return 0;
-        
-        const entryPrice = parseFloat(item.entry_price);
-        let percentage;
-        
-        if (item.direction === 'long') {
-            // For long positions, negative percentage means price went down (good for buying)
-            percentage = ((currentPrice - entryPrice) / entryPrice) * 100;
-        } else {
-            // For short positions, positive percentage means price went up (good for selling)
-            percentage = ((entryPrice - currentPrice) / entryPrice) * 100;
-        }
-        
-        return percentage;
+                    // Load limit orders functionality here
+                }
+            });
+        });
     }
-
-    // Open limit order position
-
-    // Remove/cancel limit order
-
-    // Enhanced refresh function to handle both tabs
-    async refreshWatchlist() {
-        const activeTab = document.querySelector('.watchlist-tab.active');
-        const tabType = activeTab ? activeTab.getAttribute('data-tab') : 'watchlist';
-        
-        if (tabType === 'limit-orders') {
-            this.showNotification('Refreshing limit orders...', 'info');
 }
 
 // PWA Navigation Class - DISABLED (using separate pages now)

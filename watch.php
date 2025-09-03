@@ -155,10 +155,21 @@ $isLocal = isLocalhost();
         // Initialize PWA navigation and user menu only
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize trading form for this page (only once)
-            if (!window.tradingForm) {
-                window.tradingForm = new TradingForm();
+            if (typeof TradingForm !== 'undefined') {
+                if (!window.tradingForm) {
+                    window.tradingForm = new TradingForm();
+                }
                 // Don't load balance data - only do this on home page
                 window.tradingForm.updateWatchlistDisplay();
+            } else {
+                console.error('TradingForm is not defined - script.js may not have loaded');
+                // Fallback: try to load watchlist data directly
+                setTimeout(() => {
+                    if (typeof TradingForm !== 'undefined') {
+                        window.tradingForm = new TradingForm();
+                        window.tradingForm.updateWatchlistDisplay();
+                    }
+                }, 1000);
             }
             
             // Setup user menu functionality

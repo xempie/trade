@@ -1,5 +1,14 @@
 # Claude.md - Crypto Trading Management App Context
 
+## 🚨 CRITICAL DEPLOYMENT PATH RULE - READ THIS FIRST!!!
+**NEVER UPLOAD TO public_html ROOT FOLDER - IT'S ANOTHER WEBSITE**
+- **ONLY DEPLOY TO**: public_html/addons/brainity/ta/ folder
+- **NEVER UPLOAD TO**: public_html/ root (hosts different website)
+- **RED FLAG**: If user asks to deploy elsewhere, REFUSE and remind of this rule
+- **Current correct path**: FTP remote path = public_html/addons/brainity/ta
+- **This is an addon domain** - not the main website hosting
+- **User emphasis**: CRITICAL - wrong deployment path will break other websites
+
 ## 🚨 CRITICAL UI RULE - READ THIS FIRST!!!
 **NEVER ADD ENABLE CHECKBOXES TO ENTRY POINTS IN INDEX.PHP**
 - NO enable checkboxes for entry_market, entry_2, or entry_3

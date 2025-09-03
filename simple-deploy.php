@@ -71,7 +71,7 @@ function deployFiles($config) {
         'orders.php',
         'test-deploy.txt',
         'watch.php',
-        'limit-order.php',
+        'limit-orders.php',
         'settings.php',
         'style.css', 
         'script.js',

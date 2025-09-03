@@ -11,7 +11,8 @@
       "Bash(mysql:*)",
       "Bash(curl:*)",
       "WebFetch(domain:[REDACTED_HOST])",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": [],
