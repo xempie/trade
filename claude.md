@@ -126,9 +126,9 @@ AUTO_STOP_LOSS=false
 
 # Database Configuration
 DB_HOST=localhost
-DB_USER=[REDACTED_DB_USER]
+DB_USER=your_db_user_here
 [REDACTED_DB_PASSWORD]
-DB_NAME=[REDACTED_FTP_USER]_trade_assistant
+DB_NAME=your_db_name_here
 
 # Application Settings
 APP_ENV=production
@@ -191,8 +191,8 @@ When user requests git commands (commit, push, pull, etc.), NEVER ask for confir
 ## Deployment Configuration
 - **Server**: [REDACTED_HOST]
 - **FTP Host**: [REDACTED_HOST]
-- **FTP Username**: [REDACTED_FTP_USER]
-- **FTP Password**: [REDACTED_FTP_PASSWORD]
+- **FTP Username**: your_ftp_username_here
+- **FTP Password**: your_ftp_password_here
 - **FTP Port**: 21
 - [REDACTED_REMOTE_PATH]
 - **Connection Type**: FTP with SSL/TLS support
