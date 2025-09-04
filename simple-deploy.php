@@ -64,6 +64,8 @@ function deployFiles($config) {
     
     // List files to upload
     $files = [
+        'header.php',
+        'nav.php',
         'index.php',
         'home.php',
         'debug-orders.php',
