@@ -23,6 +23,14 @@
 - Test changes locally first before any deployment
 - Wait for user approval before running deploy.php
 
+## 🚨 CRITICAL SECURITY RULE - NEVER DEPLOY .ENV FILE
+**NEVER UPLOAD .env FILE TO SERVER - CONTAINS SENSITIVE CREDENTIALS**
+- .env file contains API keys, passwords, and secrets - KEEP LOCAL ONLY
+- Deployment scripts must EXCLUDE .env from file transfers
+- Server should have its own separate .env with production values
+- ALWAYS verify .env is in .gitignore and deployment exclusion lists
+- **EMPHASIS**: Deploying .env would expose all secrets publicly
+
 ## 🚨 TRADING MODE CONFIGURATION - CRITICAL
 **ONLY USE TRADING_MODE VARIABLE FOR DEMO/LIVE SWITCHING**
 - **TRADING_MODE**: Set to "live" or "demo" - THIS IS THE ONLY VARIABLE NEEDED

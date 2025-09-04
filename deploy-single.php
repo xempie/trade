@@ -11,6 +11,22 @@ function deploySingleFile($config, $filename) {
         die("❌ File not found: $filename\n");
     }
     
+    // Security check: prevent uploading sensitive files
+    $restrictedFiles = ['.env', '.env.local', '.env.production', '.env.dev', 'deploy-config.php', 'claude.md', 'CLAUDE.md'];
+    $restrictedExtensions = ['.key', '.pem', '.p12', '.pfx'];
+    
+    foreach ($restrictedFiles as $restricted) {
+        if (basename($filename) === $restricted) {
+            die("❌ SECURITY: Cannot deploy sensitive file: $filename\n");
+        }
+    }
+    
+    foreach ($restrictedExtensions as $ext) {
+        if (substr($filename, -strlen($ext)) === $ext) {
+            die("❌ SECURITY: Cannot deploy files with extension: $ext\n");
+        }
+    }
+    
     echo "Deploying single file: $filename\n";
     
     // Connect to FTP
