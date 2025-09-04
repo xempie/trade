@@ -7,7 +7,7 @@ echo "<h2>Watchlist API Debug Test</h2>";
 // Test the actual API endpoint
 echo "<h3>1. Testing get_watchlist_prices.php API directly</h3>";
 
-$url = 'http://localhost/trade/api/get_watchlist_prices.php';
+$url = 'https://brainity.com.au/ta/api/get_watchlist_prices.php';
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -29,10 +29,12 @@ echo "</div>";
 // Test individual price fetching
 echo "<h3>2. Testing individual BingX price fetch</h3>";
 
-// Include the API functions
-ob_start();
-include 'api/get_watchlist_prices.php';
-$output = ob_get_clean();
+// Include the API functions (avoid redeclaration)
+if (!function_exists('getBingXPrice')) {
+    ob_start();
+    include 'api/get_watchlist_prices.php';
+    $output = ob_get_clean();
+}
 
 // Test with common symbols
 $testSymbols = ['BTC', 'ETH', 'BTC-USDT', 'ETH-USDT'];
@@ -64,31 +66,10 @@ foreach ($testSymbols as $symbol) {
 echo "<h3>3. Testing Database and Watchlist Data</h3>";
 
 try {
-    // Load environment
-    function loadEnv($path) {
-        if (!file_exists($path)) {
-            return false;
-        }
-        
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (strpos(trim($line), '#') === 0) {
-                continue;
-            }
-            
-            list($name, $value) = explode('=', $line, 2);
-            $name = trim($name);
-            $value = trim($value);
-            
-            if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
-                putenv(sprintf('%s=%s', $name, $value));
-                $_ENV[$name] = $value;
-                $_SERVER[$name] = $value;
-            }
-        }
+    // Load environment (function already exists from included file)
+    if (function_exists('loadEnv')) {
+        loadEnv('.env');
     }
-    
-    loadEnv('.env');
     
     $host = getenv('DB_HOST') ?: 'localhost';
     $user = getenv('DB_USER') ?: '';
