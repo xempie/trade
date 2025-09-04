@@ -1465,29 +1465,42 @@ class TradingForm {
 
     async refreshWatchlistPrices(showNotification = true) {
         try {
+            console.log('🔄 Refreshing watchlist prices...');
             const response = await fetch('api/get_watchlist_prices.php');
+            
+            console.log('📡 API Response status:', response.status);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const result = await response.json();
+            console.log('📊 API Result:', result);
             
             if (!result.success) {
+                console.error('❌ API returned error:', result.error);
                 throw new Error(result.error || 'Failed to fetch prices');
             }
 
             const priceData = result.data;
+            console.log('💰 Price data received:', priceData);
             
             // Update each watchlist item with current price and distance
             priceData.forEach(item => {
+                console.log(`🔍 Processing item ${item.id}:`, item);
+                
                 const watchlistElement = document.querySelector(`[data-id="${item.id}"]`);
-                if (!watchlistElement) return;
+                if (!watchlistElement) {
+                    console.warn(`⚠️ No DOM element found for item ${item.id}`);
+                    return;
+                }
 
                 const priceInfoElement = watchlistElement.querySelector('.price-info');
                 const closeIndicator = watchlistElement.querySelector('.watchlist-close-indicator');
                 
-                if (item.entry_price_status === 'available' && item.current_price !== null) {
+                console.log(`💲 Item ${item.id} - Price status: ${item.price_status}, Current price: ${item.current_price}`);
+                
+                if (item.price_status === 'available' && item.current_price !== null) {
                     const distanceClass = item.distance_percent >= 0 ? 'positive' : 'negative';
                     const distanceSign = item.distance_percent >= 0 ? '+' : '';
                     
@@ -1518,6 +1531,7 @@ class TradingForm {
                     // Update progress bar
                     this.updateProgressBar(watchlistElement, item);
                 } else {
+                    console.warn(`❌ Item ${item.id} - Price unavailable! Status: ${item.price_status}, Price: ${item.current_price}`);
                     priceInfoElement.innerHTML = 'Price unavailable';
                     closeIndicator.style.display = 'none';
                     closeIndicator.classList.remove('close', 'reached');
@@ -1535,7 +1549,12 @@ class TradingForm {
             }
 
         } catch (error) {
-            console.error('Error refreshing watchlist prices:', error);
+            console.error('💥 Error refreshing watchlist prices:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             
             // Update all price info elements to show error
             document.querySelectorAll('.price-info').forEach(element => {
