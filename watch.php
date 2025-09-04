@@ -90,7 +90,7 @@ $isLocal = isLocalhost();
                 <div class="form-container">
                     <div class="watchlist-panel">
                     <div class="watchlist-header">
-                        <h2>Watch List - Updated</h2>
+                        <h2>Watch List</h2>
                         <button class="refresh-watchlist-btn" onclick="tradingForm.refreshWatchlist()" title="Refresh prices from BingX">
                             ↻
                         </button>
