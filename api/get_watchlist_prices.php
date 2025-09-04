@@ -75,14 +75,24 @@ function getBingXPrice($symbol, $apiKey = '', $apiSecret = '') {
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
+        
+        if ($curlError) {
+            error_log("cURL error for $symbol: $curlError");
+            return null;
+        }
         
         if ($response && $httpCode == 200) {
             $data = json_decode($response, true);
             
             if ($data && $data['code'] == 0 && isset($data['data']['price'])) {
                 return floatval($data['data']['price']);
+            } else {
+                error_log("BingX API error for $symbol: " . ($data['msg'] ?? 'Unknown error') . " (Code: " . ($data['code'] ?? 'N/A') . ")");
             }
+        } else {
+            error_log("HTTP error for $symbol: HTTP $httpCode, Response: " . substr($response, 0, 200));
         }
         
         // If public API fails, try authenticated API if credentials are available
@@ -265,12 +275,19 @@ try {
     foreach ($uniqueSymbols as $symbol) {
         // Convert clean symbol to BingX format (BTC -> BTC-USDT)
         $bingxSymbol = $symbol;
-        if (!strpos($bingxSymbol, 'USDT')) {
+        if (strpos($bingxSymbol, 'USDT') === false) {
             $bingxSymbol = $bingxSymbol . '-USDT';
         }
         
         $price = getBingXPrice($bingxSymbol, $apiKey, $apiSecret);
         $currentPrices[$symbol] = $price;
+        
+        // Debug logging
+        if ($price === null) {
+            error_log("Failed to get price for symbol: $symbol (BingX format: $bingxSymbol)");
+        } else {
+            error_log("Successfully got price for $symbol: $price");
+        }
     }
     
     // Process each watchlist item with current prices
