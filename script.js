@@ -1466,7 +1466,13 @@ class TradingForm {
     async refreshWatchlistPrices(showNotification = true) {
         try {
             console.log('🔄 Refreshing watchlist prices...');
-            const response = await fetch('api/get_watchlist_prices.php');
+            const response = await fetch('api/get_watchlist_prices.php', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
             
             console.log('📡 API Response status:', response.status);
             
@@ -1474,8 +1480,20 @@ class TradingForm {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
-            console.log('📊 API Result:', result);
+            // Get the raw text first to see what we're actually receiving
+            const rawText = await response.text();
+            console.log('📄 Raw response:', rawText.substring(0, 200) + '...');
+            
+            // Try to parse as JSON
+            let result;
+            try {
+                result = JSON.parse(rawText);
+                console.log('📊 API Result:', result);
+            } catch (parseError) {
+                console.error('🚨 JSON Parse Error:', parseError);
+                console.error('Raw response causing error:', rawText);
+                throw new Error('API returned invalid JSON: ' + rawText.substring(0, 100));
+            }
             
             if (!result.success) {
                 console.error('❌ API returned error:', result.error);
