@@ -79,7 +79,6 @@ function deployFiles($config) {
         'script.js',
         'header.js',
         'manifest.json',
-        'sw.js',
         'api/watchlist.php',
         'api/get_balance.php',
         'api/place_order.php',
