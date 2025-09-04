@@ -30,12 +30,6 @@
                                 <div class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></div>
                             </div>
                         <?php endif; ?>
-                        <button id="install-btn" class="dropdown-item" style="display: none;">
-                            📱 Install App
-                        </button>
-                        <button id="clear-cache-btn" class="dropdown-item">
-                            🗑️ Clear Cache
-                        </button>
                         <button id="logout-btn" class="dropdown-item logout">
                             🚪 Logout
                         </button>

@@ -77,6 +77,7 @@ function deployFiles($config) {
         'settings.php',
         'style.css', 
         'script.js',
+        'header.js',
         'manifest.json',
         'sw.js',
         'api/watchlist.php',

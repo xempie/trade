@@ -155,8 +155,9 @@ $isLocal = isLocalhost();
     </div>
 
     <script src="script.js?v=<?php echo time(); ?>"></script>
+    <script src="header.js?v=<?php echo time(); ?>"></script>
     <script>
-        // Initialize PWA navigation and user menu only
+        // Initialize trade page functionality
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize trading form for this page (only once)
             if (!window.tradingForm) {
@@ -167,87 +168,7 @@ $isLocal = isLocalhost();
                 window.tradingForm.updateWatchlistDisplay();
                 window.tradingForm.initializeTabs();
             }
-            
-            // Setup user menu functionality
-            const userMenuButton = document.getElementById('user-menu-button');
-            const userDropdown = document.getElementById('user-dropdown');
-
-            if (userMenuButton && userDropdown) {
-                userMenuButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    userDropdown.classList.toggle('show');
-                });
-
-                // Close dropdown when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
-                        userDropdown.classList.remove('show');
-                    }
-                });
-
-                // Handle dropdown menu items
-                const logoutBtn = document.getElementById('logout-btn');
-                const clearCacheBtn = document.getElementById('clear-cache-btn');
-                const installBtn = document.getElementById('install-btn');
-
-                if (logoutBtn) {
-                    logoutBtn.addEventListener('click', () => {
-                        if (confirm('Are you sure you want to logout?')) {
-                            window.location.href = 'auth/logout.php';
-                        }
-                    });
-                }
-
-                if (clearCacheBtn) {
-                    clearCacheBtn.addEventListener('click', () => clearAppCache());
-                }
-
-                if (installBtn) {
-                    installBtn.addEventListener('click', () => installPWA());
-                }
-            }
         });
-        
-        // PWA functionality
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('install-btn').style.display = 'block';
-        });
-
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        alert('App installed successfully!');
-                    }
-                    deferredPrompt = null;
-                    document.getElementById('install-btn').style.display = 'none';
-                });
-            } else {
-                alert('App is already installed or installation is not available.');
-            }
-        }
-
-        function clearAppCache() {
-            if (!confirm('Clear all cached data? This will require re-downloading resources.')) {
-                return;
-            }
-
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => {
-                        caches.delete(name);
-                    });
-                    localStorage.clear();
-                    alert('Cache cleared successfully!');
-                    location.reload();
-                });
-            }
-        }
     </script>
 </body>
 </html>
