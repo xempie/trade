@@ -1140,6 +1140,22 @@ input.loading {
     color: var(--red-5);
 }
 
+/* Percentage distance styles for limit orders */
+.percentage-distance.positive {
+    color: var(--green-5);
+}
+
+.percentage-distance.negative {
+    color: var(--red-5);
+}
+
+.order-status {
+    font-size: 0.8em;
+    font-weight: 500;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
 /* Limit Order specific styles */
 .limit-order-actions {
     display: flex;

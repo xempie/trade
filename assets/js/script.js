@@ -72,6 +72,7 @@ class TradingForm {
         // Set up percentage calculation for Entry 2 and Entry 3
         const entry2Percent = document.getElementById('entry_2_percent');
         const entry3Percent = document.getElementById('entry_3_percent');
+        const takeProfitPercent = document.getElementById('take_profit_percent');
         const stopLossPercent = document.getElementById('stop_loss_percent');
         
         if (entry2Percent) {
@@ -83,6 +84,20 @@ class TradingForm {
         if (entry3Percent) {
             entry3Percent.addEventListener('input', () => {
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
+            });
+        }
+
+        if (takeProfitPercent) {
+            takeProfitPercent.addEventListener('input', () => {
+                this.calculateTakeProfitPrice('take_profit_percent', 'take_profit');
+            });
+        }
+
+        // Also calculate take profit when price is manually entered
+        const takeProfitPrice = document.getElementById('take_profit');
+        if (takeProfitPrice) {
+            takeProfitPrice.addEventListener('input', () => {
+                this.calculateTakeProfitPercent('take_profit', 'take_profit_percent');
             });
         }
         
@@ -106,6 +121,10 @@ class TradingForm {
             entryMarketEl.addEventListener('input', () => {
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
+                // Only recalculate take profit if percentage element exists
+                if (document.getElementById('take_profit_percent')) {
+                    this.calculateTakeProfitPrice('take_profit_percent', 'take_profit');
+                }
                 // Only recalculate stop loss if percentage element exists
                 if (document.getElementById('stop_loss_percent')) {
                     this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
@@ -118,6 +137,10 @@ class TradingForm {
             radio.addEventListener('change', () => {
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
+                // Only recalculate take profit if percentage element exists
+                if (document.getElementById('take_profit_percent')) {
+                    this.calculateTakeProfitPrice('take_profit_percent', 'take_profit');
+                }
                 // Only recalculate stop loss if percentage element exists
                 if (document.getElementById('stop_loss_percent')) {
                     this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
@@ -125,6 +148,23 @@ class TradingForm {
                 this.updateSubmitButton();
             });
         });
+
+        // Recalculate when leverage changes
+        const leverageEl = document.getElementById('leverage');
+        if (leverageEl) {
+            leverageEl.addEventListener('change', () => {
+                this.calculateEntryPrice('entry_2_percent', 'entry_2');
+                this.calculateEntryPrice('entry_3_percent', 'entry_3');
+                // Only recalculate take profit if percentage element exists
+                if (document.getElementById('take_profit_percent')) {
+                    this.calculateTakeProfitPrice('take_profit_percent', 'take_profit');
+                }
+                // Only recalculate stop loss if percentage element exists
+                if (document.getElementById('stop_loss_percent')) {
+                    this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
+                }
+            });
+        }
         
         // Initial button update
         this.updateSubmitButton();
@@ -188,6 +228,10 @@ class TradingForm {
                 // Recalculate entry points 2 and 3 if they have percentages
                 this.calculateEntryPrice('entry_2_percent', 'entry_2');
                 this.calculateEntryPrice('entry_3_percent', 'entry_3');
+                // Recalculate take profit if it has a percentage element
+                if (document.getElementById('take_profit_percent')) {
+                    this.calculateTakeProfitPrice('take_profit_percent', 'take_profit');
+                }
                 // Recalculate stop loss if it has a percentage element
                 if (document.getElementById('stop_loss_percent')) {
                     this.calculateStopLossPrice('stop_loss_percent', 'stop_loss');
@@ -266,6 +310,7 @@ class TradingForm {
         const percentEl = document.getElementById(percentFieldId);
         const priceEl = document.getElementById(priceFieldId);
         const marketPriceEl = document.getElementById('entry_market');
+        const leverageEl = document.getElementById('leverage');
         const directionEl = document.querySelector('input[name="direction"]:checked');
         
         // Exit early if elements don't exist
@@ -275,6 +320,7 @@ class TradingForm {
         
         const percentage = parseFloat(percentEl.value);
         const marketPrice = parseFloat(marketPriceEl.value);
+        const leverage = parseFloat(leverageEl ? leverageEl.value : 1);
         const direction = directionEl ? directionEl.value : 'long';
         
         if (isNaN(percentage) || !marketPrice || percentage === 0) {
@@ -282,13 +328,17 @@ class TradingForm {
             return;
         }
         
+        // Calculate the price movement needed for the percentage loss considering leverage
+        // With leverage, a smaller price movement gives the same percentage loss
+        const priceMovementPercent = percentage / leverage;
+        
         let calculatedPrice;
         if (direction === 'long') {
             // For long positions, stop loss should be lower than market (stop when price drops)
-            calculatedPrice = marketPrice * (1 - percentage / 100);
+            calculatedPrice = marketPrice * (1 - priceMovementPercent / 100);
         } else {
             // For short positions, stop loss should be higher than market (stop when price rises)
-            calculatedPrice = marketPrice * (1 + percentage / 100);
+            calculatedPrice = marketPrice * (1 + priceMovementPercent / 100);
         }
         
         // Format to appropriate decimal places
@@ -299,10 +349,12 @@ class TradingForm {
         const priceEl = document.getElementById(priceFieldId);
         const percentEl = document.getElementById(percentFieldId);
         const marketPriceEl = document.getElementById('entry_market');
+        const leverageEl = document.getElementById('leverage');
         const directionEl = document.querySelector('input[name="direction"]:checked');
         
         const stopLossPrice = parseFloat(priceEl.value);
         const marketPrice = parseFloat(marketPriceEl.value);
+        const leverage = parseFloat(leverageEl ? leverageEl.value : 1);
         const direction = directionEl ? directionEl.value : 'long';
         
         if (!stopLossPrice || !marketPrice || stopLossPrice === 0) {
@@ -310,16 +362,96 @@ class TradingForm {
             return;
         }
         
-        let calculatedPercent;
+        let priceMovementPercent;
         if (direction === 'long') {
             // For long positions, calculate how much lower stop loss is from market
-            calculatedPercent = ((marketPrice - stopLossPrice) / marketPrice) * 100;
+            priceMovementPercent = ((marketPrice - stopLossPrice) / marketPrice) * 100;
         } else {
             // For short positions, calculate how much higher stop loss is from market
-            calculatedPercent = ((stopLossPrice - marketPrice) / marketPrice) * 100;
+            priceMovementPercent = ((stopLossPrice - marketPrice) / marketPrice) * 100;
         }
         
+        // Calculate the actual loss percentage considering leverage
+        // With leverage, the same price movement gives higher percentage loss
+        const calculatedPercent = priceMovementPercent * leverage;
+        
         // Only update if the calculated percentage is positive (valid stop loss direction)
+        if (calculatedPercent > 0) {
+            percentEl.value = calculatedPercent.toFixed(1);
+        } else {
+            percentEl.value = '';
+        }
+    }
+
+    calculateTakeProfitPrice(percentFieldId, priceFieldId) {
+        const percentEl = document.getElementById(percentFieldId);
+        const priceEl = document.getElementById(priceFieldId);
+        const marketPriceEl = document.getElementById('entry_market');
+        const leverageEl = document.getElementById('leverage');
+        const directionEl = document.querySelector('input[name="direction"]:checked');
+        
+        // Exit early if elements don't exist
+        if (!percentEl || !priceEl) {
+            return;
+        }
+        
+        const percentage = parseFloat(percentEl.value);
+        const marketPrice = parseFloat(marketPriceEl.value);
+        const leverage = parseFloat(leverageEl ? leverageEl.value : 1);
+        const direction = directionEl ? directionEl.value : 'long';
+        
+        if (isNaN(percentage) || !marketPrice || percentage === 0) {
+            priceEl.value = '';
+            return;
+        }
+        
+        // Calculate the price movement needed for the percentage profit considering leverage
+        // With leverage, a smaller price movement gives the same percentage profit
+        const priceMovementPercent = percentage / leverage;
+        
+        let calculatedPrice;
+        if (direction === 'long') {
+            // For long positions, take profit is above market price
+            calculatedPrice = marketPrice * (1 + priceMovementPercent / 100);
+        } else {
+            // For short positions, take profit is below market price
+            calculatedPrice = marketPrice * (1 - priceMovementPercent / 100);
+        }
+        
+        priceEl.value = calculatedPrice.toFixed(8);
+    }
+
+    calculateTakeProfitPercent(priceFieldId, percentFieldId) {
+        const priceEl = document.getElementById(priceFieldId);
+        const percentEl = document.getElementById(percentFieldId);
+        const marketPriceEl = document.getElementById('entry_market');
+        const leverageEl = document.getElementById('leverage');
+        const directionEl = document.querySelector('input[name="direction"]:checked');
+        
+        const takeProfitPrice = parseFloat(priceEl.value);
+        const marketPrice = parseFloat(marketPriceEl.value);
+        const leverage = parseFloat(leverageEl ? leverageEl.value : 1);
+        const direction = directionEl ? directionEl.value : 'long';
+        
+        if (!takeProfitPrice || !marketPrice || takeProfitPrice === 0) {
+            percentEl.value = '';
+            return;
+        }
+        
+        let priceMovementPercent;
+        if (direction === 'long') {
+            // For long positions, calculate how much higher take profit is from market
+            priceMovementPercent = ((takeProfitPrice - marketPrice) / marketPrice) * 100;
+        } else {
+            // For short positions, calculate how much lower take profit is from market
+            priceMovementPercent = ((marketPrice - takeProfitPrice) / marketPrice) * 100;
+        }
+        
+        // Calculate the actual profit percentage considering leverage
+        // With leverage, the same price movement gives higher percentage profit
+        const calculatedPercent = priceMovementPercent * leverage;
+        
+        // Only update if the calculated percentage is positive (valid take profit direction)
         if (calculatedPercent > 0) {
             percentEl.value = calculatedPercent.toFixed(1);
         } else {
@@ -377,7 +509,7 @@ class TradingForm {
         }
 
         // Price validation
-        if ((field.name.includes('entry') || field.name.includes('tp') || field.name === 'stop_loss') && field.value) {
+        if ((field.name.includes('entry') || field.name.includes('tp') || field.name === 'take_profit' || field.name === 'stop_loss') && field.value) {
             if (parseFloat(field.value) <= 0) {
                 isValid = false;
                 errorMessage = 'Price must be greater than 0';
@@ -997,7 +1129,7 @@ class TradingForm {
         try {
             const requestData = {
                 symbol: symbol,
-                direction: item.direction,
+                direction: direction,
                 watchlist_items: watchlistItems
             };
             

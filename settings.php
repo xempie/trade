@@ -411,13 +411,13 @@ $isLocal = isLocalhost();
 
         // PWA functionality for settings page (still needed for app management)
         function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
+            if (window.deferredPrompt) {
+                window.deferredPrompt.prompt();
+                window.deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
                         showNotification('App installed successfully!', 'success');
                     }
-                    deferredPrompt = null;
+                    window.deferredPrompt = null;
                 });
             } else {
                 showNotification('App is already installed or installation is not available.', 'info');

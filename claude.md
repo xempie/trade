@@ -193,6 +193,13 @@ NEVER use inline CSS styles in HTML or JavaScript. ALL styling must be defined i
 - **User Interface**: Maintain exact same visual appearance and user experience
 - **EMPHASIS**: This is NOT a new design - it's the watchlist page with different data
 
+## File Operations Policy
+**NEVER ASK PERMISSION FOR FILE OPERATIONS** - When user requests any task, permission to read and write necessary files is automatically granted. Never ask "Should I read this file?" or "Can I edit this file?" - just do it.
+- **Read Files**: Always read any files needed to understand the task
+- **Edit/Write Files**: Always edit or create files necessary to complete the task
+- **User Requests = Permission**: When user asks for something, they've given permission for all necessary file operations
+- **Only Exception**: Deployment - ask for permission only if user hasn't explicitly said to deploy
+
 ## Git Commands Policy
 When user requests git commands (commit, push, pull, etc.), NEVER ask for confirmation or yes/no questions. Always proceed automatically with the requested git operations. Consider all git command requests as pre-approved and execute them immediately without prompting for user confirmation.
 
