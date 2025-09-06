@@ -824,6 +824,91 @@ class TradingForm {
         await this.loadBalanceData();
     }
 
+    async loadLBankBalanceData() {
+        try {
+            const response = await fetch('api/get_lbank_balance.php');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            console.log('LBank Balance API Response:', result); // Debug log
+
+            if (result.success) {
+                this.lbankTotalBalance = result.data.total_balance;
+                this.lbankAvailableBalance = result.data.available_balance;
+                this.lbankFrozenBalance = result.data.frozen_balance;
+                this.lbankUnrealizedPnL = result.data.unrealized_pnl || 0;
+                this.lbankPositionSizePercent = this.positionSizePercent || 3.3;
+                
+                // Update LBank UI
+                this.updateLBankAccountInfo();
+                
+                // Show success notification
+                this.showNotification('LBank balance updated successfully', 'success');
+            } else {
+                // Show detailed error information
+                let errorMsg = result.error || 'Failed to load LBank balance data';
+                console.log('LBank API Error:', errorMsg);
+                this.showNotification('Failed to load LBank balance: ' + errorMsg, 'error');
+            }
+        } catch (error) {
+            console.error('LBank Balance API Error:', error);
+            
+            this.showNotification('Failed to load balance from LBank: ' + error.message, 'error');
+        }
+    }
+
+    updateLBankAccountInfo() {
+        const positionSize = (this.lbankTotalBalance * this.lbankPositionSizePercent) / 100;
+
+        // Update LBank elements only if they exist
+        const lbankTotalAssetsEl = document.getElementById('lbank-total-assets');
+        if (lbankTotalAssetsEl) {
+            lbankTotalAssetsEl.textContent = `$${this.lbankTotalBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        const lbankAvailableBalanceEl = document.getElementById('lbank-available-balance');
+        if (lbankAvailableBalanceEl) {
+            lbankAvailableBalanceEl.textContent = `$${this.lbankAvailableBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        const lbankFrozenBalanceEl = document.getElementById('lbank-frozen-balance');
+        if (lbankFrozenBalanceEl) {
+            lbankFrozenBalanceEl.textContent = `$${this.lbankFrozenBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        const lbankPositionSizeEl = document.getElementById('lbank-position-size');
+        if (lbankPositionSizeEl) {
+            lbankPositionSizeEl.textContent = `$${Math.ceil(positionSize).toLocaleString()}`;
+        }
+
+        const lbankPositionSizePercentEl = document.getElementById('lbank-position-size-percent');
+        if (lbankPositionSizePercentEl) {
+            lbankPositionSizePercentEl.textContent = this.lbankPositionSizePercent.toFixed(1);
+        }
+
+        const lbankPnlEl = document.getElementById('lbank-unrealized-pnl');
+        if (lbankPnlEl) {
+            const pnlValue = this.lbankUnrealizedPnL;
+            lbankPnlEl.textContent = `$${pnlValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            lbankPnlEl.className = `value ${pnlValue >= 0 ? 'profit' : 'loss'}`;
+        }
+
+        // Update last updated time
+        const lbankLastUpdated = new Date().toLocaleTimeString();
+        const lbankLastUpdatedEl = document.getElementById('lbank-last-updated');
+        if (lbankLastUpdatedEl) {
+            lbankLastUpdatedEl.textContent = lbankLastUpdated;
+        }
+    }
+
+    async refreshLBankBalance() {
+        await this.loadLBankBalanceData();
+    }
+
     getFormData() {
         if (!this.form) return {};
         

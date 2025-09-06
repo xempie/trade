@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = json_decode(file_get_contents('php://input'), true);
 
-// Validate required fields
+// Validate required fields (LBank fields are optional)
 $requiredFields = [
     'bingx_api_key',
     'bingx_secret_key', 
@@ -84,6 +84,8 @@ try {
     $envVars['BINGX_API_KEY'] = $input['bingx_api_key'];
     $envVars['BINGX_SECRET_KEY'] = $input['bingx_secret_key'];
     $envVars['BINGX_PASSPHRASE'] = $input['bingx_passphrase'];
+    $envVars['LBANK_API_KEY'] = $input['lbank_api_key'] ?? '';
+    $envVars['LBANK_SECRET_KEY'] = $input['lbank_secret_key'] ?? '';
     $envVars['TELEGRAM_BOT_TOKEN_NOTIF'] = $input['telegram_bot_token'];
     $envVars['TELEGRAM_CHAT_ID_NOTIF'] = $input['telegram_chat_id'];
     $envVars['POSITION_SIZE_PERCENT'] = $input['position_size_percent'];
@@ -116,6 +118,10 @@ try {
     $newEnvContent .= "BINGX_API_KEY={$envVars['BINGX_API_KEY']}\n";
     $newEnvContent .= "BINGX_SECRET_KEY={$envVars['BINGX_SECRET_KEY']}\n";
     $newEnvContent .= "BINGX_PASSPHRASE={$envVars['BINGX_PASSPHRASE']}\n\n";
+    
+    $newEnvContent .= "# LBank API Configuration\n";
+    $newEnvContent .= "LBANK_API_KEY={$envVars['LBANK_API_KEY']}\n";
+    $newEnvContent .= "LBANK_SECRET_KEY={$envVars['LBANK_SECRET_KEY']}\n\n";
     
     $newEnvContent .= "# Telegram Bot Configuration\n";
     $newEnvContent .= "TELEGRAM_BOT_TOKEN_NOTIF={$envVars['TELEGRAM_BOT_TOKEN_NOTIF']}\n";

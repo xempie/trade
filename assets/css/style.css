@@ -66,6 +66,7 @@ body {
     border-radius: 12px;
     padding: 30px;
     border: 1px solid var(--dark-border);
+    margin-bottom: 24px;
 }
 
 .header {
@@ -764,6 +765,7 @@ input[type=number] {
     
     .form-container {
         padding: 20px 10px;
+        margin-bottom: 24px;
     }
     
     .entry-row {
