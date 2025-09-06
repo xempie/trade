@@ -69,6 +69,22 @@ class TradingForm {
     }
 
     setupEntryPointToggles() {
+        // Set up checkbox toggles for Entry 2 and Entry 3
+        const entry2Checkbox = document.getElementById('entry_2_enabled');
+        const entry3Checkbox = document.getElementById('entry_3_enabled');
+        
+        if (entry2Checkbox) {
+            entry2Checkbox.addEventListener('change', () => this.toggleEntryInputs('entry_2', entry2Checkbox.checked));
+            // Initial state - disable inputs if checkbox is unchecked
+            this.toggleEntryInputs('entry_2', entry2Checkbox.checked);
+        }
+        
+        if (entry3Checkbox) {
+            entry3Checkbox.addEventListener('change', () => this.toggleEntryInputs('entry_3', entry3Checkbox.checked));
+            // Initial state - disable inputs if checkbox is unchecked  
+            this.toggleEntryInputs('entry_3', entry3Checkbox.checked);
+        }
+        
         // Set up percentage calculation for Entry 2 and Entry 3
         const entry2Percent = document.getElementById('entry_2_percent');
         const entry3Percent = document.getElementById('entry_3_percent');
@@ -474,6 +490,28 @@ class TradingForm {
             }
         }
     }
+    
+    toggleEntryInputs(entryPrefix, enabled) {
+        // Toggle the disabled state and visual styling of entry inputs
+        const marginInput = document.getElementById(`${entryPrefix}_margin`);
+        const percentInput = document.getElementById(`${entryPrefix}_percent`);
+        const priceInput = document.getElementById(`${entryPrefix}`);
+        
+        const inputs = [marginInput, percentInput, priceInput];
+        
+        inputs.forEach(input => {
+            if (input) {
+                input.disabled = !enabled;
+                if (enabled) {
+                    input.style.opacity = '1';
+                    input.style.cursor = 'text';
+                } else {
+                    input.style.opacity = '0.5';
+                    input.style.cursor = 'not-allowed';
+                }
+            }
+        });
+    }
 
     setupValidation() {
         if (!this.form) return;
@@ -796,10 +834,10 @@ class TradingForm {
             data[key] = value;
         }
 
-        // Add enabled entry points (based on having values, not checkboxes)
+        // Add enabled entry points (based on checkbox state AND having values)
         data.enabled_entries = [];
         
-        // Market entry - add if both margin and price have values
+        // Market entry - always add if both margin and price have values (no checkbox for market entry)
         if (data.entry_market && data.entry_market_margin) {
             data.enabled_entries.push({ 
                 type: 'market', 
@@ -808,8 +846,9 @@ class TradingForm {
             });
         }
         
-        // Entry 2 - add if margin and (price or percentage) have values
-        if (data.entry_2_margin && (data.entry_2 || data.entry_2_percent)) {
+        // Entry 2 - add only if checkbox is checked AND margin and (price or percentage) have values
+        const entry2Checkbox = document.getElementById('entry_2_enabled');
+        if (entry2Checkbox && entry2Checkbox.checked && data.entry_2_margin && (data.entry_2 || data.entry_2_percent)) {
             data.enabled_entries.push({ 
                 type: 'limit', 
                 price: data.entry_2,
@@ -818,8 +857,9 @@ class TradingForm {
             });
         }
         
-        // Entry 3 - add if margin and (price or percentage) have values
-        if (data.entry_3_margin && (data.entry_3 || data.entry_3_percent)) {
+        // Entry 3 - add only if checkbox is checked AND margin and (price or percentage) have values
+        const entry3Checkbox = document.getElementById('entry_3_enabled');
+        if (entry3Checkbox && entry3Checkbox.checked && data.entry_3_margin && (data.entry_3 || data.entry_3_percent)) {
             data.enabled_entries.push({ 
                 type: 'limit', 
                 price: data.entry_3,

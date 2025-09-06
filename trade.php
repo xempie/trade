@@ -92,7 +92,11 @@ $isLocal = isLocalhost();
                             </div>
 
                             <div class="form-group">
-                                <label for="entry_2">Entry 2</label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="entry_2_enabled" name="entry_2_enabled">
+                                    <span class="checkbox-custom"></span>
+                                    Entry 2
+                                </label>
                                 <div class="entry-row">
                                     <input type="number" id="entry_2_margin" name="entry_2_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                                     <input type="number" id="entry_2_percent" name="entry_2_percent" placeholder="%" step="0.1" class="percent-input">
@@ -101,7 +105,11 @@ $isLocal = isLocalhost();
                             </div>
 
                             <div class="form-group">
-                                <label for="entry_3">Entry 3</label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="entry_3_enabled" name="entry_3_enabled">
+                                    <span class="checkbox-custom"></span>
+                                    Entry 3
+                                </label>
                                 <div class="entry-row">
                                     <input type="number" id="entry_3_margin" name="entry_3_margin" placeholder="Order Value in $" step="0.01" class="margin-input">
                                     <input type="number" id="entry_3_percent" name="entry_3_percent" placeholder="%" step="0.1" class="percent-input">
