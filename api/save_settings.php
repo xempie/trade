@@ -84,8 +84,8 @@ try {
     $envVars['BINGX_API_KEY'] = $input['bingx_api_key'];
     $envVars['BINGX_SECRET_KEY'] = $input['bingx_secret_key'];
     $envVars['BINGX_PASSPHRASE'] = $input['bingx_passphrase'];
-    $envVars['[REDACTED_BOT_TOKEN]
-    $envVars['[REDACTED_CHAT_ID]
+    $envVars['TELEGRAM_BOT_TOKEN_NOTIF'] = $input['telegram_bot_token'];
+    $envVars['TELEGRAM_CHAT_ID_NOTIF'] = $input['telegram_chat_id'];
     $envVars['POSITION_SIZE_PERCENT'] = $input['position_size_percent'];
     $envVars['ENTRY_2_PERCENT'] = $input['entry_2_percent'];
     $envVars['ENTRY_3_PERCENT'] = $input['entry_3_percent'];
@@ -113,13 +113,13 @@ try {
     $newEnvContent .= "# Updated: " . date('Y-m-d H:i:s') . "\n\n";
     
     $newEnvContent .= "# BingX API Configuration\n";
-    $newEnvContent .= "[REDACTED_API_KEY]
-    $newEnvContent .= "[REDACTED_SECRET_KEY] 
-    $newEnvContent .= "[REDACTED_PASSPHRASE]
+    $newEnvContent .= "BINGX_API_KEY={$envVars['BINGX_API_KEY']}\n";
+    $newEnvContent .= "BINGX_SECRET_KEY={$envVars['BINGX_SECRET_KEY']}\n";
+    $newEnvContent .= "BINGX_PASSPHRASE={$envVars['BINGX_PASSPHRASE']}\n\n";
     
     $newEnvContent .= "# Telegram Bot Configuration\n";
-    $newEnvContent .= "[REDACTED_BOT_TOKEN]
-    $newEnvContent .= "[REDACTED_CHAT_ID]
+    $newEnvContent .= "TELEGRAM_BOT_TOKEN_NOTIF={$envVars['TELEGRAM_BOT_TOKEN_NOTIF']}\n";
+    $newEnvContent .= "TELEGRAM_CHAT_ID_NOTIF={$envVars['TELEGRAM_CHAT_ID_NOTIF']}\n\n";
     
     $newEnvContent .= "# API URLs for different trading modes\n";
     $newEnvContent .= "BINGX_LIVE_URL=" . ($envVars['BINGX_LIVE_URL'] ?? 'https://open-api.bingx.com') . "\n";
@@ -146,16 +146,17 @@ try {
     $newEnvContent .= "# Database Configuration\n";
     $newEnvContent .= "DB_HOST=" . ($envVars['DB_HOST'] ?? 'localhost') . "\n";
     $newEnvContent .= "DB_USER=" . ($envVars['DB_USER'] ?? '[REDACTED_DB_USER]') . "\n";
-    $newEnvContent .= "[REDACTED_DB_PASSWORD]
-    $newEnvContent .= "DB_NAME=" . ($envVars['DB_NAME'] ?? '[REDACTED_FTP_USER]_trade_assistant') . "\n\n";
+    $newEnvContent .= "DB_PASSWORD=" . ($envVars['DB_PASSWORD'] ?? 'your_password_here') . "\n";
+    $newEnvContent .= "DB_NAME=" . ($envVars['DB_NAME'] ?? 'your_db_name_here') . "\n\n";
     
     $newEnvContent .= "# Application Settings\n";
     $newEnvContent .= "APP_ENV=" . ($envVars['APP_ENV'] ?? 'production') . "\n";
     $newEnvContent .= "APP_DEBUG=" . ($envVars['APP_DEBUG'] ?? 'false') . "\n\n";
     
-    $newEnvContent .= "[REDACTED_CLIENT_ID]
-    $newEnvContent .= "[REDACTED_CLIENT_SECRET]
-    $newEnvContent .= "APP_URL=" . ($envVars['APP_URL'] ?? 'https://[REDACTED_HOST]/ta') . "\n";
+    $newEnvContent .= "# Google OAuth Configuration\n";
+    $newEnvContent .= "GOOGLE_CLIENT_ID=" . ($envVars['GOOGLE_CLIENT_ID'] ?? 'your_client_id_here') . "\n";
+    $newEnvContent .= "GOOGLE_CLIENT_SECRET=" . ($envVars['GOOGLE_CLIENT_SECRET'] ?? 'your_client_secret_here') . "\n";
+    $newEnvContent .= "APP_URL=" . ($envVars['APP_URL'] ?? 'https://example.com/ta') . "\n";
     $newEnvContent .= "ALLOWED_EMAILS=" . ($envVars['ALLOWED_EMAILS'] ?? 'afhayati@gmail.com') . "\n\n\n";
     
     // Write to .env file

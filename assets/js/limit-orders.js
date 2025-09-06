@@ -5,7 +5,7 @@ class LimitOrdersManager {
 
     async updateLimitOrdersDisplay() {
         try {
-            const response = await fetch('api/get_limit_orders.php?limit=20');
+            const response = await fetch('api/get_limit_orders.php?limit=50');
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);

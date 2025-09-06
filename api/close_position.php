@@ -154,6 +154,50 @@ function updatePositionStatus($pdo, $positionId, $status = 'CLOSED') {
     }
 }
 
+// Cancel pending limit orders related to the same signal/symbol
+function cancelRelatedLimitOrders($pdo, $symbol, $signalId = null) {
+    try {
+        $cancelledOrders = 0;
+        
+        // Cancel pending limit orders for the same symbol
+        $sql = "UPDATE orders SET 
+                status = 'CANCELLED', 
+                updated_at = NOW() 
+                WHERE symbol = :symbol 
+                AND type = 'LIMIT' 
+                AND status IN ('NEW', 'PENDING')";
+        
+        $params = [':symbol' => $symbol];
+        
+        // If we have a signal_id, also filter by it for more precise cancellation
+        if ($signalId) {
+            $sql .= " AND signal_id = :signal_id";
+            $params[':signal_id'] = $signalId;
+        }
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $cancelledOrders = $stmt->rowCount();
+        
+        // Also cancel related watchlist items
+        if ($cancelledOrders > 0) {
+            $symbolWithoutUSDT = str_replace('-USDT', '', $symbol);
+            $sql = "UPDATE watchlist SET 
+                    status = 'cancelled'
+                    WHERE symbol = :symbol 
+                    AND status = 'active'";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':symbol' => $symbolWithoutUSDT]);
+        }
+        
+        return $cancelledOrders;
+        
+    } catch (Exception $e) {
+        error_log("Error cancelling related limit orders: " . $e->getMessage());
+        return 0;
+    }
+}
+
 // Get position details
 function getPositionDetails($pdo, $positionId) {
     try {
@@ -222,12 +266,21 @@ try {
         // Position successfully closed on exchange
         $updated = updatePositionStatus($pdo, $positionId, 'CLOSED');
         
+        // Cancel any pending limit orders for the same symbol
+        $cancelledOrders = cancelRelatedLimitOrders($pdo, $bingxSymbol, $position['signal_id'] ?? null);
+        
         if ($updated) {
+            $message = "Position closed successfully";
+            if ($cancelledOrders > 0) {
+                $message .= " and {$cancelledOrders} pending limit orders cancelled";
+            }
+            
             echo json_encode([
                 'success' => true,
-                'message' => "Position closed successfully",
+                'message' => $message,
                 'bingx_order_id' => $closeResult['order_id'],
-                'position_id' => $positionId
+                'position_id' => $positionId,
+                'cancelled_orders' => $cancelledOrders
             ]);
         } else {
             // Position closed on exchange but database update failed
@@ -235,7 +288,8 @@ try {
                 'success' => true,
                 'message' => "Position closed on exchange, but database update failed",
                 'bingx_order_id' => $closeResult['order_id'],
-                'warning' => 'Database sync issue'
+                'warning' => 'Database sync issue',
+                'cancelled_orders' => $cancelledOrders
             ]);
         }
     } else {
@@ -247,11 +301,20 @@ try {
             // Mark position as closed in database since it's already closed on exchange
             $updated = updatePositionStatus($pdo, $positionId, 'CLOSED');
             
+            // Cancel any pending limit orders for the same symbol
+            $cancelledOrders = cancelRelatedLimitOrders($pdo, $bingxSymbol, $position['signal_id'] ?? null);
+            
+            $message = "Position was already closed manually. Database updated.";
+            if ($cancelledOrders > 0) {
+                $message .= " Also cancelled {$cancelledOrders} pending limit orders.";
+            }
+            
             echo json_encode([
                 'success' => true,
-                'message' => "Position was already closed manually. Database updated.",
+                'message' => $message,
                 'position_id' => $positionId,
-                'note' => 'Position closed outside of app'
+                'note' => 'Position closed outside of app',
+                'cancelled_orders' => $cancelledOrders
             ]);
         } else {
             // Other errors - actual API failures

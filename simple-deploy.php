@@ -83,6 +83,7 @@ function deployFiles($config) {
         'api/watchlist.php',
         'api/get_balance.php',
         'api/place_order.php',
+        'api/close_position.php',
         'api/get_price.php',
         'api/get_watchlist_prices.php',
         'api/get_limit_orders.php',

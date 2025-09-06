@@ -1239,7 +1239,7 @@ class TradingForm {
             this.cleanupFailedSignals();
             
             // Try to fetch actual positions from database first
-            const response = await fetch('api/get_orders.php?type=positions&status=OPEN&limit=5');
+            const response = await fetch('api/get_orders.php?type=positions&status=OPEN&limit=50');
             
             if (response.ok) {
                 const result = await response.json();
@@ -1261,7 +1261,7 @@ class TradingForm {
         });
         
         // Always call displayRecentPositions, even if empty
-        this.displayRecentSignals(filledSignals.slice(0, 5));
+        this.displayRecentSignals(filledSignals.slice(0, 50));
     }
     
     cleanupFailedSignals() {
@@ -1516,7 +1516,7 @@ class TradingForm {
 
     async updateWatchlistDisplay() {
         try {
-            const response = await fetch('api/watchlist.php?limit=10');
+            const response = await fetch('api/watchlist.php?limit=50');
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);

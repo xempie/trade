@@ -341,6 +341,35 @@ $isLocal = isLocalhost();
                     document.getElementById('send_balance_alerts').checked = currentSettings.send_balance_alerts;
                     document.getElementById('send_profit_loss_alerts').checked = currentSettings.send_profit_loss_alerts;
                     
+                    // Set radio buttons for trading mode
+                    if (currentSettings.trading_mode === 'live') {
+                        document.getElementById('trading_mode_live').checked = true;
+                    } else {
+                        document.getElementById('trading_mode_demo').checked = true;
+                    }
+                    
+                    // Set automation settings
+                    document.getElementById('auto_trading_enabled').checked = currentSettings.auto_trading_enabled;
+                    
+                    // Set radio buttons for limit order action
+                    if (currentSettings.limit_order_action === 'auto_execute') {
+                        document.getElementById('limit_order_auto').checked = true;
+                    } else {
+                        document.getElementById('limit_order_telegram').checked = true;
+                    }
+                    
+                    // Set target settings
+                    document.getElementById('target_percentage').value = currentSettings.target_percentage;
+                    
+                    // Set radio buttons for target action
+                    if (currentSettings.target_action === 'auto_close') {
+                        document.getElementById('target_auto_close').checked = true;
+                    } else {
+                        document.getElementById('target_telegram_notify').checked = true;
+                    }
+                    
+                    document.getElementById('auto_stop_loss').checked = currentSettings.auto_stop_loss;
+                    
                 } else {
                     showNotification('Error loading settings: ' + data.error, 'error');
                 }
@@ -461,7 +490,13 @@ $isLocal = isLocalhost();
                     entry_2_percent: parseFloat(formData.get('entry_2_percent')),
                     entry_3_percent: parseFloat(formData.get('entry_3_percent')),
                     send_balance_alerts: formData.has('send_balance_alerts'),
-                    send_profit_loss_alerts: formData.has('send_profit_loss_alerts')
+                    send_profit_loss_alerts: formData.has('send_profit_loss_alerts'),
+                    trading_mode: formData.get('trading_mode'),
+                    auto_trading_enabled: formData.has('auto_trading_enabled'),
+                    limit_order_action: formData.get('limit_order_action'),
+                    target_percentage: parseFloat(formData.get('target_percentage')) || 10,
+                    target_action: formData.get('target_action'),
+                    auto_stop_loss: formData.has('auto_stop_loss')
                 };
                 
                 await saveSettings(settings);

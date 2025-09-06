@@ -22,7 +22,13 @@ try {
         'entry_2_percent' => 2.0,
         'entry_3_percent' => 4.0,
         'send_balance_alerts' => false,
-        'send_profit_loss_alerts' => false
+        'send_profit_loss_alerts' => false,
+        'trading_mode' => 'live',
+        'auto_trading_enabled' => false,
+        'limit_order_action' => 'telegram_approval',
+        'target_percentage' => 10.0,
+        'target_action' => 'telegram_notify',
+        'auto_stop_loss' => false
     ];
     
     // Read .env file if it exists
