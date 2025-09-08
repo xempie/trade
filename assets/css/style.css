@@ -2219,10 +2219,45 @@ input.loading {
 
 .watchlist-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     margin-top: 8px;
     padding: 0 4px;
+}
+
+.watchlist-right-buttons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.watchlist-open-position-btn {
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.watchlist-open-position-btn.long {
+    background: var(--green-5);
+}
+
+.watchlist-open-position-btn.long:hover {
+    background: var(--green-6);
+    transform: translateY(-1px);
+}
+
+.watchlist-open-position-btn.short {
+    background: var(--red-5);
+}
+
+.watchlist-open-position-btn.short:hover {
+    background: var(--red-6);
+    transform: translateY(-1px);
 }
 
 .position-actions {
