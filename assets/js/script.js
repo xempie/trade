@@ -1379,6 +1379,11 @@ class TradingForm {
                             P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
                         </div>
                         <div class="position-actions">
+                            <button 
+                                class="chart-btn chart-btn-bottom"
+                                onclick="tradingForm.showChart('${symbol}')" 
+                                title="Show ${symbol} chart"
+                            >📊</button>
                             ${this.getPositionButton(position.id, symbol, direction)}
                         </div>
                     </div>
@@ -1608,11 +1613,18 @@ class TradingForm {
                             <span>Margin: $${parseFloat(item.margin_amount).toFixed(2)}</span>
                             <span>${percentageDisplay}</span>
                         </div>
+                        <div class="watchlist-actions">
+                            <button 
+                                class="chart-btn chart-btn-watchlist"
+                                onclick="tradingForm.showChart('${item.symbol}')" 
+                                title="Show ${item.symbol} chart"
+                            >📊</button>
                             <button 
                                 class="watchlist-remove-btn"
                                 onclick="tradingForm.removeWatchlistItem(${item.id})" 
                                 title="Remove from watchlist"
                             >❌</button>
+                        </div>
                         </div>
                     </div>
                 `;
@@ -2172,6 +2184,89 @@ class TradingForm {
                 }
             });
         });
+    }
+
+    // Show chart popover functionality
+    showChart(symbol) {
+        console.log('showChart called with symbol:', symbol);
+        
+        // Create popover if it doesn't exist
+        let popover = document.getElementById('chart-popover');
+        if (!popover) {
+            popover = document.createElement('div');
+            popover.id = 'chart-popover';
+            popover.className = 'chart-popover';
+            document.body.appendChild(popover);
+        }
+
+        // Try different exchanges in order of preference for the symbol
+        // Allow symbol editing so users can search for the correct symbol if needed
+        const exchanges = ['BINANCE', 'BYBIT', 'OKX', 'KUCOIN', 'MEXC'];
+        let symbolToUse = `BINANCE:${symbol}USDT`; // Default to Binance
+        
+        // For less common tokens, start with a more general search
+        const isCommonToken = ['BTC', 'ETH', 'BNB', 'ADA', 'DOT', 'LINK', 'UNI', 'AVAX', 'MATIC', 'SOL'].includes(symbol);
+        if (!isCommonToken) {
+            // For uncommon tokens, use a search-friendly approach
+            symbolToUse = `${symbol}USDT`;
+        }
+        
+        const chartUrl = `https://www.tradingview.com/widgetembed/?frameElementId=tradingview_${symbol}&symbol=${encodeURIComponent(symbolToUse)}&interval=30&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=0x131722&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&hidevolume=1&locale=en&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term=${encodeURIComponent(symbolToUse)}`;
+        
+        popover.innerHTML = `
+            <div class="chart-popover-content">
+                <div class="chart-popover-header">
+                    <h3>${symbol} Chart - (30 min timeframe)</h3>
+                    <button class="chart-close-btn" onclick="tradingForm.closeChart()">×</button>
+                </div>
+                <div class="chart-iframe-container">
+                    <iframe 
+                        id="tradingview_${symbol}"
+                        src="${chartUrl}"
+                        frameborder="0"
+                        allowtransparency="true"
+                        scrolling="no"
+                        allowfullscreen="true"
+                        class="chart-iframe"
+                        style="display:block;width:100%;height:100%;"
+                    ></iframe>
+                </div>
+            </div>
+        `;
+
+        // Show popover with animation
+        popover.style.display = 'flex';
+        setTimeout(() => {
+            popover.classList.add('show');
+        }, 10);
+
+        // Close on background click
+        popover.addEventListener('click', (e) => {
+            if (e.target === popover) {
+                this.closeChart();
+            }
+        });
+
+        // Close on Escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                this.closeChart();
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    }
+
+    // Close chart popover
+    closeChart() {
+        const popover = document.getElementById('chart-popover');
+        if (popover) {
+            popover.classList.remove('show');
+            setTimeout(() => {
+                popover.style.display = 'none';
+                popover.innerHTML = '';
+            }, 300);
+        }
     }
 }
 
