@@ -2100,12 +2100,87 @@ class TradingForm {
             }
         }
         
-        // Set stop loss
-        if (data.stopLoss) {
+        // Set first target to target input and calculate percentage
+        if (data.targets.length > 0 && data.entries.length > 0) {
+            const firstTarget = data.targets[0];
+            const marketPrice = data.entries[0];
+            const leverage = data.leverage || 1;
+            const direction = data.direction;
+            
+            const takeProfitInput = document.getElementById('take_profit');
+            const takeProfitPercentInput = document.getElementById('take_profit_percent');
+            
+            if (takeProfitInput) {
+                takeProfitInput.value = firstTarget.toString();
+            }
+            
+            if (takeProfitPercentInput) {
+                // Calculate price difference percentage
+                let priceChangePercent;
+                if (direction === 'long') {
+                    priceChangePercent = ((firstTarget - marketPrice) / marketPrice) * 100;
+                } else {
+                    priceChangePercent = ((marketPrice - firstTarget) / marketPrice) * 100;
+                }
+                
+                // Apply leverage to get P&L percentage
+                const pnlPercent = (priceChangePercent * leverage).toFixed(1);
+                takeProfitPercentInput.value = pnlPercent;
+            }
+        }
+        
+        // Set stop loss and calculate percentage
+        if (data.stopLoss && data.entries.length > 0) {
+            const marketPrice = data.entries[0];
+            const leverage = data.leverage || 1;
+            const direction = data.direction;
+            
             const stopLossInput = document.getElementById('stop_loss');
+            const stopLossPercentInput = document.getElementById('stop_loss_percent');
+            
             if (stopLossInput) {
                 stopLossInput.value = data.stopLoss.toString();
             }
+            
+            if (stopLossPercentInput) {
+                // Calculate price difference percentage
+                let priceChangePercent;
+                if (direction === 'long') {
+                    priceChangePercent = ((data.stopLoss - marketPrice) / marketPrice) * 100;
+                } else {
+                    priceChangePercent = ((marketPrice - data.stopLoss) / marketPrice) * 100;
+                }
+                
+                // Apply leverage to get P&L percentage (negative for stop loss)
+                const pnlPercent = (priceChangePercent * leverage).toFixed(1);
+                stopLossPercentInput.value = pnlPercent;
+            }
+        }
+        
+        // Empty entry 3 values
+        const entry3Input = document.getElementById('entry_3');
+        const entry3MarginInput = document.getElementById('entry_3_margin');
+        if (entry3Input) {
+            entry3Input.value = '';
+        }
+        if (entry3MarginInput) {
+            entry3MarginInput.value = '';
+        }
+        
+        // Tick entry 2 checkbox and untick entry 3 checkbox
+        const entry2Checkbox = document.getElementById('entry_2_enabled');
+        const entry3Checkbox = document.getElementById('entry_3_enabled');
+        
+        if (entry2Checkbox) {
+            entry2Checkbox.checked = true;
+            // Trigger the change event to enable/disable inputs properly
+            entry2Checkbox.dispatchEvent(new Event('change'));
+        }
+        
+        if (entry3Checkbox) {
+            entry3Checkbox.checked = false;
+            // Trigger the change event to enable/disable inputs properly
+            entry3Checkbox.dispatchEvent(new Event('change'));
         }
         
         // Add targets info to notes with percentage calculations

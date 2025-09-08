@@ -583,4 +583,155 @@ RISK_PERCENTAGE=3.3
 - Calculated per entry point, not per signal
 - Updates dynamically as account balance changes
 
+# TRADING SYSTEM WORKFLOW (CORRECTED)
+
+## Trading System Complete Workflow
+
+### Important Distinction
+- **Watchlist**: Price monitoring for notifications ONLY (NO TRADING)  
+- **Limit Orders**: Actual trading orders in `orders` table that get executed when price is touched
+
+### 1. Order Placement Workflow
+
+```
+User Places Trade Order
+    ├── Entry 1 (Market): Executed immediately
+    │   └── Saved to positions table (status='OPEN')
+    │
+    ├── Entry 2 (Limit): Saved to orders table  
+    │   └── status='PENDING', entry_level='ENTRY_2'
+    │
+    └── Entry 3 (Limit): Saved to orders table
+        └── status='PENDING', entry_level='ENTRY_3'
+```
+
+### 2. Limit Order Monitoring
+
+**Cronjob: `jobs/limit-order-monitor.php` (every minute)**
+```sql
+Query: SELECT * FROM orders WHERE status='PENDING'
+For each pending order:
+  - Get current price from BingX API
+  - Check if price touched (Long: current ≤ order_price, Short: current ≥ order_price)
+  - If touched: proceed to auto-trading decision
+```
+
+### 3. Auto Trading Decision Tree
+
+```
+Price Touched?
+    ├── YES → Check Settings
+    │   ├── auto_trading_enabled=true AND limit_order_action='auto_execute'
+    │   │   └── Auto Execute Limit Order
+    │   │       ├── Set leverage on BingX
+    │   │       ├── Place market order
+    │   │       ├── Save new position to positions table
+    │   │       ├── Update order status: PENDING → FILLED
+    │   │       ├── Send Telegram success notification
+    │   │       └── If fails: fall back to manual approval
+    │   │
+    │   └── auto_trading_enabled=false OR limit_order_action='telegram_approval'
+    │       └── Send Telegram approval message with buttons
+    │           └── Wait for user to click "Execute" button
+    │
+    └── NO → Continue monitoring
+```
+
+### 4. Multi-Position Management
+
+**Same Symbol Position Tracking:**
+```sql
+Query: SELECT * FROM positions WHERE symbol='BTCUSDT' AND status='OPEN'
+
+Example Positions:
+- Position 1: 0.1 BTC at $50,000 (Entry 1 - Market)
+- Position 2: 0.1 BTC at $49,000 (Entry 2 - Limit executed)  
+- Position 3: 0.1 BTC at $48,000 (Entry 3 - Limit executed)
+
+Total Tracking:
+- Combined Quantity: 0.3 BTC
+- Weighted Average Entry: $49,000
+- Combined P&L Monitoring
+```
+
+### 5. Target/Stop Loss Monitoring
+
+**Cronjob: `jobs/target-stoploss-monitor.php` (every minute)**
+
+#### Target Hit Logic:
+```sql
+For each symbol with open positions:
+  - Calculate combined P&L percentage
+  - Check if P&L ≥ Target percentage
+  - OR check if current price ≥ Target price (long) / ≤ Target price (short)
+  
+If target hit:
+  - Close ALL positions for that symbol simultaneously
+  - Use market orders for immediate execution
+  - Update all positions: status='CLOSED'
+  - Calculate total profit
+  - Send Telegram profit notification
+```
+
+#### Stop Loss Hit Logic:
+```sql
+For each symbol with open positions:
+  - Check if current price ≤ Stop loss (long) / ≥ Stop loss (short)
+  
+If stop loss hit:
+  - Emergency close ALL positions for that symbol  
+  - Use market orders for immediate execution
+  - Update all positions: status='CLOSED'
+  - Calculate total loss
+  - Send Telegram loss alert
+```
+
+### 6. Separate Watchlist System
+
+**Cronjob: `jobs/price-monitor.php` (every minute)**
+```sql
+Query: SELECT * FROM watchlist WHERE status='active'
+
+Purpose: NOTIFICATIONS ONLY
+Actions:
+  - Monitor watchlist prices
+  - Send Telegram price alerts
+  - Mark items as 'triggered'
+  - NO trading execution
+```
+
+## Database Workflow Integration
+
+### orders Table Flow:
+```
+NEW → PENDING → FILLED (when executed) or CANCELLED
+             ↑
+         (limit orders wait here for price touch)
+```
+
+### positions Table Flow:  
+```
+OPEN → CLOSED (when target/stoploss hit or manually closed)
+  ↑
+(multiple positions per symbol possible)
+```
+
+### Key Implementation Requirements
+
+#### Missing Components to Implement:
+1. **Limit Order Monitor Cronjob** (`jobs/limit-order-monitor.php`)
+2. **Target/StopLoss Monitor Cronjob** (`jobs/target-stoploss-monitor.php`)  
+3. **Multi-position P&L calculation logic**
+4. **Simultaneous position closing for same symbol**
+5. **Telegram notifications for target/stoploss hits**
+
+#### Current vs Required Cronjobs:
+- ✅ **Watchlist Monitor** (`jobs/price-monitor.php`) - notifications only
+- ❌ **Limit Order Monitor** - execute pending orders when price touched
+- ❌ **Target/StopLoss Monitor** - close positions when targets hit
+
+This corrected workflow ensures proper separation between watchlist alerts (notifications only) and actual trading execution (limit orders), with proper multi-position management for the same symbol.
+
+---
+
 This documentation provides a complete foundation for developing your crypto trading management application. Each section can be expanded with specific implementation details as development progresses.

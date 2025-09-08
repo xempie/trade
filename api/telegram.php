@@ -184,6 +184,33 @@ class TelegramMessenger {
     }
     
     /**
+     * Send auto trade execution notification
+     */
+    public function sendAutoTradeNotification($symbol, $entryType, $targetPrice, $currentPrice, $direction, $marginAmount, $status = 'executed', $chatId = null, $botToken = null) {
+        $statusEmoji = $status === 'executed' ? '✅' : '❌';
+        $statusText = $status === 'executed' ? 'AUTO-EXECUTED' : 'AUTO-TRADE FAILED';
+        
+        $directionEmoji = $direction === 'long' ? '📈' : '📉';
+        $entryTypeText = strtoupper($entryType === 'market' ? 'MARKET' : $entryType);
+        
+        $message = "<b>{$statusEmoji} {$statusText}</b>\n\n" .
+                  "{$directionEmoji} <b>{$symbol} {$direction}</b>\n" .
+                  "🎯 Entry: {$entryTypeText}\n" .
+                  "💵 Target: \${$targetPrice}\n" .
+                  "📊 Current: \${$currentPrice}\n" .
+                  "💰 Margin: \${$marginAmount}\n" .
+                  "⏰ " . date('H:i:s d/m/Y');
+        
+        if ($status === 'executed') {
+            $message .= "\n\n🤖 <i>Automatically executed by trading bot</i>";
+        } else {
+            $message .= "\n\n⚠️ <i>Auto-execution failed, manual intervention required</i>";
+        }
+        
+        return $this->sendMessage($message, $chatId, $botToken, $status === 'executed' ? 'HIGH' : 'MEDIUM');
+    }
+    
+    /**
      * Core function to send message to Telegram
      */
     private function sendToTelegram($botToken, $chatId, $message, $buttons = null) {
