@@ -82,29 +82,6 @@ $isLocal = isLocalhost();
                             </div>
                         </div>
 
-                        <!-- LBank API Configuration -->
-                        <div class="settings-group">
-                            <h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
-                                    <path d="M6 10v-4a6 6 0 116 6v4h2a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2v-7a2 2 0 012-2h2zm2-4a4 4 0 118 0v4H8V6z"/>
-                                </svg>
-                                LBank API Configuration
-                            </h3>
-                            <div class="form-group">
-                                <label for="lbank_api_key">API Key</label>
-                                <input type="text" id="lbank_api_key" name="lbank_api_key" placeholder="Enter your LBank API Key">
-                            </div>
-                            <div class="form-group">
-                                <label for="lbank_secret_key">Secret Key</label>
-                                <input type="password" id="lbank_secret_key" name="lbank_secret_key" placeholder="Enter your LBank Secret Key">
-                                <button type="button" class="toggle-password" onclick="togglePassword('lbank_secret_key')">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
                         <!-- Telegram Configuration -->
                         <div class="settings-group">
                             <h3>
@@ -356,8 +333,6 @@ $isLocal = isLocalhost();
                     document.getElementById('bingx_api_key').value = currentSettings.bingx_api_key;
                     document.getElementById('bingx_secret_key').value = currentSettings.bingx_secret_key;
                     document.getElementById('bingx_passphrase').value = currentSettings.bingx_passphrase;
-                    document.getElementById('lbank_api_key').value = currentSettings.lbank_api_key || '';
-                    document.getElementById('lbank_secret_key').value = currentSettings.lbank_secret_key || '';
                     document.getElementById('telegram_bot_token').value = currentSettings.telegram_bot_token;
                     document.getElementById('telegram_chat_id').value = currentSettings.telegram_chat_id;
                     document.getElementById('position_size_percent').value = currentSettings.position_size_percent;
@@ -509,8 +484,6 @@ $isLocal = isLocalhost();
                     bingx_api_key: formData.get('bingx_api_key'),
                     bingx_secret_key: formData.get('bingx_secret_key'),
                     bingx_passphrase: formData.get('bingx_passphrase'),
-                    lbank_api_key: formData.get('lbank_api_key'),
-                    lbank_secret_key: formData.get('lbank_secret_key'),
                     telegram_bot_token: formData.get('telegram_bot_token'),
                     telegram_chat_id: formData.get('telegram_chat_id'),
                     position_size_percent: parseFloat(formData.get('position_size_percent')),

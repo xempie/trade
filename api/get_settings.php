@@ -16,8 +16,6 @@ try {
         'bingx_api_key' => '',
         'bingx_secret_key' => '',
         'bingx_passphrase' => '',
-        'lbank_api_key' => '',
-        'lbank_secret_key' => '',
         'telegram_bot_token' => '',
         'telegram_chat_id' => '',
         'position_size_percent' => 3.3,
@@ -55,12 +53,6 @@ try {
                         break;
                     case 'BINGX_PASSPHRASE':
                         $settings['bingx_passphrase'] = $value;
-                        break;
-                    case 'LBANK_API_KEY':
-                        $settings['lbank_api_key'] = $value;
-                        break;
-                    case 'LBANK_SECRET_KEY':
-                        $settings['lbank_secret_key'] = $value;
                         break;
                     case 'TELEGRAM_BOT_TOKEN_NOTIF':
                         $settings['telegram_bot_token'] = $value;
