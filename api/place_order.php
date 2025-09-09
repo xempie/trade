@@ -487,10 +487,10 @@ function saveSignalToDb($pdo, $signalData) {
     try {
         $sql = "INSERT INTO signals (
             symbol, signal_type, entry_market_price, entry_2, entry_3,
-            leverage, status, created_at
+            leverage, status, source_id, source_name, created_at
         ) VALUES (
             :symbol, :signal_type, :entry_market_price, :entry_2, :entry_3,
-            :leverage, :status, NOW()
+            :leverage, :status, :source_id, :source_name, NOW()
         )";
         
         $stmt = $pdo->prepare($sql);
@@ -501,7 +501,9 @@ function saveSignalToDb($pdo, $signalData) {
             ':entry_2' => $signalData['entry_2'] ?? null,
             ':entry_3' => $signalData['entry_3'] ?? null,
             ':leverage' => $signalData['leverage'],
-            ':status' => 'ACTIVE'
+            ':status' => 'ACTIVE',
+            ':source_id' => 1,
+            ':source_name' => 'Manual Entry'
         ]);
         
         if ($success) {
