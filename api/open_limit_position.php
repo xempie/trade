@@ -69,7 +69,10 @@ function getAccountBalance($apiKey, $apiSecret) {
         $queryString = "timestamp={$timestamp}";
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
-        $baseUrl = getBingXApiUrl();
+        $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+        $baseUrl = ($tradingMode === 'demo') ? 
+            (getenv('BINGX_DEMO_URL') ?: getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com') : 
+            (getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com');
         $url = $baseUrl . "/openApi/swap/v2/user/balance?" . $queryString . "&signature=" . $signature;
         
         $ch = curl_init();
@@ -117,7 +120,10 @@ function setBingXLeverage($apiKey, $apiSecret, $symbol, $leverage, $side = 'BOTH
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
         $ch = curl_init();
-        $baseUrl = getBingXApiUrl();
+        $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+        $baseUrl = ($tradingMode === 'demo') ? 
+            (getenv('BINGX_DEMO_URL') ?: getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com') : 
+            (getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com');
         curl_setopt($ch, CURLOPT_URL, $baseUrl . "/openApi/swap/v2/trade/leverage");
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
@@ -167,7 +173,10 @@ function placeBingXMarketOrder($apiKey, $apiSecret, $orderData) {
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
         $ch = curl_init();
-        $baseUrl = getBingXApiUrl();
+        $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+        $baseUrl = ($tradingMode === 'demo') ? 
+            (getenv('BINGX_DEMO_URL') ?: getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com') : 
+            (getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com');
         curl_setopt($ch, CURLOPT_URL, $baseUrl . "/openApi/swap/v2/trade/order");
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);

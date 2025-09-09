@@ -365,6 +365,127 @@ function getPositionsData($apiKey, $apiSecret) {
     }
 }
 
+// Get BingX Demo Balance (VSDT) from demo API - using exact sample format
+function getBingXDemoBalance($apiKey, $apiSecret) {
+    try {
+        if (empty($apiKey) || empty($apiSecret)) {
+            throw new Exception('BingX API credentials not configured for demo mode.');
+        }
+        
+        // Demo API base URL (note the -vst)
+        $baseUrl = "https://open-api-vst.bingx.com";
+        
+        // Endpoint for balance (Perpetual Futures account) - correct endpoint found
+        $endpoint = "/openApi/swap/v2/user/balance";
+        
+        // Build query parameters - exact from sample
+        $params = [
+            "timestamp" => round(microtime(true) * 1000),
+        ];
+        
+        // Sort parameters - exact from sample
+        ksort($params);
+        
+        // Build query string - exact from sample
+        $queryString = http_build_query($params, '', '&');
+        
+        // Generate signature - exact from sample
+        $signature = hash_hmac('sha256', $queryString, $apiSecret);
+        
+        // Final request URL - exact from sample
+        $url = $baseUrl . $endpoint . "?" . $queryString . "&signature=" . $signature;
+        
+        error_log("Demo VSDT API URL: " . $url);
+        
+        // Init cURL - exact from sample
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "X-BX-APIKEY: $apiKey"
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlError) {
+            error_log("Demo API cURL Error: " . $curlError);
+            throw new Exception('cURL Error: ' . $curlError);
+        }
+        
+        if ($response === false) {
+            throw new Exception("No response from demo API");
+        }
+        
+        error_log("Demo API HTTP Code: " . $httpCode);
+        error_log("Demo API Response: " . substr($response, 0, 500));
+        
+        if ($httpCode !== 200) {
+            throw new Exception("Demo API HTTP error: {$httpCode}. Response: " . $response);
+        }
+        
+        // Decode JSON response - exact from sample
+        $data = json_decode($response, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Invalid JSON response: ' . json_last_error_msg());
+        }
+        
+        error_log("Demo API Decoded Data: " . json_encode($data));
+        
+        // Extract VST balance - correct format from API response
+        if (isset($data['data']['balance'])) {
+            $balance = $data['data']['balance'];
+            
+            // The asset is "VST" not "VSDT"
+            if ($balance['asset'] === 'VST') {
+                $totalBalance = floatval($balance['balance']);
+                $availableBalance = floatval($balance['availableMargin']);
+                $marginUsed = floatval($balance['usedMargin']);
+                $unrealizedPnL = floatval($balance['unrealizedProfit']);
+                
+                // Load settings for position size
+                $settings = loadSettings();
+                $positionSizePercent = $settings['position_size_percent'] / 100;
+                $positionSize = $totalBalance * $positionSizePercent;
+                
+                error_log("Found VST Balance: " . $totalBalance);
+                
+                return [
+                    'success' => true,
+                    'data' => [
+                        'total_balance' => $totalBalance,
+                        'available_balance' => $availableBalance,
+                        'margin_used' => $marginUsed,
+                        'unrealized_pnl' => $unrealizedPnL,
+                        'position_size' => $positionSize,
+                        'currency' => 'VST',
+                        'last_updated' => date('Y-m-d H:i:s'),
+                        'is_demo' => true,
+                        'active_positions' => 0
+                    ]
+                ];
+            } else {
+                error_log("Found asset: " . $balance['asset'] . " but expected VST");
+                throw new Exception("Expected VST asset but found: " . $balance['asset']);
+            }
+        } else {
+            throw new Exception("Error fetching demo balance: " . $response);
+        }
+        
+    } catch (Exception $e) {
+        error_log("Demo Balance Exception: " . $e->getMessage());
+        return [
+            'success' => false,
+            'error' => 'Demo Balance API Error: ' . $e->getMessage()
+        ];
+    }
+}
+
+
 // Main execution
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
@@ -380,10 +501,56 @@ try {
         'api_key_length' => strlen($apiKey ?: ''),
         'api_secret_length' => strlen($apiSecret ?: ''),
         'api_key_preview' => $apiKey ? substr($apiKey, 0, 10) . '...' : 'EMPTY',
-        'curl_available' => function_exists('curl_init')
+        'curl_available' => function_exists('curl_init'),
+        'trading_mode' => getenv('TRADING_MODE') ?: 'live',
+        'is_demo_mode' => (strtolower(getenv('TRADING_MODE') ?: 'live') === 'demo')
     ];
     
-    $result = getBingXBalance($apiKey, $apiSecret);
+    // Check if in demo mode
+    $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+    $isDemo = ($tradingMode === 'demo');
+    
+    if ($isDemo) {
+        // Fetch actual VSDT balance from BingX demo API
+        $demoResult = getBingXDemoBalance($apiKey, $apiSecret);
+        
+        if ($demoResult['success']) {
+            // Use actual VSDT balance
+            $result = $demoResult;
+            $result['debug'] = array_merge($debug, ['demo_api_status' => 'success', 'demo_balance_source' => 'real_vsdt']);
+        } else {
+            // Fallback to static demo balance if API fails
+            error_log("Demo API failed, using fallback: " . $demoResult['error']);
+            $settings = loadSettings();
+            $demoBalance = 10000.00; // Fallback demo balance
+            $demoUsed = 0.00;
+            $demoAvailable = $demoBalance - $demoUsed;
+            $positionSizePercent = $settings['position_size_percent'] / 100;
+            $positionSize = $demoBalance * $positionSizePercent;
+            
+            $result = [
+                'success' => true,
+                'data' => [
+                    'total_balance' => $demoBalance,
+                    'available_balance' => $demoAvailable,
+                    'margin_used' => $demoUsed,
+                    'unrealized_pnl' => 0.00,
+                    'position_size' => $positionSize,
+                    'currency' => 'VSDT',
+                    'last_updated' => date('Y-m-d H:i:s'),
+                    'is_demo' => true,
+                    'active_positions' => 0
+                ],
+                'debug' => array_merge($debug, [
+                    'demo_api_status' => 'failed', 
+                    'demo_api_error' => $demoResult['error'],
+                    'demo_balance_source' => 'fallback_10000'
+                ])
+            ];
+        }
+    } else {
+        $result = getBingXBalance($apiKey, $apiSecret);
+    }
     
     if ($result['success']) {
         // Try to get additional positions data

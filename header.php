@@ -1,12 +1,16 @@
 <?php
 // header.php - Shared header component
+require_once 'api/api_helper.php';
 ?>
         <!-- Top Header -->
         <header class="pwa-header">
             <div class="header-left">
                 <div class="logo">
                     <span class="logo-icon">₿</span>
-                    <span class="logo-text">CryptoTrade</span>
+                    <span class="logo-text">CryptoTrade<?php 
+                        $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+                        if ($tradingMode === 'demo') echo ' <span class="demo-indicator">DEMO</span>'; 
+                    ?></span>
                 </div>
             </div>
             <div class="header-right">

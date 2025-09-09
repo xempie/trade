@@ -70,8 +70,8 @@ class TradingForm {
 
     setupEntryPointToggles() {
         // Set up checkbox toggles for Entry 2 and Entry 3
-        const entry2Checkbox = document.getElementById('entry_2_enabled');
-        const entry3Checkbox = document.getElementById('entry_3_enabled');
+        let entry2Checkbox = document.getElementById('entry_2_enabled');
+        let entry3Checkbox = document.getElementById('entry_3_enabled');
         
         if (entry2Checkbox) {
             entry2Checkbox.addEventListener('change', () => this.toggleEntryInputs('entry_2', entry2Checkbox.checked));
@@ -729,6 +729,7 @@ class TradingForm {
                 this.marginUsed = result.data.margin_used;
                 this.unrealizedPnL = result.data.unrealized_pnl || 0;
                 this.totalAssets = this.marginUsed + this.availableBalance;
+                this.isDemo = result.data.is_demo || false;
                 
                 // Update UI
                 this.updateAccountInfo();
@@ -743,8 +744,9 @@ class TradingForm {
                     lastUpdatedEl.textContent = lastUpdated;
                 }
                 
-                // Show success notification
-                this.showNotification('Balance updated from BingX', 'success');
+                // Show success notification with demo indicator
+                const balanceType = this.isDemo ? 'Demo' : 'BingX';
+                this.showNotification(`Balance updated from ${balanceType}`, 'success');
             } else {
                 // Show detailed error information
                 let errorMsg = result.error || 'Failed to load balance data';
@@ -791,14 +793,16 @@ class TradingForm {
         const leverageMargin = positionSize / leverage;
 
         // Update elements only if they exist
+        const demoIndicator = this.isDemo ? ' <span class="demo-indicator">DEMO</span>' : '';
+        
         const totalAssetsEl = document.getElementById('total-assets');
         if (totalAssetsEl) {
-            totalAssetsEl.textContent = `$${this.totalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            totalAssetsEl.innerHTML = `$${this.totalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}${demoIndicator}`;
         }
 
         const availableBalanceEl = document.getElementById('available-balance');
         if (availableBalanceEl) {
-            availableBalanceEl.textContent = `$${this.availableBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            availableBalanceEl.innerHTML = `$${this.availableBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}${demoIndicator}`;
         }
 
         const positionSizeEl = document.getElementById('position-size');
@@ -837,17 +841,17 @@ class TradingForm {
         // Add enabled entry points (based on checkbox state AND having values)
         data.enabled_entries = [];
         
-        // Market entry - always add if both margin and price have values (no checkbox for market entry)
-        if (data.entry_market && data.entry_market_margin) {
+        // Market entry - add if margin has value (price can be empty for market orders)
+        if (data.entry_market_margin) {
             data.enabled_entries.push({ 
                 type: 'market', 
-                price: data.entry_market,
-                margin: data.entry_market_margin || 0
+                price: parseFloat(data.entry_market) || 0, // 0 for market price
+                margin: parseFloat(data.entry_market_margin) || 0
             });
         }
         
         // Entry 2 - add only if checkbox is checked AND margin and (price or percentage) have values
-        const entry2Checkbox = document.getElementById('entry_2_enabled');
+        let entry2Checkbox = document.getElementById('entry_2_enabled');
         if (entry2Checkbox && entry2Checkbox.checked && data.entry_2_margin && (data.entry_2 || data.entry_2_percent)) {
             data.enabled_entries.push({ 
                 type: 'limit', 
@@ -858,7 +862,7 @@ class TradingForm {
         }
         
         // Entry 3 - add only if checkbox is checked AND margin and (price or percentage) have values
-        const entry3Checkbox = document.getElementById('entry_3_enabled');
+        let entry3Checkbox = document.getElementById('entry_3_enabled');
         if (entry3Checkbox && entry3Checkbox.checked && data.entry_3_margin && (data.entry_3 || data.entry_3_percent)) {
             data.enabled_entries.push({ 
                 type: 'limit', 
@@ -882,10 +886,14 @@ class TradingForm {
             }
         });
 
-        // At least one entry point must have a value
+        // At least one entry point must have a value (considering checkbox states)
+        // Get checkboxes once to reuse throughout function
+        let entry2Checkbox = document.getElementById('entry_2_enabled');
+        let entry3Checkbox = document.getElementById('entry_3_enabled');
+        
         const hasValidEntry = (document.getElementById('entry_market_margin')?.value && document.getElementById('entry_market')?.value) ||
-                             (document.getElementById('entry_2_margin')?.value && (document.getElementById('entry_2_percent')?.value || document.getElementById('entry_2')?.value)) ||
-                             (document.getElementById('entry_3_margin')?.value && (document.getElementById('entry_3_percent')?.value || document.getElementById('entry_3')?.value));
+                             (entry2Checkbox && entry2Checkbox.checked && document.getElementById('entry_2_margin')?.value && (document.getElementById('entry_2_percent')?.value || document.getElementById('entry_2')?.value)) ||
+                             (entry3Checkbox && entry3Checkbox.checked && document.getElementById('entry_3_margin')?.value && (document.getElementById('entry_3_percent')?.value || document.getElementById('entry_3')?.value));
 
         if (!hasValidEntry) {
             isValid = false;
@@ -901,15 +909,15 @@ class TradingForm {
             totalMarginUsage += marketMargin;
         }
         
-        // Add entry 2 margin
+        // Add entry 2 margin (only if checkbox is checked)
         const entry2Margin = parseFloat(document.getElementById('entry_2_margin')?.value || 0);
-        if (entry2Margin > 0 && (document.getElementById('entry_2_percent')?.value || document.getElementById('entry_2')?.value)) {
+        if (entry2Checkbox && entry2Checkbox.checked && entry2Margin > 0 && (document.getElementById('entry_2_percent')?.value || document.getElementById('entry_2')?.value)) {
             totalMarginUsage += entry2Margin;
         }
         
-        // Add entry 3 margin
+        // Add entry 3 margin (only if checkbox is checked)
         const entry3Margin = parseFloat(document.getElementById('entry_3_margin')?.value || 0);
-        if (entry3Margin > 0 && (document.getElementById('entry_3_percent')?.value || document.getElementById('entry_3')?.value)) {
+        if (entry3Checkbox && entry3Checkbox.checked && entry3Margin > 0 && (document.getElementById('entry_3_percent')?.value || document.getElementById('entry_3')?.value)) {
             totalMarginUsage += entry3Margin;
         }
         
@@ -1081,10 +1089,11 @@ class TradingForm {
         // Get current market price from the form to use as initial_price
         const marketPrice = parseFloat(document.getElementById('entry_market').value) || null;
 
-        // Check entry 2 if it has values
+        // Check entry 2 if it has values and checkbox is checked
+        let entry2Checkbox = document.getElementById('entry_2_enabled');
         const entry2Value = document.getElementById('entry_2').value;
         const entry2Margin = document.getElementById('entry_2_margin').value;
-        if (entry2Value && entry2Margin) {
+        if (entry2Checkbox && entry2Checkbox.checked && entry2Value && entry2Margin) {
             const entry2Price = parseFloat(entry2Value);
             const entry2MarginNum = parseFloat(entry2Margin) || 0;
             const entry2Percent = parseFloat(document.getElementById('entry_2_percent').value) || null;
@@ -1100,10 +1109,11 @@ class TradingForm {
             }
         }
 
-        // Check entry 3 if it has values
+        // Check entry 3 if it has values and checkbox is checked
+        let entry3Checkbox = document.getElementById('entry_3_enabled');
         const entry3Value = document.getElementById('entry_3').value;
         const entry3Margin = document.getElementById('entry_3_margin').value;
-        if (entry3Value && entry3Margin) {
+        if (entry3Checkbox && entry3Checkbox.checked && entry3Value && entry3Margin) {
             const entry3Price = parseFloat(entry3Value);
             const entry3MarginNum = parseFloat(entry3Margin) || 0;
             const entry3Percent = parseFloat(document.getElementById('entry_3_percent').value) || null;
@@ -2168,8 +2178,8 @@ class TradingForm {
         }
         
         // Tick entry 2 checkbox and untick entry 3 checkbox
-        const entry2Checkbox = document.getElementById('entry_2_enabled');
-        const entry3Checkbox = document.getElementById('entry_3_enabled');
+        let entry2Checkbox = document.getElementById('entry_2_enabled');
+        let entry3Checkbox = document.getElementById('entry_3_enabled');
         
         if (entry2Checkbox) {
             entry2Checkbox.checked = true;

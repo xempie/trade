@@ -54,7 +54,19 @@ function getDbConnection() {
 
 // Get limit orders with NEW or PENDING status
 function getLimitOrders($pdo, $limit = 20) {
-    $sql = "SELECT id, symbol, side, type, entry_level, quantity, price, leverage, status, created_at, signal_id
+    // Check if is_demo column exists
+    $hasIsDemo = true;
+    try {
+        $stmt = $pdo->query("DESCRIBE orders");
+        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $hasIsDemo = in_array('is_demo', $columns);
+    } catch (Exception $e) {
+        $hasIsDemo = false;
+    }
+    
+    $demoColumn = $hasIsDemo ? ", is_demo" : ", 0 as is_demo";
+    
+    $sql = "SELECT id, symbol, side, type, entry_level, quantity, price, leverage, status, created_at, signal_id{$demoColumn}
             FROM orders 
             WHERE type = 'LIMIT' AND status IN ('NEW', 'PENDING')
             ORDER BY created_at DESC 
@@ -112,7 +124,8 @@ try {
                     'created_at' => $order['created_at'],
                     'leverage' => $order['leverage'],
                     'order_type' => $order['type'],
-                    'signal_id' => $order['signal_id']
+                    'signal_id' => $order['signal_id'],
+                    'is_demo' => (bool)$order['is_demo']
                 ];
             }
             

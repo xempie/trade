@@ -419,12 +419,22 @@ function placeBingXOrder($apiKey, $apiSecret, $orderData) {
 // Save order to database
 function saveOrderToDb($pdo, $orderData, $bingxOrderId = null) {
     try {
+        // Check if is_demo column exists (for backward compatibility)
+        $hasIsDemo = true;
+        try {
+            $stmt = $pdo->query("DESCRIBE orders");
+            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $hasIsDemo = in_array('is_demo', $columns);
+        } catch (Exception $e) {
+            $hasIsDemo = false;
+        }
+        
         $sql = "INSERT INTO orders (
             signal_id, bingx_order_id, symbol, side, type, entry_level,
-            quantity, price, leverage, status, created_at
+            quantity, price, leverage, status, created_at" . ($hasIsDemo ? ", is_demo" : "") . "
         ) VALUES (
             :signal_id, :bingx_order_id, :symbol, :side, :type, :entry_level,
-            :quantity, :price, :leverage, :status, NOW()
+            :quantity, :price, :leverage, :status, NOW()" . ($hasIsDemo ? ", :is_demo" : "") . "
         )";
         
         $stmt = $pdo->prepare($sql);
@@ -437,7 +447,7 @@ function saveOrderToDb($pdo, $orderData, $bingxOrderId = null) {
             $status = 'PENDING'; // Limit orders start as pending until executed
         }
         
-        return $stmt->execute([
+        $params = [
             ':signal_id' => $orderData['signal_id'] ?? null,
             ':bingx_order_id' => $bingxOrderId,
             ':symbol' => $orderData['symbol'],
@@ -448,7 +458,14 @@ function saveOrderToDb($pdo, $orderData, $bingxOrderId = null) {
             ':price' => $orderData['price'] ?? null,
             ':leverage' => $orderData['leverage'],
             ':status' => $status
-        ]);
+        ];
+        
+        if ($hasIsDemo) {
+            $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+            $params[':is_demo'] = ($tradingMode === 'demo') ? 1 : 0;
+        }
+        
+        return $stmt->execute($params);
     } catch (Exception $e) {
         error_log("Database error saving order: " . $e->getMessage());
         return false;
@@ -490,16 +507,26 @@ function saveSignalToDb($pdo, $signalData) {
 // Save position to database
 function savePositionToDb($pdo, $positionData) {
     try {
+        // Check if is_demo column exists (for backward compatibility)
+        $hasIsDemo = true;
+        try {
+            $stmt = $pdo->query("DESCRIBE positions");
+            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $hasIsDemo = in_array('is_demo', $columns);
+        } catch (Exception $e) {
+            $hasIsDemo = false;
+        }
+        
         $sql = "INSERT INTO positions (
             symbol, side, size, entry_price, leverage, margin_used,
-            signal_id, status, opened_at, notes
+            signal_id, status, opened_at" . ($hasIsDemo ? ", is_demo" : "") . "
         ) VALUES (
             :symbol, :side, :size, :entry_price, :leverage, :margin_used,
-            :signal_id, :status, NOW(), :notes
+            :signal_id, :status, NOW()" . ($hasIsDemo ? ", :is_demo" : "") . "
         )";
         
         $stmt = $pdo->prepare($sql);
-        return $stmt->execute([
+        $params = [
             ':symbol' => $positionData['symbol'],
             ':side' => $positionData['side'],
             ':size' => $positionData['size'],
@@ -507,9 +534,15 @@ function savePositionToDb($pdo, $positionData) {
             ':leverage' => $positionData['leverage'],
             ':margin_used' => $positionData['margin_used'],
             ':signal_id' => $positionData['signal_id'],
-            ':status' => 'OPEN',
-            ':notes' => $positionData['notes'] ?? null
-        ]);
+            ':status' => 'OPEN'
+        ];
+        
+        if ($hasIsDemo) {
+            $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+            $params[':is_demo'] = ($tradingMode === 'demo') ? 1 : 0;
+        }
+        
+        return $stmt->execute($params);
     } catch (Exception $e) {
         error_log("Database error saving position: " . $e->getMessage());
         return false;
@@ -633,24 +666,47 @@ try {
             
             // Place order on BingX (only for market orders, limit orders would be placed later)
             if ($orderData['type'] === 'MARKET') {
-                // Set leverage first (convert order side to position side for leverage API)
-                $positionSide = ($direction === 'long') ? 'LONG' : 'SHORT';
-                $leverageSet = setBingXLeverage($apiKey, $apiSecret, $bingxSymbol, $leverage, $positionSide);
-                if (!$leverageSet) {
-                    error_log("Warning: Failed to set leverage for {$bingxSymbol} to {$leverage}x");
+                // Check if in demo mode - skip actual API calls for demo
+                $tradingMode = strtolower(getenv('TRADING_MODE') ?: 'live');
+                error_log("=== DEMO ORDER PLACEMENT DEBUG ===");
+                error_log("Trading Mode: " . $tradingMode);
+                error_log("Order Data: " . json_encode($orderData));
+                error_log("Entry Type: " . $entryType);
+                error_log("Margin: " . $margin);
+                error_log("Price: " . $price);
+                error_log("Leverage: " . $leverage);
+                error_log("Direction: " . $direction);
+                
+                if ($tradingMode === 'demo') {
+                    error_log("Processing DEMO order - simulating placement");
+                    // Simulate successful demo order
+                    $orderResult = [
+                        'success' => true,
+                        'order_id' => 'DEMO_' . time() . '_' . rand(1000, 9999),
+                        'message' => 'Demo order simulated successfully'
+                    ];
+                    $bingxOrderId = $orderResult['order_id'];
+                    error_log("Demo order result: " . json_encode($orderResult));
                 } else {
-                    error_log("Successfully set leverage for {$bingxSymbol} to {$leverage}x");
-                    // Small delay to ensure leverage is applied before order
-                    usleep(500000); // 0.5 second delay
+                    // Set leverage first (convert order side to position side for leverage API)
+                    $positionSide = ($direction === 'long') ? 'LONG' : 'SHORT';
+                    $leverageSet = setBingXLeverage($apiKey, $apiSecret, $bingxSymbol, $leverage, $positionSide);
+                    if (!$leverageSet) {
+                        error_log("Warning: Failed to set leverage for {$bingxSymbol} to {$leverage}x");
+                    } else {
+                        error_log("Successfully set leverage for {$bingxSymbol} to {$leverage}x");
+                        // Small delay to ensure leverage is applied before order
+                        usleep(500000); // 0.5 second delay
+                    }
+                    
+                    $orderResult = placeBingXOrder($apiKey, $apiSecret, $orderData);
+                    $bingxOrderId = $orderResult['success'] ? $orderResult['order_id'] : null;
                 }
                 
-                $orderResult = placeBingXOrder($apiKey, $apiSecret, $orderData);
-                
                 if ($orderResult['success']) {
-                    $bingxOrderId = $orderResult['order_id'];
-                    
+                    error_log("Order successful, saving position to database");
                     // Save position to database for market orders
-                    $positionSaved = savePositionToDb($pdo, [
+                    $positionData = [
                         'symbol' => $symbol,
                         'side' => strtoupper($direction),
                         'size' => $positionSize,
@@ -659,12 +715,18 @@ try {
                         'margin_used' => $marginUsed,
                         'signal_id' => $signalId,
                         'notes' => $notes
-                    ]);
+                    ];
+                    error_log("Position data: " . json_encode($positionData));
+                    
+                    $positionSaved = savePositionToDb($pdo, $positionData);
+                    error_log("Position saved result: " . ($positionSaved ? 'SUCCESS' : 'FAILED'));
                     
                     if ($positionSaved) {
                         $totalMarginUsed += $marginUsed;
+                        error_log("Total margin used updated: " . $totalMarginUsed);
                     }
                 } else {
+                    error_log("Order failed: " . ($orderResult['error'] ?? 'Unknown error'));
                     $bingxOrderId = null;
                 }
             } else {
@@ -674,9 +736,11 @@ try {
             }
             
             // Save order to database
+            error_log("Saving order to database");
             $orderSaved = saveOrderToDb($pdo, $orderData, $bingxOrderId);
+            error_log("Order saved result: " . ($orderSaved ? 'SUCCESS' : 'FAILED'));
             
-            $results[] = [
+            $result = [
                 'entry_type' => $entryType,
                 'order_type' => $orderData['type'],
                 'position_size' => $positionSize,
@@ -687,6 +751,8 @@ try {
                 'message' => $orderResult['success'] ? 'Order placed successfully' : $orderResult['error'],
                 'saved_to_db' => $orderSaved
             ];
+            error_log("Final result: " . json_encode($result));
+            $results[] = $result;
             
         } catch (Exception $e) {
             $results[] = [
@@ -713,14 +779,20 @@ try {
         error_log("Failed to update account balance cache: " . $e->getMessage());
     }
     
-    echo json_encode([
+    $finalResponse = [
         'success' => true,
         'signal_id' => $signalId,
         'orders' => $results,
         'total_margin_used' => $totalMarginUsed,
         'available_balance' => $availableBalance,
         'message' => 'Signal processed successfully'
-    ]);
+    ];
+    
+    error_log("=== FINAL API RESPONSE ===");
+    error_log("Response: " . json_encode($finalResponse));
+    error_log("===========================");
+    
+    echo json_encode($finalResponse);
     
 } catch (Exception $e) {
     error_log("Place Order API Error: " . $e->getMessage());
