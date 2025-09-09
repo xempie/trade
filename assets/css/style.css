@@ -996,6 +996,27 @@ input.loading {
     color: var(--red-5);
 }
 
+/* Mode indicators for demo/live trading */
+.mode-indicator {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+}
+
+.mode-indicator.demo-mode {
+    background-color: #ffa500;
+    color: #000;
+}
+
+.mode-indicator.live-mode {
+    background-color: var(--green-5);
+    color: #000;
+}
+
 .watchlist-bottom-row {
     display: flex;
     justify-content: space-between;

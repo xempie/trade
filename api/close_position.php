@@ -58,7 +58,7 @@ $apiKey = getenv('BINGX_API_KEY') ?: '';
 $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
 
 // Close position on BingX
-function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity) {
+function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity, $isDemo = false) {
     try {
         $timestamp = round(microtime(true) * 1000);
         
@@ -70,6 +70,11 @@ function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity) {
         // For closing positions, we need to use the same positionSide as when opening
         // BingX uses LONG/SHORT for hedge mode, BOTH for one-way mode
         $positionSide = strtoupper($side); // Use the direction as positionSide
+        
+        // Get the appropriate API URL based on demo/live mode
+        $baseUrl = $isDemo ? 
+            (getenv('BINGX_DEMO_URL') ?: 'https://open-api-vst.bingx.com') : 
+            (getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com');
         
         $params = [
             'symbol' => $symbol,
@@ -84,11 +89,12 @@ function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity) {
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
         // Debug logging
-        error_log("Closing BingX Position Parameters: " . json_encode($params));
-        error_log("Position Details: ID={$quantity}, Symbol={$symbol}, Side={$side}, CloseSide={$closeSide}");
+        $modeText = $isDemo ? 'DEMO' : 'LIVE';
+        error_log("Closing BingX Position ({$modeText} MODE) Parameters: " . json_encode($params));
+        error_log("Position Details: ID={$quantity}, Symbol={$symbol}, Side={$side}, CloseSide={$closeSide}, URL={$baseUrl}");
         
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://open-api.bingx.com/openApi/swap/v2/trade/order");
+        curl_setopt($ch, CURLOPT_URL, $baseUrl . "/openApi/swap/v2/trade/order");
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -240,6 +246,7 @@ try {
     $positionId = intval($input['position_id']);
     $symbol = strtoupper(trim($input['symbol']));
     $direction = strtoupper(trim($input['direction']));
+    $isDemo = isset($input['is_demo']) ? (bool)$input['is_demo'] : false;
     
     // Get position details from database
     $position = getPositionDetails($pdo, $positionId);
@@ -253,13 +260,14 @@ try {
         $bingxSymbol = $bingxSymbol . '-USDT';
     }
     
-    // Close position on BingX
+    // Close position on BingX (demo or live based on is_demo parameter)
     $closeResult = closeBingXPosition(
         $apiKey, 
         $apiSecret, 
         $bingxSymbol, 
         $direction,
-        $position['size']
+        $position['size'],
+        $isDemo
     );
     
     if ($closeResult['success']) {

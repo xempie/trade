@@ -1,6 +1,6 @@
 <?php
 /**
- * Git-Based Simple Deployment Script
+ * Git-Based Deployment Script
  * Only deploys files that are staged in git or have been modified
  */
 
@@ -35,21 +35,43 @@ function getGitFiles() {
         $files = array_merge($files, $untracked);
     }
     
-    // Remove duplicates and filter deployable files
+    // Remove duplicates
     $files = array_unique($files);
+    
+    // Filter out non-deployable files
     $deployableFiles = [];
-    $excludePatterns = ['.git/', '.gitignore', '*.md', '.env', 'node_modules/', '*.log', 'deploy-config.php', 'git-deploy.php', 'simple-deploy-new.php'];
+    $excludePatterns = [
+        '.git/',
+        '.gitignore',
+        '*.md',
+        '!README.md',
+        '.env',
+        '.env.*',
+        'node_modules/',
+        'vendor/',
+        '*.log',
+        'deploy-config.php',
+        'git-deploy.php',
+        'simple-deploy.php'
+    ];
     
     foreach ($files as $file) {
         $shouldExclude = false;
+        
         foreach ($excludePatterns as $pattern) {
+            if ($pattern === '!README.md' && $file === 'README.md') {
+                continue; // Don't exclude README.md
+            }
+            
             if (strpos($pattern, '*') !== false) {
+                // Pattern matching
                 $regex = '/^' . str_replace(['*', '.'], ['.*', '\.'], $pattern) . '$/';
                 if (preg_match($regex, $file)) {
                     $shouldExclude = true;
                     break;
                 }
             } else {
+                // Exact or prefix matching
                 if (strpos($file, $pattern) === 0) {
                     $shouldExclude = true;
                     break;
@@ -62,6 +84,18 @@ function getGitFiles() {
         }
     }
     
+    echo "Total deployable files: " . count($deployableFiles) . "\n";
+    
+    if (empty($deployableFiles)) {
+        echo "No files to deploy!\n";
+        return [];
+    }
+    
+    echo "Files to deploy:\n";
+    foreach ($deployableFiles as $file) {
+        echo "  - $file\n";
+    }
+    
     return $deployableFiles;
 }
 
@@ -72,18 +106,23 @@ function deployFiles($config) {
     $files = getGitFiles();
     
     if (empty($files)) {
-        echo "No files to deploy! All files are up to date.\n";
+        echo "Nothing to deploy.\n";
         return;
     }
     
-    echo "Files to deploy (" . count($files) . "):\n";
-    foreach ($files as $file) {
-        echo "  - $file\n";
+    // Ask for confirmation
+    echo "\nProceed with deployment? (y/N): ";
+    $handle = fopen("php://stdin", "r");
+    $line = fgets($handle);
+    fclose($handle);
+    
+    if (trim(strtolower($line)) !== 'y') {
+        echo "Deployment cancelled.\n";
+        return;
     }
-    echo "\n";
     
     // Test FTP connection first
-    echo "Testing FTP connection...\n";
+    echo "\nTesting FTP connection...\n";
     
     // Try SSL FTP first
     echo "Trying SSL FTP...\n";
@@ -172,6 +211,27 @@ function deployFiles($config) {
     
     if ($uploaded > 0) {
         echo "🎉 Deployment completed successfully!\n";
+        
+        // Ask if user wants to commit the changes
+        if (!empty(shell_exec('git diff --cached --name-only'))) {
+            echo "\nCommit staged changes? (y/N): ";
+            $handle = fopen("php://stdin", "r");
+            $line = fgets($handle);
+            fclose($handle);
+            
+            if (trim(strtolower($line)) === 'y') {
+                echo "Enter commit message: ";
+                $handle = fopen("php://stdin", "r");
+                $message = trim(fgets($handle));
+                fclose($handle);
+                
+                if (!empty($message)) {
+                    $fullMessage = $message . "\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>";
+                    shell_exec('git commit -m "' . addslashes($fullMessage) . '"');
+                    echo "✅ Changes committed!\n";
+                }
+            }
+        }
     } else {
         echo "❌ Deployment failed!\n";
     }

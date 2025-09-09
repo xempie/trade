@@ -137,9 +137,19 @@ function getAccountBalance($apiKey, $apiSecret) {
         if ($response && $httpCode == 200) {
             $data = json_decode($response, true);
             if ($data && $data['code'] == 0 && isset($data['data'])) {
-                // Find USDT balance
+                // Check if it's the new balance format (single balance object)
+                if (isset($data['data']['balance'])) {
+                    $balance = $data['data']['balance'];
+                    $asset = $balance['asset'] ?? '';
+                    // Accept both USDT (live) and VST (demo) assets
+                    if ($asset === 'USDT' || $asset === 'VST') {
+                        return floatval($balance['availableMargin'] ?? $balance['balance'] ?? 0);
+                    }
+                }
+                
+                // Legacy format - array of balances
                 foreach ($data['data'] as $balance) {
-                    if (isset($balance['asset']) && $balance['asset'] === 'USDT') {
+                    if (isset($balance['asset']) && ($balance['asset'] === 'USDT' || $balance['asset'] === 'VST')) {
                         return floatval($balance['availableMargin'] ?? $balance['available'] ?? 0);
                     }
                 }
@@ -677,30 +687,28 @@ try {
                 error_log("Leverage: " . $leverage);
                 error_log("Direction: " . $direction);
                 
-                if ($tradingMode === 'demo') {
-                    error_log("Processing DEMO order - simulating placement");
-                    // Simulate successful demo order
-                    $orderResult = [
-                        'success' => true,
-                        'order_id' => 'DEMO_' . time() . '_' . rand(1000, 9999),
-                        'message' => 'Demo order simulated successfully'
-                    ];
-                    $bingxOrderId = $orderResult['order_id'];
-                    error_log("Demo order result: " . json_encode($orderResult));
+                // Always set leverage first regardless of demo/live mode
+                $positionSide = ($direction === 'long') ? 'LONG' : 'SHORT';
+                $leverageSet = setBingXLeverage($apiKey, $apiSecret, $bingxSymbol, $leverage, $positionSide);
+                if (!$leverageSet) {
+                    error_log("Warning: Failed to set leverage for {$bingxSymbol} to {$leverage}x");
                 } else {
-                    // Set leverage first (convert order side to position side for leverage API)
-                    $positionSide = ($direction === 'long') ? 'LONG' : 'SHORT';
-                    $leverageSet = setBingXLeverage($apiKey, $apiSecret, $bingxSymbol, $leverage, $positionSide);
-                    if (!$leverageSet) {
-                        error_log("Warning: Failed to set leverage for {$bingxSymbol} to {$leverage}x");
-                    } else {
-                        error_log("Successfully set leverage for {$bingxSymbol} to {$leverage}x");
-                        // Small delay to ensure leverage is applied before order
-                        usleep(500000); // 0.5 second delay
-                    }
-                    
+                    error_log("Successfully set leverage for {$bingxSymbol} to {$leverage}x");
+                    // Small delay to ensure leverage is applied before order
+                    usleep(500000); // 0.5 second delay
+                }
+                
+                if ($tradingMode === 'demo') {
+                    error_log("Processing DEMO order - placing on BingX demo exchange");
+                    // Place order on BingX demo exchange (not just simulate)
                     $orderResult = placeBingXOrder($apiKey, $apiSecret, $orderData);
                     $bingxOrderId = $orderResult['success'] ? $orderResult['order_id'] : null;
+                    error_log("Demo order result: " . json_encode($orderResult));
+                } else {
+                    error_log("Processing LIVE order - placing on BingX live exchange");
+                    $orderResult = placeBingXOrder($apiKey, $apiSecret, $orderData);
+                    $bingxOrderId = $orderResult['success'] ? $orderResult['order_id'] : null;
+                    error_log("Live order result: " . json_encode($orderResult));
                 }
                 
                 if ($orderResult['success']) {
@@ -798,6 +806,10 @@ try {
     error_log("Place Order API Error: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
     
+    // Log the input data for debugging
+    $rawInput = file_get_contents('php://input');
+    error_log("Input data causing error: " . $rawInput);
+    
     http_response_code($e->getCode() ?: 400);
     echo json_encode([
         'success' => false,
@@ -805,7 +817,8 @@ try {
         'debug' => [
             'file' => $e->getFile(),
             'line' => $e->getLine(),
-            'method' => $_SERVER['REQUEST_METHOD']
+            'method' => $_SERVER['REQUEST_METHOD'],
+            'input_received' => $rawInput
         ]
     ]);
 }

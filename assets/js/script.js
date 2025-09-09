@@ -835,7 +835,12 @@ class TradingForm {
         const data = {};
         
         for (let [key, value] of formData.entries()) {
-            data[key] = value;
+            // Convert numeric fields to numbers
+            if (key === 'leverage' || key.includes('margin') || key.includes('entry_') || key.includes('take_profit') || key.includes('stop_loss')) {
+                data[key] = value ? parseFloat(value) : value;
+            } else {
+                data[key] = value;
+            }
         }
 
         // Add enabled entry points (based on checkbox state AND having values)
@@ -845,8 +850,8 @@ class TradingForm {
         if (data.entry_market_margin) {
             data.enabled_entries.push({ 
                 type: 'market', 
-                price: parseFloat(data.entry_market) || 0, // 0 for market price
-                margin: parseFloat(data.entry_market_margin) || 0
+                price: data.entry_market ? parseFloat(data.entry_market) : 0, // 0 for market price
+                margin: parseFloat(data.entry_market_margin)
             });
         }
         
@@ -983,6 +988,18 @@ class TradingForm {
 
     async createSignal(data) {
         try {
+            // Debug: First call debug endpoint to see what data we're sending
+            console.log('Sending data:', data);
+            const debugResponse = await fetch('api/debug_order_data.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            const debugResult = await debugResponse.json();
+            console.log('Debug analysis:', debugResult);
+            
             // Call the real order placement API
             const response = await fetch('api/place_order.php', {
                 method: 'POST',
@@ -993,12 +1010,24 @@ class TradingForm {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Try to get the error details from the API response
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorResult = await response.json();
+                    console.log('API Error Response:', errorResult);
+                    if (errorResult.error) {
+                        errorMessage = errorResult.error;
+                    }
+                } catch (e) {
+                    console.log('Could not parse error response');
+                }
+                throw new Error(errorMessage);
             }
             
             const result = await response.json();
             
             if (!result.success) {
+                console.log('API Success=false Response:', result);
                 throw new Error(result.error || 'Failed to place orders');
             }
             
@@ -1369,8 +1398,25 @@ class TradingForm {
             const notes = position.notes && position.notes.trim() ? position.notes.trim() : null;
             const notesIcon = notes ? `<span class="position-notes-icon" title="${notes.replace(/"/g, '&quot;')}">ℹ️</span>` : '';
             
+            // Determine if position is demo or live
+            // Handle missing is_demo column gracefully - check multiple possible values
+            let isDemo = false;
+            if (position.hasOwnProperty('is_demo')) {
+                isDemo = position.is_demo === 1 || position.is_demo === '1' || position.is_demo === true || position.is_demo === 'true';
+            } else {
+                // Fallback: Check if we're in demo mode based on current trading settings
+                // This will show LIVE for existing positions without is_demo column
+                // New positions will have the column properly set
+                isDemo = false; // Default to LIVE for existing positions
+                console.warn('Position ID ' + position.id + ' missing is_demo column, defaulting to LIVE mode');
+            }
+            
+            const modeIndicator = isDemo ? 
+                `<span class="mode-indicator demo-mode" title="Demo trading">DEMO</span>` : 
+                `<span class="mode-indicator live-mode" title="Live trading">LIVE</span>`;
+            
             return `
-                <div class="signal-item position-item">
+                <div class="signal-item position-item ${isDemo ? 'demo-position' : 'live-position'}">
                     <div class="position-progress-bar">
                         <div class="position-progress-fill ${pnlPercent >= 0 ? 'positive' : 'negative'}" data-pnl="${pnlPercent}"></div>
                     </div>
@@ -1379,6 +1425,7 @@ class TradingForm {
                             <div class="symbol-with-notes">
                                 <strong class="signal-symbol ${direction?.toLowerCase()}">${symbol}</strong>
                                 ${notesIcon}
+                                ${modeIndicator}
                             </div>
                             <span class="signal-time">${timeAgo}</span>
                         </div>
@@ -1394,7 +1441,7 @@ class TradingForm {
                                 onclick="tradingForm.showChart('${symbol}')" 
                                 title="Show ${symbol} chart"
                             >📊</button>
-                            ${this.getPositionButton(position.id, symbol, direction)}
+                            ${this.getPositionButton(position.id, symbol, direction, isDemo)}
                         </div>
                     </div>
                 </div>
@@ -1405,16 +1452,17 @@ class TradingForm {
         setTimeout(() => this.updatePositionProgressBars(), 100);
     }
 
-    getPositionButton(positionId, symbol, direction) {
+    getPositionButton(positionId, symbol, direction, isDemo) {
         const status = this.positionStatus[positionId];
+        const modeText = isDemo ? 'Demo' : 'Live';
         
         // If position status is unknown or exists on exchange, show Close button
         if (!status || status.exists_on_exchange) {
             return `
                 <button 
                     class="position-close-btn"
-                    onclick="tradingForm.closePosition(${positionId}, '${symbol}', '${direction}')" 
-                    title="Close position"
+                    onclick="tradingForm.closePosition(${positionId}, '${symbol}', '${direction}', ${isDemo})" 
+                    title="Close position on ${modeText} exchange"
                 >Close Position</button>
             `;
         } else {
@@ -1422,8 +1470,8 @@ class TradingForm {
             return `
                 <button 
                     class="position-remove-btn"
-                    onclick="tradingForm.removePosition(${positionId}, '${symbol}', '${direction}')" 
-                    title="Remove position (not on exchange)"
+                    onclick="tradingForm.removePosition(${positionId}, '${symbol}', '${direction}', ${isDemo})" 
+                    title="Remove position (not on ${modeText} exchange)"
                 >Remove</button>
             `;
         }
@@ -1455,13 +1503,14 @@ class TradingForm {
         await this.updateRecentSignals();
     }
 
-    async closePosition(positionId, symbol, direction) {
-        if (!confirm(`Are you sure you want to close your ${direction} position on ${symbol}?`)) {
+    async closePosition(positionId, symbol, direction, isDemo = false) {
+        const modeText = isDemo ? 'Demo' : 'Live';
+        if (!confirm(`Are you sure you want to close your ${direction} position on ${symbol}? (${modeText} mode)`)) {
             return;
         }
 
         try {
-            this.showNotification(`Closing ${symbol} ${direction} position...`, 'info');
+            this.showNotification(`Closing ${symbol} ${direction} position (${modeText} mode)...`, 'info');
             
             // Call API to close position
             const response = await fetch('api/close_position.php', {
@@ -1472,7 +1521,8 @@ class TradingForm {
                 body: JSON.stringify({
                     position_id: positionId,
                     symbol: symbol,
-                    direction: direction
+                    direction: direction,
+                    is_demo: isDemo
                 })
             });
 
@@ -1499,13 +1549,14 @@ class TradingForm {
         }
     }
 
-    async removePosition(positionId, symbol, direction) {
-        if (!confirm(`Remove ${direction} position on ${symbol}? This position no longer exists on the exchange.`)) {
+    async removePosition(positionId, symbol, direction, isDemo = false) {
+        const modeText = isDemo ? 'Demo' : 'Live';
+        if (!confirm(`Remove ${direction} position on ${symbol}? This position no longer exists on the ${modeText} exchange.`)) {
             return;
         }
 
         try {
-            this.showNotification(`Removing ${symbol} ${direction} position...`, 'info');
+            this.showNotification(`Removing ${symbol} ${direction} position (${modeText} mode)...`, 'info');
             
             // Call API to mark position as closed
             const response = await fetch('api/close_position.php', {
@@ -1516,7 +1567,8 @@ class TradingForm {
                 body: JSON.stringify({
                     position_id: positionId,
                     symbol: symbol,
-                    direction: direction
+                    direction: direction,
+                    is_demo: isDemo
                 })
             });
 

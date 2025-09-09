@@ -1,7 +1,7 @@
 <?php
 /**
- * Git-Based Simple Deployment Script
- * Only deploys files that are staged in git or have been modified
+ * Simple Deployment Script
+ * Upload files one by one with better error handling
  */
 
 require_once 'deploy-config.php';
@@ -38,7 +38,7 @@ function getGitFiles() {
     // Remove duplicates and filter deployable files
     $files = array_unique($files);
     $deployableFiles = [];
-    $excludePatterns = ['.git/', '.gitignore', '*.md', '.env', 'node_modules/', '*.log', 'deploy-config.php', 'git-deploy.php', 'simple-deploy-new.php'];
+    $excludePatterns = ['.git/', '.gitignore', '*.md', '.env', 'node_modules/', '*.log', 'deploy-config.php'];
     
     foreach ($files as $file) {
         $shouldExclude = false;
@@ -85,7 +85,10 @@ function deployFiles($config) {
     // Test FTP connection first
     echo "Testing FTP connection...\n";
     
-    // Try SSL FTP first
+    // Try different connection methods
+    $connection = false;
+    
+    // Method 1: Try SSL FTP with proper error handling
     echo "Trying SSL FTP...\n";
     echo "Host: {$config['host']}, Port: {$config['port']}, User: {$config['username']}\n";
     
@@ -93,6 +96,7 @@ function deployFiles($config) {
     if ($connection) {
         echo "SSL FTP connection successful\n";
         
+        // Try login with explicit error suppression removed to see actual errors
         $login = ftp_login($connection, $config['username'], $config['password']);
         if ($login) {
             echo "✅ SSL FTP login successful!\n";
@@ -106,7 +110,7 @@ function deployFiles($config) {
         echo "SSL FTP connection failed\n";
     }
     
-    // Try regular FTP if SSL failed
+    // Method 2: Try regular FTP if SSL failed
     if (!$connection) {
         echo "Trying regular FTP...\n";
         $connection = @ftp_connect($config['host'], $config['port']);
@@ -117,50 +121,113 @@ function deployFiles($config) {
                 echo "✅ Regular FTP login successful!\n";
                 ftp_pasv($connection, true);
             } else {
-                echo "❌ Regular FTP login failed\n";
-                return;
+                $error = error_get_last();
+                echo "❌ Regular FTP login failed: " . ($error['message'] ?? 'Unknown error') . "\n";
+                ftp_close($connection);
+                $connection = false;
             }
         } else {
-            echo "❌ Could not establish any FTP connection\n";
-            return;
+            echo "Regular FTP connection failed\n";
         }
     }
+    
+    if (!$connection) {
+        die("❌ Could not establish FTP connection\n");
+    }
+    
+    // List files to upload
+    $files = [
+        'header.php',
+        'nav.php',
+        'index.php',
+        'home.php',
+        'debug-orders.php',
+        'trade.php',
+        'orders.php',
+        'test-deploy.txt',
+        'watch.php',
+        'limit_orders.php',
+        'settings.php',
+        'assets/css/style.css', 
+        'assets/js/script.js',
+        'assets/js/limit-orders.js',
+        'assets/js/header.js',
+        'manifest.json',
+        'api/watchlist.php',
+        'api/get_balance.php',
+        'api/place_order.php',
+        'api/close_position.php',
+        'api/get_price.php',
+        'api/get_watchlist_prices.php',
+        'api/get_limit_orders.php',
+        'api/get_limit_orders_prices.php',
+        'api/api_helper.php',
+        'api/auth_token.php',
+        'api/open_limit_position.php',
+        'api/cancel_limit_order.php',
+        'api/generate_token.php',
+        'api/telegram.php',
+        'api/get_settings.php',
+        'api/save_settings.php',
+        'api/debug_orders.php',
+        'api/test_simple.php',
+        'api/debug_limit_prices.php',
+        'api/test_place_order_debug.php',
+        'api/debug_order_data.php',
+        'debug_request.php',
+        'view_logs.php',
+        'test_place_order.php',
+        'test_demo_order.php',
+        'test_demo_authenticated.php',
+        'test_order_validation.php',
+        'test_live_debug.php',
+        'auth/api_protection.php',
+        'auth/config.php',
+        'auth/login.php',
+        'auth/callback.php',
+        'auth/logout.php',
+        'jobs/price-monitor.php',
+        'jobs/balance-sync.php',
+        'jobs/limit-order-monitor.php',
+        'jobs/target-stoploss-monitor.php',
+        'database_setup.sql',
+        'test-limit-api.php',
+        'icons/icon-72x72.png',
+        'icons/icon-96x96.png',
+        'icons/icon-128x128.png',
+        'icons/icon-144x144.png',
+        'icons/icon-152x152.png',
+        'icons/icon-192x192.png',
+        'icons/icon-384x384.png',
+        'icons/icon-512x512.png'
+    ];
     
     $uploaded = 0;
     $failed = 0;
     
     foreach ($files as $file) {
-        if (!file_exists($file)) {
-            echo "⚠️  File not found: $file\n";
-            $failed++;
-            continue;
-        }
-        
-        echo "Uploading $file...\n";
-        
-        $remoteFile = $config['remote_path'] . '/' . $file;
-        $remoteDir = dirname($remoteFile);
-        
-        // Create remote directory if it doesn't exist
-        $dirs = explode('/', str_replace($config['remote_path'] . '/', '', $remoteDir));
-        $currentPath = $config['remote_path'];
-        
-        foreach ($dirs as $dir) {
-            if (!empty($dir)) {
-                $currentPath .= '/' . $dir;
-                @ftp_mkdir($connection, $currentPath);
+        if (file_exists($file)) {
+            echo "Uploading $file...\n";
+            $remotePath = $config['remote_path'] . '/' . $file;
+            
+            // Create directory if needed
+            $dir = dirname($remotePath);
+            if ($dir !== $config['remote_path']) {
+                @ftp_mkdir($connection, $dir);
             }
-        }
-        
-        // Upload file
-        $success = ftp_put($connection, $remoteFile, $file, FTP_BINARY);
-        
-        if ($success) {
-            echo "✅ Uploaded: $file\n";
-            $uploaded++;
+            
+            // Also create the main remote_path directory
+            @ftp_mkdir($connection, $config['remote_path']);
+            
+            if (ftp_put($connection, $remotePath, $file, FTP_BINARY)) {
+                echo "✅ Uploaded: $file\n";
+                $uploaded++;
+            } else {
+                echo "❌ Failed: $file\n";
+                $failed++;
+            }
         } else {
-            echo "❌ Failed: $file\n";
-            $failed++;
+            echo "⚠️  File not found: $file\n";
         }
     }
     
@@ -170,13 +237,12 @@ function deployFiles($config) {
     echo "✅ Uploaded: $uploaded files\n";
     echo "❌ Failed: $failed files\n";
     
-    if ($uploaded > 0) {
+    if ($failed === 0) {
         echo "🎉 Deployment completed successfully!\n";
     } else {
-        echo "❌ Deployment failed!\n";
+        echo "⚠️  Deployment completed with some failures\n";
     }
 }
 
 // Run deployment
-deployFiles($deployConfig);
-?>
+deployFiles($deploymentConfig);

@@ -36,14 +36,18 @@ function loadEnv($path) {
 // Load .env file
 loadEnv(__DIR__ . '/../.env');
 
+// Load API helper for trading mode support
+require_once __DIR__ . '/api_helper.php';
+
 // Get BingX API credentials
 $apiKey = getenv('BINGX_API_KEY') ?: '';
 $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
 
 function getBingXPrice($symbol, $apiKey = '', $apiSecret = '') {
     try {
-        // First try public API without authentication
-        $publicUrl = "https://open-api.bingx.com/openApi/swap/v2/quote/price";
+        // Use trading mode aware API URL
+        $baseUrl = getBingXApiUrl();
+        $publicUrl = $baseUrl . "/openApi/swap/v2/quote/price";
         $params = ['symbol' => $symbol];
         
         $queryString = http_build_query($params);
@@ -100,7 +104,8 @@ function getBingXPriceAuthenticated($symbol, $apiKey, $apiSecret) {
         $queryString = http_build_query($params);
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
-        $url = "https://open-api.bingx.com/openApi/swap/v2/quote/price?" . $queryString . "&signature=" . $signature;
+        $baseUrl = getBingXApiUrl();
+        $url = $baseUrl . "/openApi/swap/v2/quote/price?" . $queryString . "&signature=" . $signature;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -225,7 +230,7 @@ try {
     $cleanSymbol = strtoupper(trim($symbol));
     
     // Convert clean symbol to BingX format (BTC -> BTC-USDT)
-    if (!strpos($cleanSymbol, 'USDT')) {
+    if (strpos($cleanSymbol, 'USDT') === false) {
         $cleanSymbol = $cleanSymbol . '-USDT';
     }
     

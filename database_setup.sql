@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS orders (
     price DECIMAL(15,8),
     leverage INT,
     status ENUM('NEW', 'FILLED', 'CANCELLED', 'PENDING', 'FAILED') DEFAULT 'NEW',
+    is_demo BOOLEAN DEFAULT FALSE,
     fill_price DECIMAL(15,8),
     fill_time TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -59,6 +60,7 @@ CREATE TABLE IF NOT EXISTS positions (
     margin_used DECIMAL(15,4) NOT NULL,
     signal_id INT,
     status ENUM('OPEN', 'CLOSED') DEFAULT 'OPEN',
+    is_demo BOOLEAN DEFAULT FALSE,
     opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     closed_at TIMESTAMP NULL,
     
