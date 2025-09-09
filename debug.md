@@ -8,6 +8,17 @@
 - **Environment**: Production (Live Server)
 - **Testing**: Must be done on live server environment
 
+## ⚠️ COMMON MISTAKE: Localhost URLs
+**NEVER use localhost URLs in any test files or API calls on the live server:**
+```php
+// ❌ WRONG - Will cause 404 errors on live server
+$url = 'http://localhost/trade/api/place_order.php';
+
+// ✅ CORRECT - Use live server URLs
+$baseUrl = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'brainity.com.au');
+$url = $baseUrl . '/ta/api/place_order.php';
+```
+
 ---
 
 ## Debug History

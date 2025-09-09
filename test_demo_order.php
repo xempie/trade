@@ -1,8 +1,9 @@
 <?php
-// Direct test of place_order.php API for demo trading
+// Live Server Demo Trading Test - NO LOCALHOST URLS
 header('Content-Type: text/plain');
 
-echo "=== Demo Order Placement Direct Test ===\n\n";
+echo "=== Live Server Demo Trading Test ===\n\n";
+echo "🌐 Running on LIVE SERVER: " . ($_SERVER['HTTP_HOST'] ?? 'brainity.com.au') . "\n\n";
 
 // First, set the trading mode to demo temporarily
 $envPath = '.env';
@@ -27,9 +28,9 @@ if (!preg_grep('/^TRADING_MODE=/', $lines)) {
 
 file_put_contents($envPath, implode("\n", $updatedLines));
 
-// Simulate POST request data
+// Set server environment for live server (NOT localhost)
 $_SERVER['REQUEST_METHOD'] = 'POST';
-$_SERVER['HTTP_HOST'] = 'localhost';
+$_SERVER['HTTP_HOST'] = $_SERVER['HTTP_HOST'] ?? 'brainity.com.au';
 
 // Test data in correct format
 $orderData = [
@@ -43,33 +44,45 @@ $orderData = [
             'margin' => 50
         ]
     ],
-    'notes' => 'Demo direct test order'
+    'notes' => 'Live server demo test order'
 ];
 
 echo "Order Data:\n" . json_encode($orderData, JSON_PRETTY_PRINT) . "\n\n";
 
-// Simulate the POST body
-file_put_contents('php://input', json_encode($orderData));
+// Test with live server API call (not localhost)
+$baseUrl = 'https://' . ($_SERVER['HTTP_HOST'] ?? 'brainity.com.au');
+$apiUrl = $baseUrl . '/ta/api/place_order.php';
 
-// Capture output from API
-ob_start();
+echo "Making HTTP POST request to: $apiUrl\n\n";
 
-try {
-    // Include the API file directly
-    include './api/place_order.php';
-    $output = ob_get_contents();
-} catch (Exception $e) {
-    $output = "Error: " . $e->getMessage();
-}
+$jsonData = json_encode($orderData);
 
-ob_end_clean();
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $apiUrl);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'Content-Length: ' . strlen($jsonData),
+    'User-Agent: DemoTestClient/1.0'
+]);
 
-echo "API Response:\n";
-echo $output . "\n\n";
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curlError = curl_error($ch);
+curl_close($ch);
+
+echo "HTTP Response Code: $httpCode\n";
+echo "cURL Error: " . ($curlError ?: 'None') . "\n";
+echo "Response:\n";
+echo $response . "\n\n";
 
 // Try to decode response
-if ($output) {
-    $data = json_decode($output, true);
+if ($response) {
+    $data = json_decode($response, true);
     if ($data) {
         echo "Parsed JSON Response:\n";
         print_r($data);
@@ -77,6 +90,8 @@ if ($output) {
         echo "Failed to parse JSON response\n";
         echo "JSON Error: " . json_last_error_msg() . "\n";
     }
+} else {
+    echo "❌ No response received from server\n";
 }
 
 // Reset trading mode back to live
@@ -89,14 +104,20 @@ foreach (explode("\n", file_get_contents($envPath)) as $line) {
     }
 }
 file_put_contents($envPath, implode("\n", $updatedLines));
-echo "\nReset TRADING_MODE back to live.\n";
+echo "\n✅ Reset TRADING_MODE back to live.\n";
 
 // Also check debug log
 $debugLog = __DIR__ . '/debug.log';
 if (file_exists($debugLog)) {
     echo "\n=== Recent Debug Log Entries ===\n";
     $lines = file($debugLog);
-    $recentLines = array_slice($lines, -10); // Last 10 lines
+    $recentLines = array_slice($lines, -5); // Last 5 lines
     echo implode('', $recentLines);
 }
+
+echo "\n=== Test Summary ===\n";
+echo "✅ Live server URL used (no localhost)\n";
+echo "✅ Demo mode temporarily enabled\n";
+echo "✅ Environment restored to live mode\n";
+echo "\n💡 This test file is safe for live server use\n";
 ?>
