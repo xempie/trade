@@ -104,6 +104,7 @@ function deployFiles($config) {
         'view_logs.php',
         'test_place_order.php',
         'test_demo_order.php',
+        'test_demo_authenticated.php',
         'test_live_debug.php',
         'auth/api_protection.php',
         'auth/config.php',
