@@ -62,6 +62,10 @@ deployment.log
 # Development environment file
 .env.dev
 
+# Documentation files (keep local only, except README.md)
+*.md
+!README.md
+
 # Project documentation with sensitive info
 CLAUDE.md
 claude.md
