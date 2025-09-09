@@ -1,8 +1,35 @@
 <?php
-// Simple HTTP test of place_order.php API for demo trading
+// Direct test of place_order.php API for demo trading
 header('Content-Type: text/plain');
 
-echo "=== Demo Order Placement HTTP Test ===\n\n";
+echo "=== Demo Order Placement Direct Test ===\n\n";
+
+// First, set the trading mode to demo temporarily
+$envPath = '.env';
+$envContent = file_get_contents($envPath);
+$lines = explode("\n", $envContent);
+$updatedLines = [];
+
+foreach ($lines as $line) {
+    if (strpos($line, 'TRADING_MODE=') === 0) {
+        $updatedLines[] = 'TRADING_MODE=demo';
+        echo "Setting TRADING_MODE to demo...\n";
+    } else {
+        $updatedLines[] = $line;
+    }
+}
+
+// Add TRADING_MODE if it doesn't exist
+if (!preg_grep('/^TRADING_MODE=/', $lines)) {
+    $updatedLines[] = 'TRADING_MODE=demo';
+    echo "Adding TRADING_MODE=demo...\n";
+}
+
+file_put_contents($envPath, implode("\n", $updatedLines));
+
+// Simulate POST request data
+$_SERVER['REQUEST_METHOD'] = 'POST';
+$_SERVER['HTTP_HOST'] = 'localhost';
 
 // Test data in correct format
 $orderData = [
@@ -16,41 +43,33 @@ $orderData = [
             'margin' => 50
         ]
     ],
-    'notes' => 'Demo HTTP test order'
+    'notes' => 'Demo direct test order'
 ];
 
 echo "Order Data:\n" . json_encode($orderData, JSON_PRETTY_PRINT) . "\n\n";
 
-// Make HTTP request to the API
-$url = 'http://localhost/trade/api/place_order.php';
-$jsonData = json_encode($orderData);
+// Simulate the POST body
+file_put_contents('php://input', json_encode($orderData));
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'Content-Length: ' . strlen($jsonData)
-]);
+// Capture output from API
+ob_start();
 
-echo "Making HTTP POST request to: $url\n\n";
+try {
+    // Include the API file directly
+    include './api/place_order.php';
+    $output = ob_get_contents();
+} catch (Exception $e) {
+    $output = "Error: " . $e->getMessage();
+}
 
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
+ob_end_clean();
 
-echo "HTTP Response Code: $httpCode\n";
-echo "cURL Error: " . ($curlError ?: 'None') . "\n";
-echo "Response:\n";
-echo $response . "\n\n";
+echo "API Response:\n";
+echo $output . "\n\n";
 
 // Try to decode response
-if ($response) {
-    $data = json_decode($response, true);
+if ($output) {
+    $data = json_decode($output, true);
     if ($data) {
         echo "Parsed JSON Response:\n";
         print_r($data);
@@ -59,6 +78,18 @@ if ($response) {
         echo "JSON Error: " . json_last_error_msg() . "\n";
     }
 }
+
+// Reset trading mode back to live
+$updatedLines = [];
+foreach (explode("\n", file_get_contents($envPath)) as $line) {
+    if (strpos($line, 'TRADING_MODE=') === 0) {
+        $updatedLines[] = 'TRADING_MODE=live';
+    } else {
+        $updatedLines[] = $line;
+    }
+}
+file_put_contents($envPath, implode("\n", $updatedLines));
+echo "\nReset TRADING_MODE back to live.\n";
 
 // Also check debug log
 $debugLog = __DIR__ . '/debug.log';

@@ -1,6 +1,6 @@
 <?php
 // Include authentication protection
-require_once '../auth/api_protection.php';
+require_once __DIR__ . '/../auth/api_protection.php';
 
 // Protect this API endpoint
 protectAPI();
