@@ -104,8 +104,8 @@ function getOrders($pdo, $filters = []) {
     }
 }
 
-// Get BingX positions from exchange
-function getBingXPositions() {
+// Get BingX positions from exchange (demo or live)
+function getBingXPositions($isDemo = false) {
     $apiKey = getenv('BINGX_API_KEY') ?: '';
     $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
     
@@ -118,7 +118,12 @@ function getBingXPositions() {
         $queryString = "timestamp={$timestamp}";
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
-        $url = "https://open-api.bingx.com/openApi/swap/v2/user/positions?" . $queryString . "&signature=" . $signature;
+        // Use appropriate API URL based on demo/live mode
+        $baseUrl = $isDemo ? 
+            (getenv('BINGX_DEMO_URL') ?: 'https://open-api-vst.bingx.com') : 
+            (getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com');
+            
+        $url = $baseUrl . "/openApi/swap/v2/user/positions?" . $queryString . "&signature=" . $signature;
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -197,40 +202,77 @@ function getPositions($pdo, $filters = []) {
         $stmt->execute();
         $dbPositions = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Enhance positions with live BingX data
+        // Enhance positions with BingX data from both demo and live exchanges
         $enhancedPositions = [];
-        $bingxPositions = getBingXPositions();
+        $liveBingxPositions = getBingXPositions(false); // Live exchange
+        $demoBingxPositions = getBingXPositions(true);  // Demo exchange
         
         // Debug: Log BingX response for troubleshooting
-        error_log("BingX Positions Count: " . count($bingxPositions));
+        error_log("Live BingX Positions Count: " . count($liveBingxPositions));
+        error_log("Demo BingX Positions Count: " . count($demoBingxPositions));
         
-        // Create a map of BingX positions for quick lookup
-        $bingxMap = [];
-        foreach ($bingxPositions as $bingxPos) {
+        // Create separate maps for live and demo BingX positions
+        $liveBingxMap = [];
+        $demoBingxMap = [];
+        
+        // Process live positions
+        foreach ($liveBingxPositions as $bingxPos) {
             if (isset($bingxPos['symbol']) && isset($bingxPos['positionSide']) && floatval($bingxPos['positionAmt']) != 0) {
-                // Try multiple key formats for better matching
                 $symbol = $bingxPos['symbol'];
                 $side = strtoupper($bingxPos['positionSide']);
                 
                 $key = $symbol . '_' . $side;
-                $bingxMap[$key] = $bingxPos;
+                $liveBingxMap[$key] = $bingxPos;
                 
                 // Also create alternative keys for common format variations
                 if (strpos($symbol, '-') !== false) {
                     $altSymbol = str_replace('-', '', $symbol); // ALGO-USDT -> ALGOUSDT
-                    $bingxMap[$altSymbol . '_' . $side] = $bingxPos;
+                    $liveBingxMap[$altSymbol . '_' . $side] = $bingxPos;
                 }
                 if (strpos($symbol, 'USDT') !== false) {
                     $baseSymbol = str_replace(['-USDT', 'USDT'], '', $symbol); // ALGO-USDT -> ALGO
-                    $bingxMap[$baseSymbol . '_' . $side] = $bingxPos;
+                    $liveBingxMap[$baseSymbol . '_' . $side] = $bingxPos;
                 }
                 
-                error_log("BingX Position Key: $key, PnL: " . ($bingxPos['unrealizedProfit'] ?? 'N/A'));
+                error_log("Live BingX Position Key: $key, PnL: " . ($bingxPos['unrealizedProfit'] ?? 'N/A'));
             }
         }
         
-        // Merge database positions with live BingX data
+        // Process demo positions  
+        foreach ($demoBingxPositions as $bingxPos) {
+            if (isset($bingxPos['symbol']) && isset($bingxPos['positionSide']) && floatval($bingxPos['positionAmt']) != 0) {
+                $symbol = $bingxPos['symbol'];
+                $side = strtoupper($bingxPos['positionSide']);
+                
+                $key = $symbol . '_' . $side;
+                $demoBingxMap[$key] = $bingxPos;
+                
+                // Also create alternative keys for common format variations
+                if (strpos($symbol, '-') !== false) {
+                    $altSymbol = str_replace('-', '', $symbol); // ALGO-USDT -> ALGOUSDT
+                    $demoBingxMap[$altSymbol . '_' . $side] = $bingxPos;
+                }
+                if (strpos($symbol, 'USDT') !== false) {
+                    $baseSymbol = str_replace(['-USDT', 'USDT'], '', $symbol); // ALGO-USDT -> ALGO
+                    $demoBingxMap[$baseSymbol . '_' . $side] = $bingxPos;
+                }
+                
+                error_log("Demo BingX Position Key: $key, PnL: " . ($bingxPos['unrealizedProfit'] ?? 'N/A'));
+            }
+        }
+        
+        // Merge database positions with appropriate BingX data (demo or live)
         foreach ($dbPositions as $dbPos) {
+            // Determine if this is a demo position
+            $isDemo = false;
+            if (isset($dbPos['is_demo'])) {
+                $isDemo = $dbPos['is_demo'] == 1 || $dbPos['is_demo'] === '1' || $dbPos['is_demo'] === true;
+            }
+            
+            // Use the appropriate map based on demo/live status
+            $bingxMap = $isDemo ? $demoBingxMap : $liveBingxMap;
+            $modeText = $isDemo ? 'DEMO' : 'LIVE';
+            
             // Try multiple symbol formats to match BingX data
             $baseSymbol = $dbPos['symbol'];
             $side = strtoupper($dbPos['side']);
@@ -256,15 +298,15 @@ function getPositions($pdo, $filters = []) {
             }
             
             // Debug: Log matching attempt
-            error_log("DB Position ID: {$dbPos['id']}, Matched Key: " . ($matchedKey ?? 'NONE') . ", Available Keys: " . implode(', ', array_keys($bingxMap)));
+            error_log("DB Position ID: {$dbPos['id']} ({$modeText}), Matched Key: " . ($matchedKey ?? 'NONE') . ", Available Keys: " . implode(', ', array_keys($bingxMap)));
             
             // Start with database position data
             $position = $dbPos;
             
-            // If we have live data from BingX, use it for real-time values
+            // If we have exchange data from BingX (demo or live), use it for real-time values
             if ($bingxPos !== null) {
                 
-                // Add live BingX data
+                // Add BingX exchange data (demo or live based on position mode)
                 $position['unrealized_pnl'] = floatval($bingxPos['unrealizedProfit'] ?? 0);
                 $position['mark_price'] = floatval($bingxPos['markPrice'] ?? 0);
                 $position['position_value'] = floatval($bingxPos['positionValue'] ?? 0);
@@ -282,8 +324,9 @@ function getPositions($pdo, $filters = []) {
                 // Add debug info to position
                 $position['debug_matched'] = true;
                 $position['debug_key'] = $matchedKey;
+                $position['debug_mode'] = $modeText;
             } else {
-                // No live data available, use zero values
+                // No exchange data available, use zero values
                 $position['unrealized_pnl'] = 0;
                 $position['mark_price'] = 0;
                 $position['position_value'] = 0;
@@ -293,7 +336,8 @@ function getPositions($pdo, $filters = []) {
                 $position['debug_matched'] = false;
                 $position['debug_tried_keys'] = $possibleKeys;
                 $position['debug_available_keys'] = array_keys($bingxMap);
-                $position['debug_test'] = 'DEBUG_VERSION_DEPLOYED';
+                $position['debug_mode'] = $modeText;
+                $position['debug_test'] = 'DEMO_LIVE_SEPARATION_DEPLOYED';
             }
             
             $enhancedPositions[] = $position;
@@ -301,9 +345,12 @@ function getPositions($pdo, $filters = []) {
         
         // Store debug info globally for access in wrapper function
         $GLOBALS['positions_debug'] = [
-            'bingx_positions_count' => count($bingxPositions),
-            'bingx_map_keys' => array_keys($bingxMap),
-            'db_positions_count' => count($dbPositions)
+            'live_positions_count' => count($liveBingxPositions),
+            'demo_positions_count' => count($demoBingxPositions), 
+            'live_map_keys' => array_keys($liveBingxMap),
+            'demo_map_keys' => array_keys($demoBingxMap),
+            'db_positions_count' => count($dbPositions),
+            'enhancement_version' => 'DEMO_LIVE_SEPARATED'
         ];
         
         return $enhancedPositions;
