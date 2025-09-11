@@ -6,6 +6,9 @@
 
 require_once 'deploy-config.php';
 
+// Fix variable name issue
+$deployConfig = $deploymentConfig;
+
 function getGitFiles() {
     echo "Getting files from git...\n";
     
