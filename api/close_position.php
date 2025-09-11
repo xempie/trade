@@ -57,6 +57,158 @@ function getDbConnection() {
 $apiKey = getenv('BINGX_API_KEY') ?: '';
 $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
 
+// Get current market price for P&L calculation
+function getCurrentPrice($apiKey, $apiSecret, $symbol, $isDemo = false) {
+    try {
+        $baseUrl = $isDemo ? 
+            (getenv('BINGX_DEMO_URL') ?: 'https://open-api-vst.bingx.com') : 
+            (getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com');
+        
+        $url = $baseUrl . "/openApi/swap/v2/quote/ticker?symbol=" . urlencode($symbol);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-BX-APIKEY: ' . $apiKey
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($response && $httpCode == 200) {
+            $data = json_decode($response, true);
+            if ($data && $data['code'] == 0 && isset($data['data']['lastPrice'])) {
+                return floatval($data['data']['lastPrice']);
+            }
+        }
+        
+        return null;
+    } catch (Exception $e) {
+        error_log("Error getting current price for {$symbol}: " . $e->getMessage());
+        return null;
+    }
+}
+
+// Calculate realized P&L
+function calculateRealizedPnL($entryPrice, $exitPrice, $size, $side, $leverage) {
+    try {
+        $entryPrice = floatval($entryPrice);
+        $exitPrice = floatval($exitPrice);
+        $size = floatval($size);
+        $leverage = floatval($leverage);
+        
+        if ($entryPrice <= 0 || $exitPrice <= 0 || $size <= 0) {
+            return 0;
+        }
+        
+        // Calculate position value
+        $positionValue = $size * $entryPrice;
+        
+        // Calculate price difference based on position side
+        $priceDiff = 0;
+        if (strtoupper($side) === 'LONG') {
+            $priceDiff = $exitPrice - $entryPrice;
+        } else { // SHORT
+            $priceDiff = $entryPrice - $exitPrice;
+        }
+        
+        // Calculate P&L: (price_difference / entry_price) * position_value * leverage
+        $pnl = ($priceDiff / $entryPrice) * $positionValue * $leverage;
+        
+        return round($pnl, 4);
+        
+    } catch (Exception $e) {
+        error_log("Error calculating P&L: " . $e->getMessage());
+        return 0;
+    }
+}
+
+// Update position with exit data
+function updatePositionWithExit($pdo, $positionId, $exitPrice, $realizedPnL, $exitReason = 'MANUAL') {
+    try {
+        $sql = "UPDATE positions SET 
+                status = 'CLOSED', 
+                exit_price = :exit_price,
+                realized_pnl = :realized_pnl,
+                exit_reason = :exit_reason,
+                closed_at = NOW() 
+                WHERE id = :id";
+        
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([
+            ':exit_price' => $exitPrice,
+            ':realized_pnl' => $realizedPnL,
+            ':exit_reason' => $exitReason,
+            ':id' => $positionId
+        ]);
+    } catch (Exception $e) {
+        error_log("Database error updating position with exit data: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Update signal with win/loss status and final P&L
+function updateSignalPerformance($pdo, $signalId, $totalPnL) {
+    try {
+        // Determine win/loss status
+        $winStatus = 'BREAKEVEN';
+        if ($totalPnL > 0) {
+            $winStatus = 'WIN';
+        } elseif ($totalPnL < 0) {
+            $winStatus = 'LOSS';
+        }
+        
+        // Check if all positions for this signal are closed
+        $sql = "SELECT COUNT(*) as open_count FROM positions WHERE signal_id = :signal_id AND status = 'OPEN'";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':signal_id' => $signalId]);
+        $openCount = $stmt->fetchColumn();
+        
+        // If no more open positions, close the signal
+        $signalStatus = ($openCount == 0) ? 'CLOSED' : 'ACTIVE';
+        
+        // Update signal with performance data
+        $sql = "UPDATE signals SET 
+                signal_status = :signal_status,
+                win_status = :win_status,
+                final_pnl = COALESCE(final_pnl, 0) + :pnl_increment,
+                closed_at = CASE WHEN :signal_status = 'CLOSED' THEN NOW() ELSE closed_at END,
+                closure_reason = CASE WHEN :signal_status = 'CLOSED' THEN 'MANUAL' ELSE closure_reason END
+                WHERE id = :signal_id";
+        
+        $stmt = $pdo->prepare($sql);
+        $result = $stmt->execute([
+            ':signal_status' => $signalStatus,
+            ':win_status' => $winStatus,
+            ':pnl_increment' => $totalPnL,
+            ':signal_id' => $signalId
+        ]);
+        
+        // Trigger signal source statistics update if signal is closed
+        if ($result && $signalStatus === 'CLOSED') {
+            $sql = "SELECT source_id FROM signals WHERE id = :signal_id";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':signal_id' => $signalId]);
+            $sourceId = $stmt->fetchColumn();
+            
+            if ($sourceId) {
+                $sql = "CALL UpdateSignalSourceStats(:source_id)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([':source_id' => $sourceId]);
+            }
+        }
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log("Error updating signal performance: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Close position on BingX
 function closeBingXPosition($apiKey, $apiSecret, $symbol, $side, $quantity, $isDemo = false) {
     try {
@@ -271,14 +423,43 @@ try {
     );
     
     if ($closeResult['success']) {
-        // Position successfully closed on exchange
-        $updated = updatePositionStatus($pdo, $positionId, 'CLOSED');
+        // Position successfully closed on exchange - calculate P&L
+        $exitPrice = getCurrentPrice($apiKey, $apiSecret, $bingxSymbol, $isDemo);
+        $realizedPnL = 0;
+        $updated = false;
+        
+        if ($exitPrice) {
+            // Calculate realized P&L
+            $realizedPnL = calculateRealizedPnL(
+                $position['entry_price'], 
+                $exitPrice, 
+                $position['size'], 
+                $position['side'], 
+                $position['leverage']
+            );
+            
+            // Update position with exit data including P&L
+            $updated = updatePositionWithExit($pdo, $positionId, $exitPrice, $realizedPnL, 'MANUAL');
+            
+            // Update signal performance if position has a signal_id
+            if ($updated && $position['signal_id']) {
+                updateSignalPerformance($pdo, $position['signal_id'], $realizedPnL);
+            }
+        } else {
+            // Fallback to simple status update if we can't get current price
+            $updated = updatePositionStatus($pdo, $positionId, 'CLOSED');
+            error_log("Warning: Could not get exit price for P&L calculation on position {$positionId}");
+        }
         
         // Cancel any pending limit orders for the same symbol
         $cancelledOrders = cancelRelatedLimitOrders($pdo, $bingxSymbol, $position['signal_id'] ?? null);
         
         if ($updated) {
             $message = "Position closed successfully";
+            if ($realizedPnL != 0) {
+                $pnlText = $realizedPnL > 0 ? '+$' . number_format($realizedPnL, 2) : '-$' . number_format(abs($realizedPnL), 2);
+                $message .= " (P&L: {$pnlText})";
+            }
             if ($cancelledOrders > 0) {
                 $message .= " and {$cancelledOrders} pending limit orders cancelled";
             }
@@ -288,7 +469,10 @@ try {
                 'message' => $message,
                 'bingx_order_id' => $closeResult['order_id'],
                 'position_id' => $positionId,
-                'cancelled_orders' => $cancelledOrders
+                'exit_price' => $exitPrice ?? null,
+                'realized_pnl' => $realizedPnL,
+                'cancelled_orders' => $cancelledOrders,
+                'pnl_display' => $realizedPnL != 0 ? ($realizedPnL > 0 ? '+$' . number_format($realizedPnL, 2) : '-$' . number_format(abs($realizedPnL), 2)) : '$0.00'
             ]);
         } else {
             // Position closed on exchange but database update failed

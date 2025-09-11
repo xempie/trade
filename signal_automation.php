@@ -302,11 +302,11 @@ function placeOrder($symbol, $side, $quantity, $leverage = 1, $signalType = 'LON
         
         // Set leverage first
         if ($leverage > 1) {
-            $leverageSet = setLeverage($symbol, $leverage);
+            $leverageSet = setLeverage($symbol, $leverage, $signalType);
             if ($leverageSet) {
                 // Verify actual leverage set by exchange
                 usleep(500000); // Wait 0.5s for leverage to be applied
-                $actualLeverage = getCurrentLeverage($symbol);
+                $actualLeverage = getCurrentLeverage($symbol, $signalType);
                 if ($actualLeverage !== null && $actualLeverage !== $leverage) {
                     logMessage("⚠️  WARNING: Requested leverage {$leverage}x but BingX set {$actualLeverage}x for {$symbol}. Exchange may have maximum leverage limits.");
                     // Log this for analysis - don't change the leverage variable as it affects position calculations
@@ -343,9 +343,12 @@ function placeOrder($symbol, $side, $quantity, $leverage = 1, $signalType = 'LON
             $data = json_decode($response, true);
             
             if ($data && $data['code'] == 0) {
+                // BingX returns order ID in nested structure: data.order.orderId
+                $orderId = $data['data']['orderId'] ?? $data['data']['order']['orderId'] ?? $data['data']['order']['orderID'] ?? '';
+                
                 return [
                     'success' => true,
-                    'orderId' => $data['data']['orderId'] ?? '',
+                    'orderId' => $orderId,
                     'data' => $data['data']
                 ];
             } else {
@@ -366,13 +369,16 @@ function placeOrder($symbol, $side, $quantity, $leverage = 1, $signalType = 'LON
 }
 
 // Get current leverage for symbol from BingX
-function getCurrentLeverage($symbol) {
+function getCurrentLeverage($symbol, $signalType = 'LONG') {
     try {
         $apiKey = getenv('BINGX_API_KEY') ?: '';
         $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
         
+        // Convert signal type to BingX side format for hedge mode
+        $side = ($signalType === 'LONG') ? 'LONG' : 'SHORT';
+        
         $timestamp = round(microtime(true) * 1000);
-        $queryString = "symbol={$symbol}&timestamp={$timestamp}";
+        $queryString = "symbol={$symbol}&side={$side}&timestamp={$timestamp}";
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
         
         $baseUrl = getBingXApiUrl();
@@ -406,14 +412,18 @@ function getCurrentLeverage($symbol) {
 }
 
 // Set leverage for symbol
-function setLeverage($symbol, $leverage) {
+function setLeverage($symbol, $leverage, $signalType = 'LONG') {
     try {
         $apiKey = getenv('BINGX_API_KEY') ?: '';
         $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
         
         $timestamp = round(microtime(true) * 1000);
+        // Convert signal type to BingX side format for hedge mode
+        $side = ($signalType === 'LONG') ? 'LONG' : 'SHORT';
+        
         $params = [
             'symbol' => $symbol,
+            'side' => $side,  // LONG or SHORT for hedge mode
             'leverage' => $leverage,
             'timestamp' => $timestamp
         ];
@@ -509,13 +519,14 @@ function processPendingSignals($pdo) {
                 $orderResult = placeOrder($signal['symbol'], $side, $positionSize, $signal['leverage'], $signal['signal_type']);
                 
                 if ($orderResult['success']) {
-                    // Place stop loss and take profit orders on BingX for 100% of the position first
+                    // Place stop loss and take profit orders on BingX using actual prices from signals table
                     $slTpResults = placeStopLossAndTakeProfit(
                         $signal['symbol'], 
                         $signal['signal_type'], 
                         $positionSize, 
                         $currentPrice, 
-                        $signal['leverage']
+                        $signal['leverage'],
+                        $signal  // Pass the entire signal array to access SL/TP prices
                     );
                     
                     // Extract SL/TP order IDs and prices for database storage
@@ -524,27 +535,27 @@ function processPendingSignals($pdo) {
                     $stopLossPrice = null;
                     $takeProfitPrice = null;
                     
+                    logMessage("🔍 DEBUG: SL/TP Results: " . json_encode($slTpResults));
+                    
                     if ($slTpResults['stopLoss'] && $slTpResults['stopLoss']['success']) {
                         $stopLossOrderId = $slTpResults['stopLoss']['orderId'];
-                        // Calculate stop loss price (2% from entry)
-                        $stopLossPercent = 0.02;
-                        if ($signal['signal_type'] === 'LONG') {
-                            $stopLossPrice = $currentPrice * (1 - $stopLossPercent);
-                        } else {
-                            $stopLossPrice = $currentPrice * (1 + $stopLossPercent);
-                        }
+                        // Use actual stop loss price from signals table
+                        $stopLossPrice = !empty($signal['stop_loss']) ? floatval($signal['stop_loss']) : null;
+                        logMessage("✅ Stop loss order created with BingX ID: {$stopLossOrderId}, Price: {$stopLossPrice}");
+                    } else {
+                        logMessage("❌ Stop loss order failed or not attempted");
                     }
                     
                     if ($slTpResults['takeProfit'] && $slTpResults['takeProfit']['success']) {
                         $takeProfitOrderId = $slTpResults['takeProfit']['orderId'];
-                        // Calculate take profit price (5% from entry)
-                        $takeProfitPercent = 0.05;
-                        if ($signal['signal_type'] === 'LONG') {
-                            $takeProfitPrice = $currentPrice * (1 + $takeProfitPercent);
-                        } else {
-                            $takeProfitPrice = $currentPrice * (1 - $takeProfitPercent);
-                        }
+                        // Use actual take profit price from signals table
+                        $takeProfitPrice = !empty($signal['take_profit_1']) ? floatval($signal['take_profit_1']) : null;
+                        logMessage("✅ Take profit order created with BingX ID: {$takeProfitOrderId}, Price: {$takeProfitPrice}");
+                    } else {
+                        logMessage("❌ Take profit order failed or not attempted");
                     }
+                    
+                    logMessage("🔍 DEBUG: About to save to database - SL ID: " . ($stopLossOrderId ?: 'null') . ", TP ID: " . ($takeProfitOrderId ?: 'null'));
                     
                     // Create order record in database with SL/TP order IDs
                     $bingxOrderId = $orderResult['orderId'] ?? '';
@@ -723,46 +734,76 @@ function processFilledSignals($pdo) {
 // All limit orders are now database-only records for internal tracking
 
 // Place stop loss and take profit orders on BingX
-function placeStopLossAndTakeProfit($symbol, $positionSide, $quantity, $entryPrice, $leverage = 1) {
+function placeStopLossAndTakeProfit($symbol, $positionSide, $quantity, $entryPrice, $leverage = 1, $signal = null) {
     try {
         logMessage("Placing stop loss and take profit for Symbol: $symbol, Side: $positionSide, Quantity: $quantity, Entry: $entryPrice");
         
-        // Calculate stop loss and take profit prices
-        $stopLossPercent = 0.02; // 2% stop loss
-        $takeProfitPercent = 0.05; // 5% take profit
+        // Use actual prices from signals table instead of calculated percentages
+        $stopLossPrice = null;
+        $takeProfitPrice = null;
         
+        logMessage("🔍 SIGNAL DEBUG - Signal data received:");
+        logMessage("  Signal ID: " . ($signal['id'] ?? 'N/A'));
+        logMessage("  Stop Loss from table: " . ($signal['stop_loss'] ?? 'NULL/EMPTY'));
+        logMessage("  Take Profit 1 from table: " . ($signal['take_profit_1'] ?? 'NULL/EMPTY'));
+        
+        if ($signal && !empty($signal['stop_loss'])) {
+            $stopLossPrice = floatval($signal['stop_loss']);
+            logMessage("✅ Using stop loss price: $stopLossPrice");
+        } else {
+            logMessage("❌ No stop loss price in signals table");
+        }
+        
+        // Use take_profit_1 as the primary target (can be extended to support multiple targets later)
+        if ($signal && !empty($signal['take_profit_1'])) {
+            $takeProfitPrice = floatval($signal['take_profit_1']);
+            logMessage("✅ Using take profit price: $takeProfitPrice");
+        } else {
+            logMessage("❌ No take profit 1 price in signals table");
+        }
+        
+        // Determine order sides based on position direction
         if ($positionSide === 'LONG') {
-            $stopLossPrice = $entryPrice * (1 - $stopLossPercent);
-            $takeProfitPrice = $entryPrice * (1 + $takeProfitPercent);
             $stopLossSide = 'SELL';
             $takeProfitSide = 'SELL';
         } else { // SHORT
-            $stopLossPrice = $entryPrice * (1 + $stopLossPercent);
-            $takeProfitPrice = $entryPrice * (1 - $takeProfitPercent);
             $stopLossSide = 'BUY';
             $takeProfitSide = 'BUY';
         }
         
-        logMessage("Calculated prices - Stop Loss: $stopLossPrice, Take Profit: $takeProfitPrice");
+        logMessage("Using prices from signals table - Stop Loss: " . ($stopLossPrice ?: 'not set') . ", Take Profit: " . ($takeProfitPrice ?: 'not set'));
         
         $results = ['stopLoss' => null, 'takeProfit' => null];
         
-        // Place stop loss order
-        $stopLossResult = placeStopOrder($symbol, $stopLossSide, $quantity, $stopLossPrice, $leverage, $positionSide);
-        if ($stopLossResult['success']) {
-            logMessage("Stop loss order placed successfully: " . $stopLossResult['orderId']);
-            $results['stopLoss'] = $stopLossResult;
+        // Place stop loss order if price is available
+        if ($stopLossPrice !== null) {
+            $stopLossResult = placeStopOrder($symbol, $stopLossSide, $quantity, $stopLossPrice, $leverage, $positionSide);
+            if ($stopLossResult['success']) {
+                logMessage("Stop loss order placed successfully: " . $stopLossResult['orderId']);
+                $results['stopLoss'] = $stopLossResult;
+            } else {
+                logMessage("Failed to place stop loss order: " . $stopLossResult['error']);
+            }
         } else {
-            logMessage("Failed to place stop loss order: " . $stopLossResult['error']);
+            logMessage("No stop loss price provided in signals table - skipping SL order");
+            $results['stopLoss'] = ['success' => false, 'orderId' => null, 'note' => 'No SL price in signals table'];
         }
         
-        // Skip take profit order placement on BingX (database tracking only)
-        logMessage("Skipping take profit order placement on BingX - using database tracking only");
-        $results['takeProfit'] = [
-            'success' => false,
-            'orderId' => null,
-            'note' => 'Database tracking only, no BingX order placed'
-        ];
+        // Place take profit order if price is available
+        if ($takeProfitPrice !== null) {
+            logMessage("Attempting to place take profit order: Symbol=$symbol, Side=$takeProfitSide, Price=$takeProfitPrice, Quantity=$quantity");
+            $takeProfitResult = placeTakeProfitOrder($symbol, $takeProfitSide, $quantity, $takeProfitPrice, $leverage, $positionSide);
+            if ($takeProfitResult['success']) {
+                logMessage("✅ Take profit order placed successfully: " . $takeProfitResult['orderId']);
+                $results['takeProfit'] = $takeProfitResult;
+            } else {
+                logMessage("❌ Failed to place take profit order: " . $takeProfitResult['error']);
+                $results['takeProfit'] = ['success' => false, 'orderId' => null, 'error' => $takeProfitResult['error']];
+            }
+        } else {
+            logMessage("No take profit price provided in signals table - skipping TP order");
+            $results['takeProfit'] = ['success' => false, 'orderId' => null, 'note' => 'No TP price in signals table'];
+        }
         
         return $results;
         
@@ -772,8 +813,8 @@ function placeStopLossAndTakeProfit($symbol, $positionSide, $quantity, $entryPri
     }
 }
 
-// Place stop order on BingX
-function placeStopOrder($symbol, $side, $quantity, $stopPrice, $leverage = 1, $positionSide = 'LONG') {
+// Place take profit order on BingX
+function placeTakeProfitOrder($symbol, $side, $quantity, $limitPrice, $leverage = 1, $positionSide = 'LONG') {
     try {
         $apiKey = getenv('BINGX_API_KEY') ?: '';
         $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
@@ -788,9 +829,9 @@ function placeStopOrder($symbol, $side, $quantity, $stopPrice, $leverage = 1, $p
         $params = [
             'symbol' => $symbol,
             'side' => $side,
-            'type' => 'STOP_MARKET',
+            'type' => 'TAKE_PROFIT_MARKET',  // Use TAKE_PROFIT_MARKET instead of TAKE_PROFIT
             'quantity' => $quantity,
-            'stopPrice' => $stopPrice,
+            'stopPrice' => $limitPrice,  // Trigger price for take profit
             'positionSide' => $positionSide,
             'timeInForce' => 'GTC',
             'timestamp' => $timestamp
@@ -798,7 +839,7 @@ function placeStopOrder($symbol, $side, $quantity, $stopPrice, $leverage = 1, $p
         
         // Set leverage first
         if ($leverage > 1) {
-            setLeverage($symbol, $leverage);
+            setLeverage($symbol, $leverage, $positionSide);
         }
         
         $queryString = http_build_query($params);
@@ -828,9 +869,93 @@ function placeStopOrder($symbol, $side, $quantity, $stopPrice, $leverage = 1, $p
             $data = json_decode($response, true);
             
             if ($data && $data['code'] == 0) {
+                // Extract order ID from nested structure - BingX returns it in data.order.orderId
+                $orderId = $data['data']['orderId'] ?? $data['data']['order']['orderId'] ?? $data['data']['order']['orderID'] ?? '';
+                logMessage("🔍 Extracted TP Order ID: $orderId from response");
                 return [
                     'success' => true,
-                    'orderId' => $data['data']['orderId'] ?? '',
+                    'orderId' => $orderId,
+                    'data' => $data['data']
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'error' => $data['msg'] ?? 'Unknown API error',
+                    'code' => $data['code'] ?? 0
+                ];
+            }
+        }
+        
+        return ['success' => false, 'error' => 'HTTP request failed'];
+        
+    } catch (Exception $e) {
+        logMessage("Error placing take profit order: " . $e->getMessage());
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+
+// Place stop order on BingX
+function placeStopOrder($symbol, $side, $quantity, $stopPrice, $leverage = 1, $positionSide = 'LONG') {
+    try {
+        $apiKey = getenv('BINGX_API_KEY') ?: '';
+        $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
+        
+        if (empty($apiKey) || empty($apiSecret)) {
+            logMessage("API credentials not configured");
+            return ['success' => false, 'error' => 'API credentials not configured'];
+        }
+        
+        $timestamp = round(microtime(true) * 1000);
+        
+        $params = [
+            'symbol' => $symbol,
+            'side' => $side,
+            'type' => 'STOP_MARKET',
+            'quantity' => $quantity,
+            'stopPrice' => $stopPrice,
+            'positionSide' => $positionSide,
+            'timeInForce' => 'GTC',
+            'timestamp' => $timestamp
+        ];
+        
+        // Set leverage first
+        if ($leverage > 1) {
+            setLeverage($symbol, $leverage, $positionSide);
+        }
+        
+        $queryString = http_build_query($params);
+        $signature = hash_hmac('sha256', $queryString, $apiSecret);
+        
+        $baseUrl = getBingXApiUrl();
+        $url = $baseUrl . "/openApi/swap/v2/trade/order";
+        
+        $postData = $queryString . "&signature=" . $signature;
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'X-BX-APIKEY: ' . $apiKey
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($response && $httpCode == 200) {
+            $data = json_decode($response, true);
+            
+            if ($data && $data['code'] == 0) {
+                // Extract order ID from nested structure - BingX returns it in data.order.orderId
+                $orderId = $data['data']['orderId'] ?? $data['data']['order']['orderId'] ?? $data['data']['order']['orderID'] ?? '';
+                logMessage("🔍 Extracted SL Order ID: $orderId from response");
+                return [
+                    'success' => true,
+                    'orderId' => $orderId,
                     'data' => $data['data']
                 ];
             } else {
@@ -991,6 +1116,15 @@ function createOrderRecord($pdo, $signalId, $bingxOrderId, $symbol, $side, $entr
             created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
         
+        // Debug log the values being inserted
+        logMessage("🔍 DATABASE DEBUG - Inserting order record:");
+        logMessage("  Signal ID: $signalId");
+        logMessage("  BingX Order ID: " . ($bingxOrderId ?: 'NULL'));
+        logMessage("  Stop Loss Order ID: " . ($stopLossOrderId ?: 'NULL'));
+        logMessage("  Take Profit Order ID: " . ($takeProfitOrderId ?: 'NULL'));
+        logMessage("  Stop Loss Price: " . ($stopLossPrice ?: 'NULL'));
+        logMessage("  Take Profit Price: " . ($takeProfitPrice ?: 'NULL'));
+        
         $stmt = $pdo->prepare($sql);
         $result = $stmt->execute([
             $signalId,
@@ -1009,6 +1143,11 @@ function createOrderRecord($pdo, $signalId, $bingxOrderId, $symbol, $side, $entr
             $stopLossPrice,
             $takeProfitPrice
         ]);
+        
+        if (!$result) {
+            $errorInfo = $stmt->errorInfo();
+            logMessage("❌ SQL Error: " . implode(' - ', $errorInfo));
+        }
         
         if ($result) {
             $orderId = $pdo->lastInsertId();
