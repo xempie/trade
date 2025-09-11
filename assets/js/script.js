@@ -1464,7 +1464,7 @@ class TradingForm {
                 `<span class="mode-indicator live-mode" title="Live trading">LIVE</span>`;
             
             return `
-                <div class="signal-item position-item ${isDemo ? 'demo-position' : 'live-position'}">
+                <div class="signal-item position-item ${isDemo ? 'demo-position' : 'live-position'}" data-position-id="${positionId}">
                     <div class="position-progress-bar">
                         <div class="position-progress-fill ${pnlPercent >= 0 ? 'positive' : 'negative'}" data-pnl="${pnlPercent}"></div>
                     </div>
@@ -1675,6 +1675,8 @@ class TradingForm {
                                  element.querySelector('[data-position-id]')?.dataset.positionId ||
                                  this.extractPositionIdFromElement(element);
                 
+                console.log(`🔍 Position extraction for ${symbol}: ID=${positionId}, Direction=${direction}`);
+                
                 if (positionId && symbol) {
                     activePositions.push({
                         id: positionId,
@@ -1682,6 +1684,8 @@ class TradingForm {
                         direction: direction,
                         element: element
                     });
+                } else {
+                    console.log(`❌ Skipping position ${symbol} - missing ID or symbol`);
                 }
             }
         });
@@ -1711,27 +1715,34 @@ class TradingForm {
                 const isDemo = position.element.textContent.includes('Demo') || 
                                position.element.querySelector('.demo-indicator');
                 
+                console.log(`🔄 Closing position: ID=${position.id}, Symbol=${position.symbol}, Direction=${position.direction}, Demo=${isDemo}`);
+                
+                const requestBody = {
+                    position_id: position.id,
+                    symbol: position.symbol,
+                    direction: position.direction,
+                    is_demo: isDemo || false
+                };
+                
+                console.log('📤 Request payload:', requestBody);
+                
                 const response = await fetch('api/close_position.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        position_id: position.id,
-                        symbol: position.symbol,
-                        direction: position.direction,
-                        is_demo: isDemo || false
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const result = await response.json();
+                console.log(`📥 Response for ${position.symbol}:`, result);
                 
                 if (response.ok && result.success) {
                     successCount++;
-                    console.log(`✅ Closed ${position.symbol} ${position.direction}`);
+                    console.log(`✅ Closed ${position.symbol} ${position.direction} - ${result.message}`);
                 } else {
                     failCount++;
-                    console.error(`❌ Failed to close ${position.symbol} ${position.direction}:`, result.error);
+                    console.error(`❌ Failed to close ${position.symbol} ${position.direction}: HTTP ${response.status}`, result.error);
                 }
             } catch (error) {
                 failCount++;
@@ -1739,7 +1750,7 @@ class TradingForm {
             }
 
             // Small delay between requests to avoid overwhelming the API
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 500)); // Increased delay
         }
 
         // Show final result
@@ -1766,11 +1777,15 @@ class TradingForm {
         const buttons = element.querySelectorAll('button[onclick]');
         for (const button of buttons) {
             const onclick = button.getAttribute('onclick');
-            if (onclick && onclick.includes('closePosition') || onclick.includes('removePosition')) {
+            if (onclick && (onclick.includes('closePosition') || onclick.includes('removePosition'))) {
                 const match = onclick.match(/\((\d+),/);
-                if (match) return match[1];
+                if (match) {
+                    console.log(`🔍 Extracted position ID: ${match[1]} from onclick: ${onclick}`);
+                    return match[1];
+                }
             }
         }
+        console.log('❌ No position ID found in element onclick handlers');
         return null;
     }
 
