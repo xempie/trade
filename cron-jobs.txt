@@ -1,0 +1,11 @@
+# Crypto Trading System - Auto-generated cron jobs
+# Generated on: 2025-09-11 16:35:50
+
+# Balance Sync - Sync account balance every 2 minutes
+*/2 * * * * C:\xampp\php\php.exe C:\xampp\htdocs\trade/jobs/balance-sync.php >> C:\xampp\htdocs\trade/jobs/cron.log 2>&1
+
+# Position Sync - Sync positions every 3 minutes
+*/3 * * * * C:\xampp\php\php.exe C:\xampp\htdocs\trade/jobs/position-sync.php >> C:\xampp\htdocs\trade/jobs/cron.log 2>&1
+
+# SL/TP Monitor - Check and create missing SL/TP orders every 5 minutes
+*/5 * * * * C:\xampp\php\php.exe C:\xampp\htdocs\trade/jobs/sl-tp-monitor.php >> C:\xampp\htdocs\trade/jobs/cron.log 2>&1
