@@ -30,12 +30,12 @@ echo "Step 2: Current market prices...\n";
 echo "--------------------------------\n";
 include 'test_signal_automation.php';
 
-echo "\n\nStep 3: Creating test signals...\n";
-echo "--------------------------------\n";
+echo "\n\nStep 3: Checking existing signals in database...\n";
+echo "------------------------------------------------\n";
 
-// Step 3: Create test signals
-$_GET['action'] = '1'; // Set action for create_test_signals.php
-include 'create_test_signals.php';
+// Step 3: Check existing signals
+echo "You should have test signals already in your database.\n";
+echo "Use this SQL to check: SELECT id, symbol, signal_type, entry_market_price, status FROM signals WHERE signal_status = 'ACTIVE';\n\n";
 
 echo "\n\nStep 4: Running signal automation...\n";
 echo "------------------------------------\n";
@@ -43,12 +43,11 @@ echo "------------------------------------\n";
 // Step 4: Run the automation
 include 'signal_automation.php';
 
-echo "\n\nStep 5: Checking results...\n";
-echo "---------------------------\n";
+echo "\n\nStep 5: Check results in database...\n";
+echo "------------------------------------\n";
 
-// Step 5: Show results
-$_GET['action'] = '2'; // Set action to show signals
-include 'create_test_signals.php';
+echo "After automation runs, check your database to see which signals changed from PENDING to FILLED.\n";
+echo "Also check your BingX demo account for new positions.\n";
 
 echo "\n=======================================================\n";
 echo "                TEST COMPLETED                          \n";
@@ -81,29 +80,31 @@ echo "3. Test entry2 and entry3 triggers\n";
 echo "4. Set up cron job when ready\n";
 echo "5. Switch to TRADING_MODE=live only when fully tested\n\n";
 
-function loadEnv($path) {
-    if (!file_exists($path)) {
-        return false;
-    }
-    
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) {
-            continue;
+if (!function_exists('loadEnv')) {
+    function loadEnv($path) {
+        if (!file_exists($path)) {
+            return false;
         }
         
-        if (strpos($line, '=') === false) {
-            continue;
-        }
-        
-        list($name, $value) = explode('=', $line, 2);
-        $name = trim($name);
-        $value = trim($value);
-        
-        if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
-            putenv(sprintf('%s=%s', $name, $value));
-            $_ENV[$name] = $value;
-            $_SERVER[$name] = $value;
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos(trim($line), '#') === 0) {
+                continue;
+            }
+            
+            if (strpos($line, '=') === false) {
+                continue;
+            }
+            
+            list($name, $value) = explode('=', $line, 2);
+            $name = trim($name);
+            $value = trim($value);
+            
+            if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
+                putenv(sprintf('%s=%s', $name, $value));
+                $_ENV[$name] = $value;
+                $_SERVER[$name] = $value;
+            }
         }
     }
 }

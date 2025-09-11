@@ -69,7 +69,8 @@ function addTradingModeHeaders() {
 /**
  * Validate trading mode configuration
  */
-function validateTradingMode() {
+if (!function_exists('validateTradingMode')) {
+    function validateTradingMode() {
     $info = getTradingModeInfo();
     $warnings = [];
     
@@ -90,6 +91,7 @@ function validateTradingMode() {
         'warnings' => $warnings,
         'info' => $info
     ];
+    }
 }
 
 ?>

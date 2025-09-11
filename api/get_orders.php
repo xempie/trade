@@ -168,9 +168,13 @@ function getPositionsWithDebug($pdo, $filters = []) {
 // Get positions from database
 function getPositions($pdo, $filters = []) {
     try {
-        $sql = "SELECT p.*, s.signal_type 
+        $sql = "SELECT p.*, s.signal_type, 
+                       s.stop_loss, s.take_profit_1, s.take_profit_2, s.take_profit_3,
+                       o.stop_loss_order_id, o.take_profit_order_id, 
+                       o.stop_loss_price, o.take_profit_price
                 FROM positions p 
                 LEFT JOIN signals s ON p.signal_id = s.id 
+                LEFT JOIN orders o ON p.signal_id = o.signal_id AND o.entry_level = 'MARKET' AND o.status = 'FILLED'
                 WHERE 1=1";
         $params = [];
         

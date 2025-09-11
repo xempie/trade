@@ -1368,7 +1368,8 @@ class TradingForm {
         positionList.innerHTML = positions.map(position => {
             // Handle both database positions and localStorage signals
             const direction = position.side || position.signal_type || 'UNKNOWN';
-            const symbol = position.symbol || 'UNKNOWN';
+            const rawSymbol = position.symbol || 'UNKNOWN';
+            const symbol = rawSymbol.replace('-USDT', '').replace('USDT', '');
             const leverage = position.leverage || 1;
             const openedAt = position.opened_at || position.created_at || position.timestamp;
             const marginUsed = position.margin_used ? parseFloat(position.margin_used).toFixed(2) : '0.00';
@@ -1378,6 +1379,53 @@ class TradingForm {
             // Calculate P&L percentage based on margin used
             const pnlPercent = parseFloat(marginUsed) > 0 ? ((parseFloat(pnl) / parseFloat(marginUsed)) * 100).toFixed(2) : '0.00';
             const pnlPercentClass = parseFloat(pnlPercent) >= 0 ? 'profit' : 'loss';
+            
+            // Get planned Stop Loss and Take Profit values from signals table
+            const entryPrice = position.entry_price ? parseFloat(position.entry_price) : 0;
+            const marginValue = parseFloat(marginUsed);
+            const leverageValue = parseInt(leverage);
+            
+            let stopLossValue = 0;
+            let takeProfitValue = 0;
+            let stopLossPercentDisplay = 'N/A';
+            let takeProfitPercentDisplay = 'N/A';
+            
+            // Use planned SL from signals table
+            if (position.stop_loss && entryPrice > 0) {
+                const slPrice = parseFloat(position.stop_loss);
+                // Calculate dollar value based on planned price difference and position size
+                const priceChange = Math.abs(entryPrice - slPrice);
+                const positionValue = marginValue * leverageValue;
+                stopLossValue = (priceChange / entryPrice) * positionValue;
+                
+                // Calculate percentage (price change × leverage × margin)
+                const priceChangePercent = (Math.abs(slPrice - entryPrice) / entryPrice) * 100;
+                const slPercent = (priceChangePercent * leverageValue * marginValue / 100).toFixed(1);
+                if (direction === 'LONG') {
+                    stopLossPercentDisplay = slPrice < entryPrice ? `-${slPercent}%` : `+${slPercent}%`;
+                } else {
+                    stopLossPercentDisplay = slPrice > entryPrice ? `+${slPercent}%` : `-${slPercent}%`;
+                }
+            }
+            
+            // Use planned TP from signals table (prioritize take_profit_1)
+            const takeProfitPrice = position.take_profit_1 || position.take_profit_2 || position.take_profit_3;
+            if (takeProfitPrice && entryPrice > 0) {
+                const tpPrice = parseFloat(takeProfitPrice);
+                // Calculate dollar value based on planned price difference and position size
+                const priceChange = Math.abs(entryPrice - tpPrice);
+                const positionValue = marginValue * leverageValue;
+                takeProfitValue = (priceChange / entryPrice) * positionValue;
+                
+                // Calculate percentage (price change × leverage × margin)
+                const priceChangePercent = (Math.abs(tpPrice - entryPrice) / entryPrice) * 100;
+                const tpPercent = (priceChangePercent * leverageValue * marginValue / 100).toFixed(1);
+                if (direction === 'LONG') {
+                    takeProfitPercentDisplay = tpPrice > entryPrice ? `+${tpPercent}%` : `-${tpPercent}%`;
+                } else {
+                    takeProfitPercentDisplay = tpPrice < entryPrice ? `-${tpPercent}%` : `+${tpPercent}%`;
+                }
+            }
             
             // Calculate time ago - handle various date formats
             let timeAgo = 'Unknown time';
@@ -1434,6 +1482,9 @@ class TradingForm {
                         </div>
                         <div class="position-pnl ${pnlClass}">
                             P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
+                        </div>
+                        <div class="position-sl-tp">
+                            <span class="sl-value">SL: $${stopLossValue.toFixed(1)} (${stopLossPercentDisplay})</span> • <span class="tp-value">TP: $${takeProfitValue.toFixed(1)} (${takeProfitPercentDisplay}) <span class="tp-info-icon" onclick="tradingForm.showTPPopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', '${JSON.stringify({tp1: position.take_profit_1, tp2: position.take_profit_2, tp3: position.take_profit_3, sl: position.stop_loss}).replace(/"/g, '&quot;')}')" title="Show all targets">ⓘ</span></span>
                         </div>
                         <div class="position-actions">
                             <button 
@@ -2411,6 +2462,131 @@ class TradingForm {
                 popover.innerHTML = '';
             }, 300);
         }
+    }
+
+    // Show TP popover with all targets and stop loss
+    showTPPopover(positionId, symbol, entryPrice, leverage, margin, direction, targetsJson) {
+        let targets;
+        try {
+            targets = JSON.parse(targetsJson.replace(/&quot;/g, '"'));
+        } catch (e) {
+            console.error('Error parsing targets:', e);
+            return;
+        }
+
+        // Create overlay if it doesn't exist
+        let overlay = document.getElementById('tp-popover-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'tp-popover-overlay';
+            overlay.className = 'tp-popover-overlay';
+            document.body.appendChild(overlay);
+        }
+
+        // Create popover if it doesn't exist
+        let popover = document.getElementById('tp-popover');
+        if (!popover) {
+            popover = document.createElement('div');
+            popover.id = 'tp-popover';
+            popover.className = 'tp-popover';
+            document.body.appendChild(popover);
+        }
+
+        // Calculate percentages for each target
+        const calculateTargetPercent = (targetPrice) => {
+            if (!targetPrice || !entryPrice) return null;
+            const priceChangePercent = (Math.abs(targetPrice - entryPrice) / entryPrice) * 100;
+            const leveragedPercent = (priceChangePercent * leverage * margin / 100);
+            
+            let sign = '';
+            if (direction === 'LONG') {
+                sign = targetPrice > entryPrice ? '+' : '-';
+            } else {
+                sign = targetPrice < entryPrice ? '-' : '+';
+            }
+            
+            return `${sign}${leveragedPercent.toFixed(1)}%`;
+        };
+
+        // Build targets list
+        let targetsHTML = '';
+        
+        // Add take profit targets
+        if (targets.tp1) {
+            const tp1Percent = calculateTargetPercent(parseFloat(targets.tp1));
+            targetsHTML += `
+                <div class="tp-popover-item target">
+                    <span class="tp-popover-label">Target 1:</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.tp1).toFixed(4)} (${tp1Percent})</span>
+                </div>
+            `;
+        }
+        
+        if (targets.tp2) {
+            const tp2Percent = calculateTargetPercent(parseFloat(targets.tp2));
+            targetsHTML += `
+                <div class="tp-popover-item target">
+                    <span class="tp-popover-label">Target 2:</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.tp2).toFixed(4)} (${tp2Percent})</span>
+                </div>
+            `;
+        }
+        
+        if (targets.tp3) {
+            const tp3Percent = calculateTargetPercent(parseFloat(targets.tp3));
+            targetsHTML += `
+                <div class="tp-popover-item target">
+                    <span class="tp-popover-label">Target 3:</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.tp3).toFixed(4)} (${tp3Percent})</span>
+                </div>
+            `;
+        }
+
+        // Add stop loss
+        if (targets.sl) {
+            const slPercent = calculateTargetPercent(parseFloat(targets.sl));
+            targetsHTML += `
+                <div class="tp-popover-item stop-loss">
+                    <span class="tp-popover-label">Stop Loss:</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.sl).toFixed(4)} (${slPercent})</span>
+                </div>
+            `;
+        }
+
+        popover.innerHTML = `
+            <div class="tp-popover-header">
+                <span class="tp-popover-title">${symbol} Targets & Stop Loss</span>
+                <button class="tp-popover-close" onclick="tradingForm.closeTPPopover()">×</button>
+            </div>
+            <div class="tp-popover-content">
+                ${targetsHTML}
+            </div>
+        `;
+
+        // Show popover and overlay
+        overlay.style.display = 'block';
+        popover.style.display = 'block';
+
+        // Close on overlay click
+        overlay.onclick = () => this.closeTPPopover();
+
+        // Close on Escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                this.closeTPPopover();
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    }
+
+    // Close TP popover
+    closeTPPopover() {
+        const overlay = document.getElementById('tp-popover-overlay');
+        const popover = document.getElementById('tp-popover');
+        
+        if (overlay) overlay.style.display = 'none';
+        if (popover) popover.style.display = 'none';
     }
 
     // Open position from watchlist

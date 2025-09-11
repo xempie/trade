@@ -11,37 +11,51 @@ $scenarios = [
     [
         'auto_margin_per_entry' => 50.00,
         'total_assets' => 1000.00,
+        'price' => 0.33,
+        'leverage' => 10,
         'description' => 'Normal case: Setting below 5% limit'
     ],
     [
         'auto_margin_per_entry' => 100.00,
         'total_assets' => 1000.00,
+        'price' => 0.33,
+        'leverage' => 10,
         'description' => 'Risk management: Setting above 5% limit'
     ],
     [
         'auto_margin_per_entry' => 75.00,
         'total_assets' => 2000.00,
-        'description' => 'Higher assets: Setting below 5% limit'
+        'price' => 50000,
+        'leverage' => 2,
+        'description' => 'Higher assets: BTC example'
     ],
     [
         'auto_margin_per_entry' => 200.00,
         'total_assets' => 1500.00,
-        'description' => 'Aggressive setting: Capped by 5% rule'
+        'price' => 3500,
+        'leverage' => 5,
+        'description' => 'Aggressive setting: ETH example'
     ]
 ];
 
 foreach ($scenarios as $i => $scenario) {
     $autoMargin = $scenario['auto_margin_per_entry'];
     $totalAssets = $scenario['total_assets'];
+    $price = $scenario['price'];
+    $leverage = $scenario['leverage'];
     $fivePercent = $totalAssets * 0.05;
-    $finalSize = min($autoMargin, $fivePercent);
+    $marginAmount = min($autoMargin, $fivePercent);
+    $quantity = ($marginAmount * $leverage) / $price;
     
     echo "Scenario " . ($i + 1) . ": " . $scenario['description'] . "\n";
     echo "  AUTO_MARGIN_PER_ENTRY: $autoMargin USDT\n";
     echo "  Total Assets: $totalAssets USDT\n";
     echo "  5% of Assets: $fivePercent USDT\n";
-    echo "  Final Position Size: $finalSize USDT\n";
-    echo "  Logic: MIN($autoMargin, $fivePercent) = $finalSize\n\n";
+    echo "  Final Margin Amount: $marginAmount USDT\n";
+    echo "  Current Price: $price\n";
+    echo "  Leverage: {$leverage}x\n";
+    echo "  Calculated Quantity: " . number_format($quantity, 4) . "\n";
+    echo "  Formula: ($marginAmount * $leverage) / $price = " . number_format($quantity, 4) . "\n\n";
 }
 
 echo "=== Key Benefits ===\n";
