@@ -67,6 +67,7 @@ $isLocal = isLocalhost();
 
     <script src="assets/js/script.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/header.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/anim.js?v=<?php echo time(); ?>"></script>
     <script>
         // Initialize home page functionality
         document.addEventListener('DOMContentLoaded', () => {

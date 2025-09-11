@@ -46,6 +46,25 @@ function loadEnv($path) {
 $envPath = __DIR__ . '/../.env';
 loadEnv($envPath);
 
+// Helper function to count current open trades
+function countOpenTrades($pdo) {
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM positions WHERE status = 'OPEN'");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return intval($result['count']);
+    } catch (Exception $e) {
+        error_log("Error counting open trades: " . $e->getMessage());
+        return 0;
+    }
+}
+
+// Helper function to get MAX_OPEN_TRADES setting
+function getMaxOpenTrades() {
+    $maxTrades = getenv('MAX_OPEN_TRADES');
+    return $maxTrades ? intval($maxTrades) : 999; // Default to 999 if not set (no limit)
+}
+
 // Database connection
 function getDbConnection() {
     $host = getenv('DB_HOST') ?: 'localhost';
@@ -312,6 +331,17 @@ try {
         ]);
         exit;
     }
+    
+    // Check if maximum number of open trades has been reached
+    $currentOpenTrades = countOpenTrades($pdo);
+    $maxOpenTrades = getMaxOpenTrades();
+    
+    if ($currentOpenTrades >= $maxOpenTrades) {
+        error_log("Trade limit reached in limit order execution: {$currentOpenTrades}/{$maxOpenTrades} open trades");
+        throw new Exception("Maximum number of open trades reached ({$currentOpenTrades}/{$maxOpenTrades}). Please close some positions before opening new ones.");
+    }
+    
+    error_log("Trade limit check passed in limit order: {$currentOpenTrades}/{$maxOpenTrades} open trades");
     
     // Get current market price for size calculation
     $availableBalance = getAccountBalance($apiKey, $apiSecret);

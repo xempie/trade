@@ -302,7 +302,18 @@ function placeOrder($symbol, $side, $quantity, $leverage = 1, $signalType = 'LON
         
         // Set leverage first
         if ($leverage > 1) {
-            setLeverage($symbol, $leverage);
+            $leverageSet = setLeverage($symbol, $leverage);
+            if ($leverageSet) {
+                // Verify actual leverage set by exchange
+                usleep(500000); // Wait 0.5s for leverage to be applied
+                $actualLeverage = getCurrentLeverage($symbol);
+                if ($actualLeverage !== null && $actualLeverage !== $leverage) {
+                    logMessage("⚠️  WARNING: Requested leverage {$leverage}x but BingX set {$actualLeverage}x for {$symbol}. Exchange may have maximum leverage limits.");
+                    // Log this for analysis - don't change the leverage variable as it affects position calculations
+                } else if ($actualLeverage === $leverage) {
+                    logMessage("✅ Leverage confirmed: {$leverage}x successfully set for {$symbol}");
+                }
+            }
         }
         
         $queryString = http_build_query($params);
@@ -354,6 +365,46 @@ function placeOrder($symbol, $side, $quantity, $leverage = 1, $signalType = 'LON
     }
 }
 
+// Get current leverage for symbol from BingX
+function getCurrentLeverage($symbol) {
+    try {
+        $apiKey = getenv('BINGX_API_KEY') ?: '';
+        $apiSecret = getenv('BINGX_SECRET_KEY') ?: '';
+        
+        $timestamp = round(microtime(true) * 1000);
+        $queryString = "symbol={$symbol}&timestamp={$timestamp}";
+        $signature = hash_hmac('sha256', $queryString, $apiSecret);
+        
+        $baseUrl = getBingXApiUrl();
+        $url = $baseUrl . "/openApi/swap/v2/user/leverage?" . $queryString . "&signature=" . $signature;
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'X-BX-APIKEY: ' . $apiKey
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($response && $httpCode == 200) {
+            $data = json_decode($response, true);
+            if ($data && $data['code'] == 0 && isset($data['data']['leverage'])) {
+                return intval($data['data']['leverage']);
+            }
+        }
+        
+        return null;
+    } catch (Exception $e) {
+        logMessage("Error getting current leverage: " . $e->getMessage());
+        return null;
+    }
+}
+
 // Set leverage for symbol
 function setLeverage($symbol, $leverage) {
     try {
@@ -387,9 +438,26 @@ function setLeverage($symbol, $leverage) {
         ]);
         
         $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         
-        return $response;
+        // Log the leverage setting response for debugging
+        logMessage("Leverage setting response for {$symbol} to {$leverage}x: HTTP {$httpCode}, Response: " . substr($response, 0, 300));
+        
+        if ($response && $httpCode == 200) {
+            $data = json_decode($response, true);
+            if ($data && $data['code'] == 0) {
+                logMessage("✅ Successfully set leverage for {$symbol} to {$leverage}x");
+                return true;
+            } else {
+                $errorMsg = isset($data['msg']) ? $data['msg'] : 'Unknown API error';
+                logMessage("❌ Failed to set leverage for {$symbol}: " . $errorMsg);
+                return false;
+            }
+        }
+        
+        logMessage("❌ HTTP request failed for setting leverage: HTTP {$httpCode}");
+        return false;
     } catch (Exception $e) {
         logMessage("Error setting leverage: " . $e->getMessage());
         return false;
@@ -555,8 +623,10 @@ function processPendingSignals($pdo) {
     }
 }
 
-// Process FILLED signals for entry2 triggers
+// Process FILLED signals for entry2 triggers - DISABLED
 function processFilledSignals($pdo) {
+    logMessage("Entry 2 processing is DISABLED - skipping entry2 triggers");
+    return; // Exit early to prevent entry 2 processing
     try {
         // Get all FILLED signals that have entry_2 price set and haven't triggered entry2 yet
         $stmt = $pdo->prepare("SELECT * FROM signals WHERE status = 'FILLED' AND signal_status = 'ACTIVE' AND entry_2 IS NOT NULL AND entry_2 > 0");
@@ -785,56 +855,16 @@ function createLimitOrderRecords($pdo, $signal) {
     $limitOrdersCreated = 0;
     $side = $signal['signal_type'] === 'LONG' ? 'BUY' : 'SELL';
     
-    // Create entry2 limit order record (database only)
+    // Create entry2 limit order record (database only) - DISABLED
     if (!empty($signal['entry_2']) && $signal['entry_2'] > 0) {
-        $entry2Price = floatval($signal['entry_2']);
-        $quantity = calculatePositionSize($pdo, $entry2Price, $signal['leverage']);
-        
-        logMessage("Creating ENTRY_2 limit order record (database only): Symbol=" . $signal['symbol'] . ", Price=$entry2Price, Quantity=$quantity");
-        
-        $orderId = createOrderRecord(
-            $pdo, 
-            $signal['id'], 
-            '', // No BingX order ID since it's database only
-            $signal['symbol'], 
-            $side, 
-            'ENTRY_2', 
-            $quantity, 
-            $entry2Price, 
-            $signal['leverage'], 
-            'PENDING' // Status for database-only orders
-        );
-        
-        if ($orderId) {
-            logMessage("Successfully created ENTRY_2 limit order record: DB ID=$orderId");
-            $limitOrdersCreated++;
-        }
+        logMessage("Entry 2 processing is DISABLED - skipping ENTRY_2 limit order record creation");
+        // Disabled - no longer creating entry 2 records
     }
     
-    // Create entry3 limit order record (database only)
+    // Create entry3 limit order record (database only) - DISABLED
     if (!empty($signal['entry_3']) && $signal['entry_3'] > 0) {
-        $entry3Price = floatval($signal['entry_3']);
-        $quantity = calculatePositionSize($pdo, $entry3Price, $signal['leverage']);
-        
-        logMessage("Creating ENTRY_3 limit order record (database only): Symbol=" . $signal['symbol'] . ", Price=$entry3Price, Quantity=$quantity");
-        
-        $orderId = createOrderRecord(
-            $pdo, 
-            $signal['id'], 
-            '', // No BingX order ID since it's database only
-            $signal['symbol'], 
-            $side, 
-            'ENTRY_3', 
-            $quantity, 
-            $entry3Price, 
-            $signal['leverage'], 
-            'PENDING' // Status for database-only orders
-        );
-        
-        if ($orderId) {
-            logMessage("Successfully created ENTRY_3 limit order record: DB ID=$orderId");
-            $limitOrdersCreated++;
-        }
+        logMessage("Entry 3 processing is DISABLED - skipping ENTRY_3 limit order record creation");
+        // Disabled - no longer creating entry 3 records
     }
     
     return $limitOrdersCreated;

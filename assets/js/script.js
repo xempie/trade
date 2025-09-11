@@ -1393,18 +1393,18 @@ class TradingForm {
             // Use planned SL from signals table
             if (position.stop_loss && entryPrice > 0) {
                 const slPrice = parseFloat(position.stop_loss);
-                // Calculate dollar value based on planned price difference and position size
-                const priceChange = Math.abs(entryPrice - slPrice);
-                const positionValue = marginValue * leverageValue;
-                stopLossValue = (priceChange / entryPrice) * positionValue;
                 
-                // Calculate percentage (price change × leverage × margin)
+                // Calculate dollar value using correct formula: margin × leverage × price change %
                 const priceChangePercent = (Math.abs(slPrice - entryPrice) / entryPrice) * 100;
-                const slPercent = (priceChangePercent * leverageValue * marginValue / 100).toFixed(1);
+                const slDollarValue = (marginValue * leverageValue * (priceChangePercent / 100));
+                stopLossValue = slDollarValue;
+                
+                // Format display value - show leveraged percentage impact on margin
+                const slPercentageImpact = (slDollarValue / marginValue) * 100;
                 if (direction === 'LONG') {
-                    stopLossPercentDisplay = slPrice < entryPrice ? `-${slPercent}%` : `+${slPercent}%`;
+                    stopLossPercentDisplay = slPrice < entryPrice ? `-${slPercentageImpact.toFixed(1)}%` : `+${slPercentageImpact.toFixed(1)}%`;
                 } else {
-                    stopLossPercentDisplay = slPrice > entryPrice ? `+${slPercent}%` : `-${slPercent}%`;
+                    stopLossPercentDisplay = slPrice > entryPrice ? `+${slPercentageImpact.toFixed(1)}%` : `-${slPercentageImpact.toFixed(1)}%`;
                 }
             }
             
@@ -1412,18 +1412,18 @@ class TradingForm {
             const takeProfitPrice = position.take_profit_1 || position.take_profit_2 || position.take_profit_3;
             if (takeProfitPrice && entryPrice > 0) {
                 const tpPrice = parseFloat(takeProfitPrice);
-                // Calculate dollar value based on planned price difference and position size
-                const priceChange = Math.abs(entryPrice - tpPrice);
-                const positionValue = marginValue * leverageValue;
-                takeProfitValue = (priceChange / entryPrice) * positionValue;
                 
-                // Calculate percentage (price change × leverage × margin)
+                // Calculate dollar value using correct formula: margin × leverage × price change %
                 const priceChangePercent = (Math.abs(tpPrice - entryPrice) / entryPrice) * 100;
-                const tpPercent = (priceChangePercent * leverageValue * marginValue / 100).toFixed(1);
+                const tpDollarValue = (marginValue * leverageValue * (priceChangePercent / 100));
+                takeProfitValue = tpDollarValue;
+                
+                // Format display value - show leveraged percentage impact on margin
+                const tpPercentageImpact = (tpDollarValue / marginValue) * 100;
                 if (direction === 'LONG') {
-                    takeProfitPercentDisplay = tpPrice > entryPrice ? `+${tpPercent}%` : `-${tpPercent}%`;
+                    takeProfitPercentDisplay = tpPrice > entryPrice ? `+${tpPercentageImpact.toFixed(1)}%` : `-${tpPercentageImpact.toFixed(1)}%`;
                 } else {
-                    takeProfitPercentDisplay = tpPrice < entryPrice ? `-${tpPercent}%` : `+${tpPercent}%`;
+                    takeProfitPercentDisplay = tpPrice < entryPrice ? `-${tpPercentageImpact.toFixed(1)}%` : `+${tpPercentageImpact.toFixed(1)}%`;
                 }
             }
             
@@ -1484,7 +1484,7 @@ class TradingForm {
                             P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
                         </div>
                         <div class="position-sl-tp">
-                            <span class="sl-value">SL: $${stopLossValue.toFixed(1)} (${stopLossPercentDisplay})</span> • <span class="tp-value">TP: $${takeProfitValue.toFixed(1)} (${takeProfitPercentDisplay}) <span class="tp-info-icon" onclick="tradingForm.showTPPopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', '${JSON.stringify({tp1: position.take_profit_1, tp2: position.take_profit_2, tp3: position.take_profit_3, sl: position.stop_loss}).replace(/"/g, '&quot;')}')" title="Show all targets">ⓘ</span></span>
+                            <span class="sl-value">SL: $${stopLossValue.toFixed(1)} (${stopLossPercentDisplay})</span> • <span class="tp-value">TP: $${takeProfitValue.toFixed(1)} (${takeProfitPercentDisplay})</span> <span class="tp-info-icon" onclick="tradingForm.showTPPopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', '${JSON.stringify({tp1: position.take_profit_1, tp2: position.take_profit_2, tp3: position.take_profit_3, sl: position.stop_loss}).replace(/"/g, '&quot;')}')" title="Show all targets">ⓘ</span>
                         </div>
                         <div class="position-actions">
                             <button 
@@ -1644,6 +1644,134 @@ class TradingForm {
             console.error('Remove position error:', error);
             this.showNotification(`Failed to remove position: ${error.message}`, 'error');
         }
+    }
+
+    async closeAllPositions() {
+        // Get all active positions from the current display
+        const positionElements = document.querySelectorAll('.signal-item, .position-item');
+        const activePositions = [];
+        
+        positionElements.forEach(element => {
+            // Skip if it's the "no positions" message
+            if (element.querySelector('.no-signals')) return;
+            
+            const symbolElement = element.querySelector('.signal-symbol, .watchlist-symbol');
+            const directionElement = element.querySelector('.signal-details, .watchlist-direction');
+            
+            if (symbolElement && directionElement) {
+                const symbol = symbolElement.textContent.trim();
+                const directionText = directionElement.textContent || directionElement.innerText;
+                let direction = 'LONG'; // default
+                
+                // Extract direction from text (could be "LONG • 10x • Margin: $100" format)
+                if (directionText.includes('SHORT') || directionText.toLowerCase().includes('short')) {
+                    direction = 'SHORT';
+                } else if (directionText.includes('LONG') || directionText.toLowerCase().includes('long')) {
+                    direction = 'LONG';
+                }
+                
+                // Get position ID from element data attribute or onclick handler
+                const positionId = element.dataset.positionId || 
+                                 element.querySelector('[data-position-id]')?.dataset.positionId ||
+                                 this.extractPositionIdFromElement(element);
+                
+                if (positionId && symbol) {
+                    activePositions.push({
+                        id: positionId,
+                        symbol: symbol,
+                        direction: direction,
+                        element: element
+                    });
+                }
+            }
+        });
+
+        if (activePositions.length === 0) {
+            this.showNotification('No active positions to close', 'info');
+            return;
+        }
+
+        // Confirmation dialog
+        const positionText = activePositions.length === 1 ? '1 position' : `${activePositions.length} positions`;
+        const confirmMessage = `Are you sure you want to close all ${positionText}?\n\n` +
+                              activePositions.map(p => `${p.symbol} ${p.direction}`).join('\n');
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // Start closing all positions
+        this.showNotification(`Closing ${positionText}...`, 'info');
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const position of activePositions) {
+            try {
+                // Determine if it's demo mode (you may need to adjust this logic based on your app)
+                const isDemo = position.element.textContent.includes('Demo') || 
+                               position.element.querySelector('.demo-indicator');
+                
+                const response = await fetch('api/close_position.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        position_id: position.id,
+                        symbol: position.symbol,
+                        direction: position.direction,
+                        is_demo: isDemo || false
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    successCount++;
+                    console.log(`✅ Closed ${position.symbol} ${position.direction}`);
+                } else {
+                    failCount++;
+                    console.error(`❌ Failed to close ${position.symbol} ${position.direction}:`, result.error);
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`❌ Error closing ${position.symbol} ${position.direction}:`, error);
+            }
+
+            // Small delay between requests to avoid overwhelming the API
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        // Show final result
+        if (successCount > 0 && failCount === 0) {
+            this.showNotification(`Successfully closed all ${successCount} positions`, 'success');
+        } else if (successCount > 0 && failCount > 0) {
+            this.showNotification(`Closed ${successCount} positions, ${failCount} failed`, 'warning');
+        } else {
+            this.showNotification(`Failed to close positions`, 'error');
+        }
+
+        // Refresh the positions list
+        setTimeout(() => {
+            this.updateRecentSignals();
+            if (window.location.pathname.includes('home.php') || window.location.pathname === '/' || window.location.pathname === '/index.php' || window.location.pathname.includes('trade.php')) {
+                this.loadBalanceData();
+            }
+        }, 1000);
+    }
+
+    // Helper function to extract position ID from element
+    extractPositionIdFromElement(element) {
+        // Try to find position ID in onclick handlers of child buttons
+        const buttons = element.querySelectorAll('button[onclick]');
+        for (const button of buttons) {
+            const onclick = button.getAttribute('onclick');
+            if (onclick && onclick.includes('closePosition') || onclick.includes('removePosition')) {
+                const match = onclick.match(/\((\d+),/);
+                if (match) return match[1];
+            }
+        }
+        return null;
     }
 
     getTimeAgo(dateString) {
@@ -2492,20 +2620,26 @@ class TradingForm {
             document.body.appendChild(popover);
         }
 
-        // Calculate percentages for each target
-        const calculateTargetPercent = (targetPrice) => {
+        // Calculate dollar values and percentages for each target - same as main display
+        const calculateTargetValue = (targetPrice) => {
             if (!targetPrice || !entryPrice) return null;
             const priceChangePercent = (Math.abs(targetPrice - entryPrice) / entryPrice) * 100;
-            const leveragedPercent = (priceChangePercent * leverage * margin / 100);
+            const dollarValue = (margin * leverage * (priceChangePercent / 100));
             
-            let sign = '';
+            // Calculate percentage impact on margin (same as main display)
+            const percentageImpact = (dollarValue / margin) * 100;
+            
+            let percentDisplay = '';
             if (direction === 'LONG') {
-                sign = targetPrice > entryPrice ? '+' : '-';
+                percentDisplay = targetPrice > entryPrice ? `+${percentageImpact.toFixed(1)}%` : `-${percentageImpact.toFixed(1)}%`;
             } else {
-                sign = targetPrice < entryPrice ? '-' : '+';
+                percentDisplay = targetPrice < entryPrice ? `-${percentageImpact.toFixed(1)}%` : `+${percentageImpact.toFixed(1)}%`;
             }
             
-            return `${sign}${leveragedPercent.toFixed(1)}%`;
+            return {
+                percent: percentDisplay,
+                dollar: dollarValue.toFixed(1)
+            };
         };
 
         // Build targets list
@@ -2513,42 +2647,42 @@ class TradingForm {
         
         // Add take profit targets
         if (targets.tp1) {
-            const tp1Percent = calculateTargetPercent(parseFloat(targets.tp1));
+            const tp1Data = calculateTargetValue(parseFloat(targets.tp1));
             targetsHTML += `
                 <div class="tp-popover-item target">
                     <span class="tp-popover-label">Target 1:</span>
-                    <span class="tp-popover-value">$${parseFloat(targets.tp1).toFixed(4)} (${tp1Percent})</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.tp1).toFixed(5)} (${tp1Data.percent}) • P&L: $${tp1Data.dollar}</span>
                 </div>
             `;
         }
         
         if (targets.tp2) {
-            const tp2Percent = calculateTargetPercent(parseFloat(targets.tp2));
+            const tp2Data = calculateTargetValue(parseFloat(targets.tp2));
             targetsHTML += `
                 <div class="tp-popover-item target">
                     <span class="tp-popover-label">Target 2:</span>
-                    <span class="tp-popover-value">$${parseFloat(targets.tp2).toFixed(4)} (${tp2Percent})</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.tp2).toFixed(5)} (${tp2Data.percent}) • P&L: $${tp2Data.dollar}</span>
                 </div>
             `;
         }
         
         if (targets.tp3) {
-            const tp3Percent = calculateTargetPercent(parseFloat(targets.tp3));
+            const tp3Data = calculateTargetValue(parseFloat(targets.tp3));
             targetsHTML += `
                 <div class="tp-popover-item target">
                     <span class="tp-popover-label">Target 3:</span>
-                    <span class="tp-popover-value">$${parseFloat(targets.tp3).toFixed(4)} (${tp3Percent})</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.tp3).toFixed(5)} (${tp3Data.percent}) • P&L: $${tp3Data.dollar}</span>
                 </div>
             `;
         }
 
         // Add stop loss
         if (targets.sl) {
-            const slPercent = calculateTargetPercent(parseFloat(targets.sl));
+            const slData = calculateTargetValue(parseFloat(targets.sl));
             targetsHTML += `
                 <div class="tp-popover-item stop-loss">
                     <span class="tp-popover-label">Stop Loss:</span>
-                    <span class="tp-popover-value">$${parseFloat(targets.sl).toFixed(4)} (${slPercent})</span>
+                    <span class="tp-popover-value">$${parseFloat(targets.sl).toFixed(5)} (${slData.percent}) • P&L: $${slData.dollar}</span>
                 </div>
             `;
         }

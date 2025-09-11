@@ -29,9 +29,14 @@ $isLocal = isLocalhost();
                     <div class="recent-signals">
                     <div class="positions-header">
                         <h3>Active Positions</h3>
-                        <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
-                            ↻
-                        </button>
+                        <div class="positions-actions">
+                            <button class="close-all-positions-btn" onclick="tradingForm.closeAllPositions()" title="Close all active positions">
+                                Close All
+                            </button>
+                            <button class="refresh-positions-btn" onclick="tradingForm.refreshPositions()" title="Refresh positions and P&L">
+                                ↻
+                            </button>
+                        </div>
                     </div>
                     <div class="signal-list" id="signal-list">
                         <p class="no-signals">No active positions</p>
