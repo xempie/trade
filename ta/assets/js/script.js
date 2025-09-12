@@ -2865,13 +2865,13 @@ class PWANavigation {
         if (userMenuButton && userDropdown) {
             userMenuButton.addEventListener('click', (e) => {
                 e.stopPropagation();
-                userDropdown.classList.toggle('show');
+                userDropdown.classList.toggle('active');
             });
 
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
                 if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
-                    userDropdown.classList.remove('show');
+                    userDropdown.classList.remove('active');
                 }
             });
 
