@@ -1,40 +1,71 @@
-# Safe cPanel Deployment Guide
+# Deployment Guide - Updated Project Structure
 
-## Quick Setup
+## 📁 New Project Structure (2025-09-13)
+
+The project has been reorganized into two parts:
+- **Root (`/`)**: Landing page and documentation
+- **Trading App (`/ta/`)**: All application files
+
+## 🚀 Two-Part Deployment Process
+
+### Method 1: SSH Deployment (Recommended)
+
+**Deploy Landing Page:**
+```bash
+scp index.html root@88.99.191.227:/var/www/html/
+```
+
+**Deploy Trading App:**
+```bash
+cd ta/
+scp -r * root@88.99.191.227:/var/www/html/ta/
+```
+
+### Method 2: Using Deployment Scripts
 
 1. **Configure deployment settings:**
    ```bash
+   cd ta/
    cp deploy-config.example.php deploy-config.php
    ```
-   Edit `deploy-config.php` with your cPanel FTP details.
+   Edit `deploy-config.php` with your server details.
 
 2. **Set up production environment:**
    ```bash
-   cp .env.prod.example .env.prod
+   cp .env.example .env
    ```
    Fill in your live server environment variables.
 
-3. **Deploy:**
+3. **Deploy Trading App:**
    ```bash
-   php deploy.php
+   php simple-deploy.php
    ```
 
-## What You Need to Provide
+4. **Deploy Landing Page manually:**
+   Upload root `index.html` to `/var/www/html/`
 
-### FTP/SFTP Credentials
-```php
-'host' => 'your-server.com',
-'username' => 'your_cpanel_username', 
-'password' => 'your_cpanel_password',
-'remote_path' => '/public_html/trading-app'
+## Server Configuration
+
+### SSH Access (Recommended)
+```
+Server: 88.99.191.227
+User: root
+SSH Key: ~/.ssh/trading_server_key
+Alias: trading-server
+```
+
+### Target Directories
+```
+Landing Page: /var/www/html/index.html
+Trading App: /var/www/html/ta/ (entire directory)
 ```
 
 ### Production Environment Variables
-Fill out `.env.prod` with:
-- Database credentials (your live MySQL details)
+Fill out `/ta/.env` with:
+- Database credentials (MySQL: ashkan/TradingApp2025!)
 - BingX live API keys
 - Telegram live bot token
-- Your domain URL
+- APP_URL=https://brainity.com.au/ta
 
 ## Safety Features
 
@@ -54,19 +85,43 @@ Fill out `.env.prod` with:
 
 ## Manual Steps After Deployment
 
-1. **Upload `.env.prod`** manually via cPanel File Manager (rename to `.env`)
-2. **Set up cron jobs** in cPanel for the `/jobs/` scripts
-3. **Test API connectivity** by visiting `/api/test.php`
+1. **Verify environment file** `/var/www/html/ta/.env` has correct production settings
+2. **Set up cron jobs** for background monitoring scripts in `/ta/jobs/`
+3. **Test connectivity**:
+   - Homepage: https://brainity.com.au/
+   - Trading App: https://brainity.com.au/ta/
+   - Database: Check connection via admin panel
 
-## Commands
+## Quick Deployment Commands
 
+### SSH Method (Recommended)
 ```bash
-# Test deployment (dry run)
-php deploy.php --dry-run
+# Deploy landing page
+scp index.html trading-server:/var/www/html/
 
-# Full deployment
-php deploy.php
+# Deploy trading app (from ta/ directory)
+cd ta/
+scp -r * trading-server:/var/www/html/ta/
+```
 
-# Check deployment log
-cat deployment.log
+### Script Method
+```bash
+# From ta/ directory
+php simple-deploy.php
+
+# Then manually upload root index.html
+```
+
+## File Structure After Deployment
+
+```
+/var/www/html/
+├── index.html                 # Landing page
+└── ta/                       # Trading application
+    ├── .env                  # Production environment
+    ├── index.php             # App entry point
+    ├── api/                  # API endpoints
+    ├── auth/                 # Authentication
+    ├── assets/               # CSS, JS, images
+    └── ...                   # All other app files
 ```

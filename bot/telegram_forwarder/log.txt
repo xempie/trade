@@ -1,0 +1,30 @@
+2025-04-03 20:01:35.043668 - 🚀 Script started!
+2025-04-03 20:01:35.046275 - 🔌 Trying to connect to Telegram...
+2025-04-03 20:01:35.869262 - 🔥 Exception in main: The authorization key (session file) was used under two different IP addresses simultaneously, and can no longer be used. Use the same session exclusively, or use different sessions (caused by InvokeWithLayerRequest(InitConnectionRequest(GetConfigRequest)))
+2025-04-03 20:01:35.869793 - Traceback (most recent call last):
+  File "/home/vahid279/public_html/addons/academit/bot/telegram_forwarder/forwarder.py", line 31, in main
+    await client.connect()
+  File "/home/vahid279/virtualenv/public_html/addons/academit/bot/telegram_forwarder/3.10/lib/python3.10/site-packages/telethon/client/telegrambaseclient.py", line 598, in connect
+    await self._sender.send(functions.InvokeWithLayerRequest(LAYER, req))
+telethon.errors.rpcerrorlist.AuthKeyDuplicatedError: The authorization key (session file) was used under two different IP addresses simultaneously, and can no longer be used. Use the same session exclusively, or use different sessions (caused by InvokeWithLayerRequest(InitConnectionRequest(GetConfigRequest)))
+
+2025-04-03 20:02:04.750031 - 🚀 Script started!
+2025-04-03 20:02:04.751758 - 🔌 Trying to connect to Telegram...
+2025-04-03 20:02:05.551738 - 🔥 Exception in main: The authorization key (session file) was used under two different IP addresses simultaneously, and can no longer be used. Use the same session exclusively, or use different sessions (caused by InvokeWithLayerRequest(InitConnectionRequest(GetConfigRequest)))
+2025-04-03 20:02:05.552439 - Traceback (most recent call last):
+  File "/home/vahid279/public_html/addons/academit/bot/telegram_forwarder/forwarder.py", line 31, in main
+    await client.connect()
+  File "/home/vahid279/virtualenv/public_html/addons/academit/bot/telegram_forwarder/3.10/lib/python3.10/site-packages/telethon/client/telegrambaseclient.py", line 598, in connect
+    await self._sender.send(functions.InvokeWithLayerRequest(LAYER, req))
+telethon.errors.rpcerrorlist.AuthKeyDuplicatedError: The authorization key (session file) was used under two different IP addresses simultaneously, and can no longer be used. Use the same session exclusively, or use different sessions (caused by InvokeWithLayerRequest(InitConnectionRequest(GetConfigRequest)))
+
+2025-04-03 20:03:25.626988 - 🚀 Script started!
+2025-04-03 20:03:25.628526 - 🔌 Trying to connect to Telegram...
+2025-04-03 20:03:26.421187 - 🔥 Exception in main: The authorization key (session file) was used under two different IP addresses simultaneously, and can no longer be used. Use the same session exclusively, or use different sessions (caused by InvokeWithLayerRequest(InitConnectionRequest(GetConfigRequest)))
+2025-04-03 20:03:26.421674 - Traceback (most recent call last):
+  File "/home/vahid279/public_html/addons/academit/bot/telegram_forwarder/forwarder.py", line 31, in main
+    await client.connect()
+  File "/home/vahid279/virtualenv/public_html/addons/academit/bot/telegram_forwarder/3.10/lib/python3.10/site-packages/telethon/client/telegrambaseclient.py", line 541, in connect
+    await self._sender.send(functions.InvokeWithLayerRequest(
+telethon.errors.rpcerrorlist.AuthKeyDuplicatedError: The authorization key (session file) was used under two different IP addresses simultaneously, and can no longer be used. Use the same session exclusively, or use different sessions (caused by InvokeWithLayerRequest(InitConnectionRequest(GetConfigRequest)))
+

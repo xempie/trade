@@ -25,7 +25,11 @@
       "Read(/C:\\xampp\\htdocs\\trade\\api/**)",
       "Read(/C:\\xampp\\htdocs\\trade\\api/**)",
       "Read(/C:\\xampp\\htdocs\\trade/**)",
-      "Read(/C:\\xampp\\htdocs\\trade/**)"
+      "Read(/C:\\xampp\\htdocs\\trade/**)",
+      "Bash(ssh:*)",
+      "Bash(rsync:*)",
+      "Bash(scp:*)",
+      "Bash(SHOW DATABASES)"
     ],
     "deny": [],
     "ask": [],

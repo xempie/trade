@@ -1,0 +1,62 @@
+2025-08-02 03:00:05 - Checking .env file at: /home/vahid279/public_html/addons/academit/bot/signal_processors/.env
+
+2025-08-02 03:00:05 - .env file exists: NO
+
+2025-08-02 03:00:05 - All loaded env vars: {
+    "BINGX_API_KEY": "djrgnXuSRmfE7xyvVgiXdrmnczpnGiErgPrr3g4yWXfp88lUwmkG2KoBSvk6woqWhVu2cISYU4l9zA2wcMw",
+    "BINGX_API_SECRET": "n39CqQ5rR079gj4j7Zo5i5KO3faMCE31c68mnPwSxt1qRbwKx953o8jXBsO6QsgXhasQU6LibI2ofxdiOzrZA",
+    "DEMO_MARGIN": "100",
+    "LEVERAGE": "10",
+    "DEMO_MODE": "true",
+    "PAPER_TRADING": "false",
+    "BINGX_BASE_URL": "https:\/\/open-api-vst.bingx.com",
+    "DB_HOST": "localhost",
+    "DB_NAME": "vahid279_exbot",
+    "DB_USER": "vahid279_ashkan",
+    "DB_PASS": "[$U#Zhq)SRHV",
+    "TELEGRAM_BOT_TOKEN": "8194329955:AAHpIbNkYeDm2BIh2s3F_-bPpLQiUM3Rghk",
+    "TELEGRAM_CHAT_ID": "@manualsignalcheck",
+    "ENABLE_TELEGRAM": "true",
+    "ENABLE_LOGGING": "true",
+    "LOG_LEVEL": "INFO",
+    "LOG_FILE": "trading.log",
+    "CRON_INTERVAL_SECONDS": "60",
+    "MAX_PROCESSING_ATTEMPTS": "30",
+    "API_TIMEOUT": "30",
+    "API_RECV_WINDOW": "5000"
+}
+
+2025-08-02 03:00:05 - === WEBHOOK DEBUG START ===
+{
+    "timestamp": "2025-08-02 03:00:05",
+    "raw_input": "",
+    "parsed_data": null,
+    "json_decode_error": "No error",
+    "content_length": 0,
+    "request_method": "GET",
+    "content_type": "application\/json; charset=utf-8"
+}
+=== END ===
+
+
+2025-08-02 03:00:05 - ERROR: No data received or JSON decode failed
+
+2025-08-02 03:00:05 - === ERROR DETAILS ===
+{
+    "timestamp": "2025-08-02 03:00:05",
+    "error_message": "No data received or invalid JSON",
+    "error_line": 479,
+    "error_file": "\/home\/vahid279\/public_html\/addons\/academit\/bot\/signal_processors\/process_signal_v1.php",
+    "stack_trace": "#0 {main}",
+    "input_data": "No data",
+    "env_vars": {
+        "BINGX_API_KEY": "SET",
+        "BINGX_API_SECRET": "SET",
+        "BINGX_BASE_URL": "https:\/\/open-api-vst.bingx.com",
+        "DEMO_MODE": "true",
+        "PAPER_TRADING": "false",
+        "DEMO_MARGIN": "100"
+    }
+}
+=== END ERROR ===
+

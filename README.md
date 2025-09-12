@@ -2,6 +2,28 @@
 
 Personal web application for managing crypto futures trading signals with BingX exchange integration, automated order placement, watchlist management, and Telegram notifications.
 
+## 📁 Project Structure
+
+This project is organized into two main parts:
+
+### **Root Directory (`/`)**
+- **Landing Page**: `index.html` - Professional homepage for brainity.com.au
+- **Documentation**: All `*.md` files containing project documentation
+- **Configuration**: Git repository (`.git/`) and Claude settings (`.claude/`)
+
+### **Trading Application (`/ta/`)**
+- **Application Files**: All PHP files, configuration, and assets
+- **Environment**: `.env` file with API keys and database settings
+- **API Endpoints**: `/ta/api/` directory
+- **Authentication**: `/ta/auth/` directory
+- **Assets**: `/ta/assets/` directory (CSS, JS, images)
+
+## 🌐 URLs
+
+- **Homepage**: https://brainity.com.au/ (landing page)
+- **Trading App**: https://brainity.com.au/ta/ (full application)
+- **OAuth Callback**: https://brainity.com.au/ta/auth/callback.php
+
 ## Features
 
 - **Signal Management**: Create signals with multiple entry points (market + entry 2 + entry 3)
@@ -19,10 +41,28 @@ Personal web application for managing crypto futures trading signals with BingX 
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and fill in your API keys and database credentials
-2. Set up MySQL database named `crypto_trading`
-3. Configure web server to point to this directory
-4. Set up cron jobs for background monitoring
+1. **Environment Configuration**: 
+   - Navigate to `/ta/` directory
+   - Copy `.env.example` to `.env` and fill in your API keys and database credentials
+2. **Database Setup**: 
+   - Set up MySQL database named `crypto_trading`
+   - Import required SQL files from `/ta/` directory
+3. **Web Server Configuration**: 
+   - Configure web server DocumentRoot to project root
+   - Ensure `/ta/` subdirectory is accessible
+4. **Cron Jobs**: 
+   - Set up background monitoring jobs (see `/ta/cron-setup.php`)
+
+## Deployment
+
+### Two-Part Deployment Process:
+1. **Landing Page**: Deploy `index.html` to server root
+2. **Trading App**: Deploy entire `/ta/` folder to server `/ta/` directory
+
+### File Locations:
+- **Deployment Scripts**: Located in `/ta/` directory
+- **Configuration**: All app config files are in `/ta/`
+- **Environment**: `.env` file is in `/ta/` directory
 
 ## Configuration
 
@@ -32,7 +72,16 @@ Personal web application for managing crypto futures trading signals with BingX 
 
 ## Environment Variables
 
-See `.env` file for required configuration variables including:
-- Database credentials
-- BingX API keys
-- Telegram bot configuration
+See `/ta/.env` file for required configuration variables including:
+- Database credentials (MySQL connection info)
+- BingX API keys (demo/live trading)
+- Telegram bot configuration (notifications)
+- Google OAuth configuration (authentication)
+- Trading parameters and position sizing
+
+## Important Notes
+
+- **All application files** are located in the `/ta/` directory
+- **Landing page** (`index.html`) serves as the homepage
+- **Documentation** remains in the root directory for easy access
+- **Deployment scripts** handle both root and `/ta/` deployment automatically
