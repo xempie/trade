@@ -1,4 +1,7 @@
 <?php
+// Start output buffering to prevent any stray output from interfering with JSON
+ob_start();
+
 // Include authentication protection
 require_once __DIR__ . '/../auth/api_protection.php';
 
@@ -832,6 +835,9 @@ try {
     error_log("Response: " . json_encode($finalResponse));
     error_log("===========================");
     
+    // Clean any stray output and send JSON
+    ob_clean();
+    header('Content-Type: application/json');
     echo json_encode($finalResponse);
     
 } catch (Exception $e) {
@@ -842,6 +848,9 @@ try {
     $rawInput = file_get_contents('php://input');
     error_log("Input data causing error: " . $rawInput);
     
+    // Clean any stray output and send error JSON
+    ob_clean();
+    header('Content-Type: application/json');
     http_response_code($e->getCode() ?: 400);
     echo json_encode([
         'success' => false,

@@ -44,7 +44,7 @@ class LimitOrdersManager {
                             </div>
                             <div class="watchlist-price-row">
                                 <div class="watchlist-entry-info">
-                                    <strong>${entryTypeLabel}:</strong> $${parseFloat(order.entry_price).toFixed(5)}
+                                    <strong>${entryTypeLabel}:</strong> $${window.formatPriceGlobal ? window.formatPriceGlobal(order.entry_price) : parseFloat(order.entry_price).toFixed(5)}
                                 </div>
                                 <div class="watchlist-direction ${directionClass}">
                                     ${directionText}
@@ -177,7 +177,7 @@ class LimitOrdersManager {
                         const absPercentage = Math.abs(percentageDistance);
                         
                         priceInfoElement.innerHTML = `
-                            <strong>Current:</strong> $${currentPrice.toFixed(5)}<br>
+                            <strong>Current:</strong> $${window.formatPriceGlobal ? window.formatPriceGlobal(currentPrice) : currentPrice.toFixed(5)}<br>
                             <small class="percentage-distance ${percentageDistance >= 0 ? 'positive' : 'negative'}">
                                 ${percentageDistance >= 0 ? '+' : ''}${percentageDistance.toFixed(2)}%
                             </small>

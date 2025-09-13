@@ -1017,7 +1017,7 @@ class TradingForm {
         try {
             // Debug: First call debug endpoint to see what data we're sending
             console.log('Sending data:', data);
-            const debugResponse = await fetch('api_proxy.php?endpoint=debug_order_data.php', {
+            const debugResponse = await fetch('api/debug_order_data.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1025,23 +1025,11 @@ class TradingForm {
                 credentials: 'same-origin',
                 body: JSON.stringify(data)
             });
-            
-            // Debug the debug response
-            const debugResponseText = await debugResponse.text();
-            console.log('Raw Debug API Response:', debugResponseText);
-            
-            let debugResult;
-            try {
-                debugResult = JSON.parse(debugResponseText);
-                console.log('Debug analysis:', debugResult);
-            } catch (debugParseError) {
-                console.error('Debug JSON Parse Error:', debugParseError);
-                console.log('Debug response that failed to parse:', debugResponseText);
-                throw new Error(`Invalid JSON response from debug API: ${debugResponseText.substring(0, 200)}...`);
-            }
+            const debugResult = await debugResponse.json();
+            console.log('Debug analysis:', debugResult);
             
             // Call the real order placement API
-            const response = await fetch('api_proxy.php?endpoint=place_order.php', {
+            const response = await fetch('api/place_order.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1065,18 +1053,7 @@ class TradingForm {
                 throw new Error(errorMessage);
             }
             
-            // Debug: Log the raw response before parsing
-            const responseText = await response.text();
-            console.log('Raw API Response:', responseText);
-            
-            let result;
-            try {
-                result = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error('JSON Parse Error:', parseError);
-                console.log('Response that failed to parse:', responseText);
-                throw new Error(`Invalid JSON response from API: ${responseText.substring(0, 200)}...`);
-            }
+            const result = await response.json();
             
             if (!result.success) {
                 console.log('API Success=false Response:', result);
@@ -1516,7 +1493,7 @@ class TradingForm {
                 `<span class="mode-indicator live-mode" title="Live trading">LIVE</span>`;
             
             return `
-                <div class="signal-item position-item ${isDemo ? 'demo-position' : 'live-position'}" data-position-id="${position.id}">
+                <div class="signal-item position-item ${isDemo ? 'demo-position' : 'live-position'}" data-position-id="${positionId}">
                     <div class="position-progress-bar">
                         <div class="position-progress-fill ${pnlPercent >= 0 ? 'positive' : 'negative'}" data-pnl="${pnlPercent}"></div>
                     </div>

@@ -1,4 +1,7 @@
 <?php
+// Start output buffering to prevent any stray output from interfering with JSON
+ob_start();
+
 // Debug endpoint to see exactly what data is being sent
 require_once __DIR__ . '/../auth/api_protection.php';
 protectAPI();
@@ -40,9 +43,15 @@ try {
         }
     }
     
+    // Clean any stray output and send JSON
+    ob_clean();
+    header('Content-Type: application/json');
     echo json_encode($debug, JSON_PRETTY_PRINT);
     
 } catch (Exception $e) {
+    // Clean any stray output and send error JSON
+    ob_clean();
+    header('Content-Type: application/json');
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage(),

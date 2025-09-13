@@ -70,10 +70,10 @@ $isLocal = isLocalhost();
                                     </svg>
                                     Performance Summary
                                 </h3>
-                                <div class="coming-soon">
-                                    <p>📈 Overall trading performance metrics and statistics</p>
-                                    <span class="status-badge">Coming Soon</span>
-                                </div>
+                                
+                                <p>📈 Overall trading performance metrics and statistics</p>
+                                <span class="status-badge">Coming Soon</span>
+                                
                             </div>
                         </div>
 
