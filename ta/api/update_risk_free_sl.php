@@ -4,9 +4,6 @@ protectAPI();
 
 require_once __DIR__ . '/../auth/config.php';
 
-// Load aggressive exchange sync system
-require_once __DIR__ . '/exchange_sync.php';
-
 try {
     // Get JSON input
     $input = json_decode(file_get_contents('php://input'), true);
@@ -404,15 +401,6 @@ try {
 
     $ordersInserted = $stmt->rowCount();
     error_log("Orders table insert result: $ordersInserted rows affected");
-
-    // AGGRESSIVE SYNC: Sync risk-free stop loss after successful update
-    try {
-        $sync = new ExchangeSync();
-        $syncResult = $sync->syncAfterRiskFree($positionId, $symbol, $newStopLoss);
-        error_log("🔄 AGGRESSIVE SYNC after risk-free update: " . ($syncResult ? 'SUCCESS' : 'FAILED'));
-    } catch (Exception $syncE) {
-        error_log("⚠️ SYNC FAILED after risk-free update: " . $syncE->getMessage());
-    }
 
     error_log("=== RISK FREE STOP LOSS COMPLETE ===");
     error_log("SUCCESS Summary:");

@@ -317,13 +317,8 @@ function getPositions($pdo, $filters = []) {
                 $position['margin_used'] = floatval($bingxPos['margin'] ?? $bingxPos['initialMargin'] ?? 0);
                 $position['current_quantity'] = floatval($bingxPos['positionAmt'] ?? 0);
                 
-                // Calculate PnL percentage
-                $marginUsed = $position['margin_used'];
-                if ($marginUsed > 0) {
-                    $position['pnl_percentage'] = ($position['unrealized_pnl'] / $marginUsed) * 100;
-                } else {
-                    $position['pnl_percentage'] = 0;
-                }
+                // Use BingX percentage directly (most accurate for leveraged positions)
+                $position['pnl_percentage'] = floatval($bingxPos['percentage'] ?? 0);
                 
                 // Add debug info to position
                 $position['debug_matched'] = true;
