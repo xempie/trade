@@ -190,50 +190,72 @@ try {
 
     error_log("Total stop loss orders to cancel: " . count($stopLossOrdersToCancel) . " - IDs: " . implode(', ', $stopLossOrdersToCancel));
         
-        // Cancel existing stop loss orders if any exist
-        foreach ($stopLossOrdersToCancel as $orderId) {
-            $timestamp = time() * 1000;
-            $cancelData = [
-                'symbol' => $bingxSymbol,
-                'orderId' => $orderId,
-                'timestamp' => $timestamp
-            ];
-            
-            $queryString = http_build_query($cancelData);
-            $signature = hash_hmac('sha256', $queryString, $apiSecret);
-            
-            $cancelUrl = "{$baseUrl}/openApi/swap/v2/trade/order";
-            
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $cancelUrl);
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'X-BX-APIKEY: ' . $apiKey,
-                'Content-Type: application/x-www-form-urlencoded'
-            ]);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            
-            $cancelResponse = curl_exec($ch);
-            $cancelHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            if ($cancelHttpCode !== 200) {
-                error_log("Failed to cancel stop loss order $orderId: HTTP $cancelHttpCode");
-            }
+    // Cancel existing stop loss orders if any exist
+    error_log("=== CANCELLING EXISTING STOP LOSS ORDERS ===");
+    $cancelledCount = 0;
+    $failedCancellations = [];
+
+    foreach ($stopLossOrdersToCancel as $orderId) {
+        error_log("Attempting to cancel stop loss order: $orderId");
+
+        $timestamp = time() * 1000;
+        $cancelData = [
+            'symbol' => $bingxSymbol,
+            'orderId' => $orderId,
+            'timestamp' => $timestamp
+        ];
+
+        $queryString = http_build_query($cancelData);
+        $signature = hash_hmac('sha256', $queryString, $apiSecret);
+
+        $cancelUrl = "{$baseUrl}/openApi/swap/v2/trade/order";
+
+        error_log("Cancel request URL: $cancelUrl");
+        error_log("Cancel request data: " . $queryString . "&signature=" . $signature);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $cancelUrl);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-BX-APIKEY: ' . $apiKey,
+            'Content-Type: application/x-www-form-urlencoded'
+        ]);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+        $cancelResponse = curl_exec($ch);
+        $cancelHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        error_log("Cancel response for order $orderId: HTTP $cancelHttpCode, Response: $cancelResponse");
+
+        if ($cancelHttpCode === 200) {
+            $cancelledCount++;
+            error_log("SUCCESS: Cancelled stop loss order $orderId");
+        } else {
+            $failedCancellations[] = $orderId;
+            error_log("FAILED: Could not cancel stop loss order $orderId - HTTP $cancelHttpCode");
         }
+    }
+
+    error_log("Cancellation summary: $cancelledCount successful, " . count($failedCancellations) . " failed");
+    if (!empty($failedCancellations)) {
+        error_log("Failed to cancel orders: " . implode(', ', $failedCancellations));
     }
     
     // Step 3: Create new stop loss order
+    error_log("=== CREATING NEW STOP LOSS ORDER ===");
     $timestamp = time() * 1000;
     
     // Determine order side (opposite of position side)
     $orderSide = ($position['side'] === 'LONG') ? 'SELL' : 'BUY';
-    
+    error_log("Position side: {$position['side']}, Stop loss order side: $orderSide");
+
     // For hedge mode, positionSide should match the original position side
     $positionSide = strtoupper($position['side']); // LONG or SHORT
-    
+    error_log("Position side for order: $positionSide");
+
     $orderParams = [
         'symbol' => $bingxSymbol,
         'side' => $orderSide,
@@ -243,6 +265,8 @@ try {
         'positionSide' => $positionSide, // LONG or SHORT for hedge mode
         'timestamp' => $timestamp
     ];
+
+    error_log("New stop loss order parameters: " . json_encode($orderParams, JSON_PRETTY_PRINT));
     
     $queryString = http_build_query($orderParams);
     $signature = hash_hmac('sha256', $queryString, $apiSecret);
@@ -339,16 +363,23 @@ try {
 
     error_log("Successfully extracted order ID: " . $newOrderId);
     error_log("=== END DEBUG ===");
-    
-    // Step 4: Update signals table with new stop loss
+
+    // Step 4: Update database with new stop loss information
+    error_log("=== UPDATING DATABASE ===");
+    error_log("Updating signals table - Position ID: $positionId, New stop loss: $newStopLoss");
+
+    // Step 4a: Update signals table with new stop loss
     $stmt = $pdo->prepare("
         UPDATE signals
         SET stop_loss = ?, updated_at = NOW()
         WHERE id = (SELECT signal_id FROM positions WHERE id = ?)
     ");
     $stmt->execute([$newStopLoss, $positionId]);
+    $signalsUpdated = $stmt->rowCount();
+    error_log("Signals table update result: $signalsUpdated rows affected");
 
-    // Step 5: Save new stop loss order to orders table with stop loss fields
+    // Step 4b: Save new stop loss order to orders table with stop loss fields
+    error_log("Inserting new stop loss order into orders table - Order ID: $newOrderId, Quantity: $stopLossQuantity");
     $stmt = $pdo->prepare("
         INSERT INTO orders (
             signal_id, bingx_order_id, symbol, side, type, entry_level,
@@ -371,8 +402,21 @@ try {
         $newOrderId, // stop_loss_order_id
         $newStopLoss // stop_loss_price
     ]);
-    
-    error_log("Risk Free Stop Loss Success - Position ID: $positionId, New SL: $newStopLoss, Order ID: $newOrderId");
+
+    $ordersInserted = $stmt->rowCount();
+    error_log("Orders table insert result: $ordersInserted rows affected");
+
+    error_log("=== RISK FREE STOP LOSS COMPLETE ===");
+    error_log("SUCCESS Summary:");
+    error_log("- Position ID: $positionId");
+    error_log("- Symbol: $symbol");
+    error_log("- New stop loss price: $newStopLoss");
+    error_log("- New order ID: $newOrderId");
+    error_log("- Stop loss quantity: $stopLossQuantity");
+    error_log("- Cancelled existing orders: " . count($stopLossOrdersToCancel));
+    error_log("- Signals table updates: $signalsUpdated");
+    error_log("- Orders table inserts: $ordersInserted");
+    error_log("=== END SUCCESS SUMMARY ===");
 
     sendAPIResponse(true, [
         'new_stop_loss' => $newStopLoss,
