@@ -55,7 +55,7 @@ class GamificationAnimations {
         this.currentEffect = 'rain';
         
         const emoji = unrealizedPnL < 0 ? '🍆' : '🪙'; // Eggplant for loss, coin for profit
-        const itemCount = Math.min(60, Math.max(20, Math.abs(unrealizedPnL) / 10)); // Dynamic count based on P&L magnitude
+        const itemCount = Math.min(30, Math.max(10, Math.abs(unrealizedPnL) / 20)); // Reduced by 50% - Dynamic count based on P&L magnitude
         
         this.items = [];
         for (let i = 0; i < itemCount; i++) {
@@ -65,12 +65,27 @@ class GamificationAnimations {
         this.isActive = true;
         this.animate();
         
-        // Auto-stop after 10 seconds
+        // Auto-stop after 10 seconds with graceful fade-out
         setTimeout(() => {
             if (this.currentEffect === 'rain') {
-                this.stopAnimation();
+                this.startFinalFadeOut();
             }
         }, 10000);
+    }
+
+    // Start final fade-out for all items
+    startFinalFadeOut() {
+        // Force all items to start fading immediately
+        this.items.forEach(item => {
+            if (!item.landed) {
+                // Land items that are still falling
+                item.landed = true;
+                item.fadeStart = Date.now() - 5000; // Start fading immediately
+            } else if (item.fadeStart) {
+                // Accelerate fade for items already landed
+                item.fadeStart = Date.now() - 5000;
+            }
+        });
     }
 
     // Animation loop
@@ -85,11 +100,18 @@ class GamificationAnimations {
             item.draw(this.ctx);
         });
 
-        // Remove disappeared items and add new ones
+        // Remove disappeared items completely during fade-out phase
         for (let i = this.items.length - 1; i >= 0; i--) {
             if (this.items[i].isGone()) {
-                this.items[i].reset();
+                // Don't reset during final fade-out, just remove
+                this.items.splice(i, 1);
             }
+        }
+
+        // Stop animation when all items are gone
+        if (this.items.length === 0) {
+            this.stopAnimation();
+            return;
         }
 
         this.animationId = requestAnimationFrame(() => this.animate());
@@ -152,9 +174,12 @@ class FallingEmoji {
                 this.fadeStart = Date.now();
             }
         } else {
-            // Start fading 1 second after landing
-            if (Date.now() - this.fadeStart > 1000) {
-                this.opacity -= 0.02;
+            // Start fading 5 seconds after landing for better visual effect
+            const timeSinceLanding = Date.now() - this.fadeStart;
+            if (timeSinceLanding > 5000) {
+                // Smooth fade out over 3 seconds
+                const fadeProgress = (timeSinceLanding - 5000) / 3000;
+                this.opacity = Math.max(0, 1 - fadeProgress);
             }
         }
     }
