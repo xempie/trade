@@ -1544,6 +1544,11 @@ class TradingForm {
                                 onclick="tradingForm.showChart('${symbol}')" 
                                 title="Show ${symbol} chart"
                             >📊</button>
+                            <button 
+                                class="manage-btn"
+                                onclick="tradingForm.showManagePopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', ${pnl}, ${pnlPercent}, ${isDemo})" 
+                                title="Manage position"
+                            >Manage</button>
                             ${this.getPositionButton(position.id, symbol, direction, isDemo)}
                         </div>
                     </div>
@@ -2881,6 +2886,171 @@ class TradingForm {
                 `Failed to open ${direction.toUpperCase()} position for ${symbol}: ${error.message}`, 
                 'error'
             );
+        }
+    }
+
+    // Manage Position Methods
+    showManagePopover(positionId, symbol, entryPrice, leverage, margin, direction, currentPnl, currentPnlPercent, isDemo) {
+        this.currentManageData = {
+            positionId,
+            symbol,
+            entryPrice: parseFloat(entryPrice),
+            leverage: parseFloat(leverage),
+            margin: parseFloat(margin),
+            direction: direction.toUpperCase(),
+            currentPnl: parseFloat(currentPnl),
+            currentPnlPercent: parseFloat(currentPnlPercent),
+            isDemo
+        };
+
+        // Update popover title with symbol
+        document.querySelector('.manage-popover-title').textContent = `Manage ${symbol} Position`;
+        
+        // Update current P&L display
+        const pnlElement = document.getElementById('current-pnl');
+        const pnlClass = this.currentManageData.currentPnl >= 0 ? 'positive' : 'negative';
+        pnlElement.textContent = `P&L: $${this.currentManageData.currentPnl.toFixed(2)} (${this.currentManageData.currentPnlPercent.toFixed(2)}%)`;
+        pnlElement.className = `current-pnl ${pnlClass}`;
+
+        // Reset form
+        document.getElementById('risk-free-percent').value = '';
+        document.getElementById('risk-free-preview').classList.remove('visible');
+        document.getElementById('risk-free-apply').disabled = true;
+
+        // Set input validation based on current P&L
+        const percentInput = document.getElementById('risk-free-percent');
+        if (this.currentManageData.currentPnlPercent <= 0) {
+            percentInput.disabled = true;
+            percentInput.placeholder = 'Position must be in profit';
+            document.getElementById('risk-free-apply').disabled = true;
+        } else {
+            percentInput.disabled = false;
+            percentInput.max = this.currentManageData.currentPnlPercent.toFixed(1);
+            percentInput.placeholder = `Move SL % (0-${this.currentManageData.currentPnlPercent.toFixed(1)})`;
+        }
+
+        // Show popover
+        document.getElementById('manage-popover-overlay').style.display = 'block';
+        document.getElementById('manage-popover').style.display = 'block';
+
+        // Setup event listeners
+        this.setupManagePopoverEvents();
+    }
+
+    setupManagePopoverEvents() {
+        // Close button
+        document.getElementById('manage-popover-close').onclick = () => this.hideManagePopover();
+        document.getElementById('manage-popover-overlay').onclick = () => this.hideManagePopover();
+        document.getElementById('risk-free-cancel').onclick = () => this.hideManagePopover();
+
+        // Input change handler
+        const percentInput = document.getElementById('risk-free-percent');
+        percentInput.oninput = () => this.updateRiskFreePreview();
+
+        // Apply button
+        document.getElementById('risk-free-apply').onclick = () => this.applyRiskFree();
+    }
+
+    hideManagePopover() {
+        document.getElementById('manage-popover-overlay').style.display = 'none';
+        document.getElementById('manage-popover').style.display = 'none';
+        this.currentManageData = null;
+    }
+
+    updateRiskFreePreview() {
+        const percentValue = parseFloat(document.getElementById('risk-free-percent').value);
+        const preview = document.getElementById('risk-free-preview');
+        const applyBtn = document.getElementById('risk-free-apply');
+
+        if (!percentValue || percentValue <= 0 || percentValue > this.currentManageData.currentPnlPercent) {
+            preview.classList.remove('visible');
+            applyBtn.disabled = true;
+            return;
+        }
+
+        // Calculate new stop loss price
+        const { entryPrice, leverage, direction } = this.currentManageData;
+        
+        // X% considering leverage: actual price movement = X% / leverage
+        const actualPriceMovementPercent = percentValue / leverage;
+        
+        let newStopLoss;
+        if (direction === 'LONG') {
+            // For LONG: move SL up from entry (closer to current price)
+            newStopLoss = entryPrice * (1 + (actualPriceMovementPercent / 100));
+        } else {
+            // For SHORT: move SL down from entry (closer to current price)
+            newStopLoss = entryPrice * (1 - (actualPriceMovementPercent / 100));
+        }
+
+        // Format prices with appropriate precision
+        const precision = this.detectPricePrecision(entryPrice);
+        const formattedEntryPrice = entryPrice.toFixed(precision);
+        const formattedNewSL = newStopLoss.toFixed(precision);
+
+        // Update preview
+        document.getElementById('preview-current-sl').textContent = 'None';
+        document.getElementById('preview-new-sl').textContent = `$${formattedNewSL}`;
+        document.getElementById('preview-protection').textContent = `${percentValue}% of P&L secured`;
+
+        preview.classList.add('visible');
+        applyBtn.disabled = false;
+    }
+
+    async applyRiskFree() {
+        if (!this.currentManageData) return;
+
+        const percentValue = parseFloat(document.getElementById('risk-free-percent').value);
+        const applyBtn = document.getElementById('risk-free-apply');
+        
+        // Disable button and show loading
+        applyBtn.disabled = true;
+        applyBtn.textContent = 'Applying...';
+
+        try {
+            // Calculate new stop loss price
+            const { entryPrice, leverage, direction, positionId, symbol, isDemo } = this.currentManageData;
+            const actualPriceMovementPercent = percentValue / leverage;
+            
+            let newStopLoss;
+            if (direction === 'LONG') {
+                newStopLoss = entryPrice * (1 + (actualPriceMovementPercent / 100));
+            } else {
+                newStopLoss = entryPrice * (1 - (actualPriceMovementPercent / 100));
+            }
+
+            // Call API to update stop loss
+            const response = await fetch('api_proxy.php?endpoint=update_risk_free_sl.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    position_id: positionId,
+                    symbol: symbol,
+                    new_stop_loss: newStopLoss,
+                    is_demo: isDemo
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showNotification(`Risk Free applied successfully. New SL: $${newStopLoss.toFixed(this.detectPricePrecision(entryPrice))}`, 'success');
+                this.hideManagePopover();
+                // Refresh positions to show updated data
+                this.updateRecentSignals();
+            } else {
+                throw new Error(result.message || 'Failed to apply Risk Free');
+            }
+
+        } catch (error) {
+            console.error('Error applying Risk Free:', error);
+            this.showNotification(`Failed to apply Risk Free: ${error.message}`, 'error');
+        } finally {
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Apply Risk Free';
         }
     }
 }

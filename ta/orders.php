@@ -46,6 +46,53 @@ $isLocal = isLocalhost();
             </div>
         </main>
 
+        <!-- Manage Popover -->
+        <div class="manage-popover-overlay" id="manage-popover-overlay"></div>
+        <div class="manage-popover" id="manage-popover">
+            <div class="manage-popover-header">
+                <h3 class="manage-popover-title">Manage Position</h3>
+                <button class="manage-popover-close" id="manage-popover-close">×</button>
+            </div>
+            <div class="manage-popover-content">
+                <div class="risk-free-section">
+                    <div class="risk-free-header">
+                        <span class="risk-free-title">Risk Free</span>
+                        <span class="current-pnl" id="current-pnl">P&L: --</span>
+                    </div>
+                    <div class="risk-free-input-group">
+                        <input 
+                            type="number" 
+                            class="risk-free-input" 
+                            id="risk-free-percent" 
+                            placeholder="Move SL % (0-100)" 
+                            min="0" 
+                            max="100" 
+                            step="0.1"
+                        />
+                        <span style="color: var(--dark-text-secondary); font-size: 14px;">%</span>
+                    </div>
+                    <div class="risk-free-preview" id="risk-free-preview">
+                        <div class="preview-item">
+                            <span class="preview-label">Current SL:</span>
+                            <span class="preview-value" id="preview-current-sl">--</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">New SL:</span>
+                            <span class="preview-value" id="preview-new-sl">--</span>
+                        </div>
+                        <div class="preview-item">
+                            <span class="preview-label">Protection:</span>
+                            <span class="preview-value" id="preview-protection">--</span>
+                        </div>
+                    </div>
+                    <div class="risk-free-actions">
+                        <button class="cancel-btn" id="risk-free-cancel">Cancel</button>
+                        <button class="risk-free-btn" id="risk-free-apply" disabled>Apply Risk Free</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 <?php include 'nav.php'; ?>
     </div>
 
