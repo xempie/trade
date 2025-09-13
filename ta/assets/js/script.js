@@ -1428,8 +1428,8 @@ class TradingForm {
             const pnl = position.unrealized_pnl ? parseFloat(position.unrealized_pnl).toFixed(2) : '0.00';
             const pnlClass = parseFloat(pnl) >= 0 ? 'profit' : 'loss';
             
-            // Calculate P&L percentage based on margin used
-            const pnlPercent = parseFloat(marginUsed) > 0 ? ((parseFloat(pnl) / parseFloat(marginUsed)) * 100).toFixed(2) : '0.00';
+            // Use P&L percentage from backend (correctly calculated using price movement)
+            const pnlPercent = position.pnl_percentage ? parseFloat(position.pnl_percentage).toFixed(2) : '0.00';
             const pnlPercentClass = parseFloat(pnlPercent) >= 0 ? 'profit' : 'loss';
             
             // Get planned Stop Loss and Take Profit values from signals table
@@ -1446,14 +1446,25 @@ class TradingForm {
             if (position.stop_loss && entryPrice > 0) {
                 const slPrice = parseFloat(position.stop_loss);
 
-                // Calculate dollar value using correct formula: margin × leverage × price change %
-                const priceChangePercent = (Math.abs(slPrice - entryPrice) / entryPrice) * 100;
-                const slDollarValue = (marginValue * leverageValue * (priceChangePercent / 100));
-                stopLossValue = -slDollarValue; // Make dollar value negative for SL
+                // Calculate percentage based on position direction
+                let slPercentage;
+                if (direction.toUpperCase() === 'LONG') {
+                    // For LONG: (sl-entry)/entry
+                    slPercentage = ((slPrice - entryPrice) / entryPrice) * 100;
+                } else {
+                    // For SHORT: (entry-sl)/entry
+                    slPercentage = ((entryPrice - slPrice) / entryPrice) * 100;
+                }
 
-                // Format display value - SL always shows negative sign regardless of direction
-                const slPercentageImpact = (slDollarValue / marginValue) * 100;
-                stopLossPercentDisplay = `-${slPercentageImpact.toFixed(1)}%`;
+                // Calculate dollar value using correct formula: margin × leverage × price change %
+                const priceChangePercent = Math.abs(slPercentage);
+                const slDollarValue = (marginValue * leverageValue * (priceChangePercent / 100));
+                stopLossValue = slPercentage < 0 ? -slDollarValue : slDollarValue;
+
+                // Format display value with correct sign and color class
+                const slPercentageFormatted = slPercentage.toFixed(1);
+                const sign = slPercentage >= 0 ? '+' : '';
+                stopLossPercentDisplay = `${sign}${slPercentageFormatted}%`;
             }
             
             // Use planned TP from signals table (prioritize take_profit_1)
@@ -1528,7 +1539,7 @@ class TradingForm {
                             P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
                         </div>
                         <div class="position-sl-tp">
-                            <span class="sl-value">SL: $${stopLossValue.toFixed(1)} (${stopLossPercentDisplay})</span> • <span class="tp-value">TP: $${takeProfitValue.toFixed(1)} (${takeProfitPercentDisplay})</span> <span class="tp-info-icon" onclick="tradingForm.showTPPopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', '${JSON.stringify({tp1: position.take_profit_1, tp2: position.take_profit_2, tp3: position.take_profit_3, sl: position.stop_loss}).replace(/"/g, '&quot;')}')" title="Show all targets">ⓘ</span>
+                            <span class="sl-value">SL: $${stopLossValue.toFixed(1)} (<span class="${stopLossPercentDisplay.startsWith('-') ? 'sl-negative' : 'sl-positive'}">${stopLossPercentDisplay}</span>)</span> • <span class="tp-value">TP: $${takeProfitValue.toFixed(1)} (${takeProfitPercentDisplay})</span> <span class="tp-info-icon" onclick="tradingForm.showTPPopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', '${JSON.stringify({tp1: position.take_profit_1, tp2: position.take_profit_2, tp3: position.take_profit_3, sl: position.stop_loss}).replace(/"/g, '&quot;')}')" title="Show all targets">ⓘ</span>
                         </div>
                         <div class="position-actions">
                             <button 

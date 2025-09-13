@@ -691,6 +691,15 @@ input[type=number] {
     position: relative;
 }
 
+/* SL percentage color classes */
+.sl-negative {
+    color: var(--red-4) !important;
+}
+
+.sl-positive {
+    color: #fbbf24 !important; /* Yellow color for positive SL */
+}
+
 .tp-info-icon {
     color: var(--text-secondary);
     margin-left: 4px;
