@@ -220,29 +220,79 @@ try {
     curl_close($ch);
     
     if ($orderHttpCode !== 200) {
-        error_log("BingX create stop loss order failed: HTTP $orderHttpCode, Response: $orderResponse");
-        throw new Exception('Failed to create new stop loss order on exchange');
+        error_log("=== STOP LOSS ORDER CREATION FAILED ===");
+        error_log("HTTP Status Code: " . $orderHttpCode);
+        error_log("Request URL: " . $orderUrl);
+        error_log("Request Body: " . $queryString . "&signature=" . $signature);
+        error_log("Response Body: " . $orderResponse);
+        error_log("cURL Error (if any): " . curl_error($ch));
+        error_log("=== END FAILED REQUEST DEBUG ===");
+        throw new Exception("Failed to create new stop loss order on exchange. HTTP Code: $orderHttpCode");
     }
     
     $orderResult = json_decode($orderResponse, true);
-    
-    // Debug log the full response
-    error_log("BingX stop loss order creation response: " . json_encode($orderResult));
-    
+
+    // Comprehensive logging for debugging
+    error_log("=== RISK FREE STOP LOSS ORDER CREATION DEBUG ===");
+    error_log("HTTP Status Code: " . $orderHttpCode);
+    error_log("Request URL: " . $orderUrl);
+    error_log("Request Body: " . $queryString . "&signature=" . $signature);
+    error_log("Raw Response: " . $orderResponse);
+    error_log("Parsed Response: " . json_encode($orderResult, JSON_PRETTY_PRINT));
+    error_log("Order Parameters Used: " . json_encode([
+        'symbol' => $bingxSymbol,
+        'side' => $orderSide,
+        'type' => 'STOP_MARKET',
+        'quantity' => $currentPositionSize,
+        'stopPrice' => $newStopLoss,
+        'positionSide' => $positionSide,
+        'trading_mode' => $tradingMode,
+        'is_demo' => $isDemo,
+        'base_url' => $baseUrl
+    ], JSON_PRETTY_PRINT));
+
+    // Check for BingX API errors first
+    if (isset($orderResult['code']) && $orderResult['code'] != 0) {
+        $errorMsg = isset($orderResult['msg']) ? $orderResult['msg'] : 'Unknown BingX API error';
+        error_log("BingX API Error Code: " . $orderResult['code'] . ", Message: " . $errorMsg);
+        throw new Exception("BingX API Error: " . $errorMsg . " (Code: " . $orderResult['code'] . ")");
+    }
+
     // Try multiple possible response structures
     $newOrderId = null;
     if (isset($orderResult['data']['orderId'])) {
         $newOrderId = $orderResult['data']['orderId'];
+        error_log("Found order ID in data.orderId: " . $newOrderId);
     } elseif (isset($orderResult['data']['order']['orderId'])) {
         $newOrderId = $orderResult['data']['order']['orderId'];
+        error_log("Found order ID in data.order.orderId: " . $newOrderId);
     } elseif (isset($orderResult['orderId'])) {
         $newOrderId = $orderResult['orderId'];
+        error_log("Found order ID in orderId: " . $newOrderId);
+    } elseif (isset($orderResult['data']['clientOrderId'])) {
+        $newOrderId = $orderResult['data']['clientOrderId'];
+        error_log("Found order ID in data.clientOrderId: " . $newOrderId);
+    } elseif (isset($orderResult['clientOrderId'])) {
+        $newOrderId = $orderResult['clientOrderId'];
+        error_log("Found order ID in clientOrderId: " . $newOrderId);
     }
-    
+
+    // Log all available fields in the response for analysis
+    if (isset($orderResult['data']) && is_array($orderResult['data'])) {
+        error_log("Available fields in response data: " . implode(', ', array_keys($orderResult['data'])));
+    }
+    if (is_array($orderResult)) {
+        error_log("Available fields in response root: " . implode(', ', array_keys($orderResult)));
+    }
+
     if (!$newOrderId) {
-        error_log("BingX stop loss order creation failed - no order ID found. Full response: " . json_encode($orderResult));
-        throw new Exception('Failed to get new stop loss order ID from exchange. Response structure may have changed.');
+        error_log("BingX stop loss order creation failed - no order ID found in any expected field");
+        error_log("Complete response structure analysis: " . print_r($orderResult, true));
+        throw new Exception('Failed to get new stop loss order ID from exchange. Please check the error logs for the complete API response structure.');
     }
+
+    error_log("Successfully extracted order ID: " . $newOrderId);
+    error_log("=== END DEBUG ===");
     
     // Step 4: Update signals table with new stop loss
     $stmt = $pdo->prepare("
@@ -276,10 +326,14 @@ try {
         $newStopLoss // stop_loss_price
     ]);
     
+    error_log("Risk Free Stop Loss Success - Position ID: $positionId, New SL: $newStopLoss, Order ID: $newOrderId");
+
     sendAPIResponse(true, [
         'new_stop_loss' => $newStopLoss,
         'new_order_id' => $newOrderId,
-        'cancelled_orders' => count($stopLossOrdersToCancel)
+        'cancelled_orders' => count($stopLossOrdersToCancel),
+        'position_id' => $positionId,
+        'symbol' => $symbol
     ], 'Risk Free stop loss updated successfully');
     
 } catch (Exception $e) {
