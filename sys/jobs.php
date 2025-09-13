@@ -393,6 +393,12 @@ $predefinedJobs = [
         'schedule' => '*/1 * * * *',
         'command' => 'php ' . __DIR__ . '/../ta/jobs/order-status.php >> ' . __DIR__ . '/../ta/jobs/order-status.log 2>&1',
         'description' => 'Update order status every minute'
+    ],
+    [
+        'name' => 'Telegram Test (1 minute)',
+        'schedule' => '*/1 * * * *',
+        'command' => 'php ' . __DIR__ . '/../ta/jobs/test-telegram-simple.php >> ' . __DIR__ . '/../ta/jobs/test-telegram-simple.log 2>&1',
+        'description' => 'Test telegram notifications every minute - REMOVE AFTER TESTING'
     ]
 ];
 ?>
