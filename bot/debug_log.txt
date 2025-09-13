@@ -1,0 +1,24 @@
+2025-09-13 07:20:45 - === WEBHOOK DEBUG START ===
+{
+    "timestamp": "2025-09-13 07:20:45",
+    "raw_input": "",
+    "parsed_data": null,
+    "json_decode_error": "Syntax error",
+    "content_length": 0,
+    "request_method": "unknown",
+    "content_type": "unknown"
+}
+=== END ===
+
+
+2025-09-13 07:20:45 - === ERROR DETAILS ===
+{
+    "timestamp": "2025-09-13 07:20:45",
+    "error_message": "No data received or invalid JSON: No error",
+    "error_line": 61,
+    "error_file": "C:\\xampp\\htdocs\\trade\\bot\\bot.php",
+    "stack_trace": "#0 C:\\xampp\\htdocs\\trade\\bot\\bot.php(31): SignalWebhookHandler->parseIncomingData()\n#1 C:\\xampp\\htdocs\\trade\\bot\\bot.php(941): SignalWebhookHandler->processWebhook()\n#2 C:\\xampp\\htdocs\\trade\\bot\\test_webhook.php(6): require_once('C:\\\\xampp\\\\htdocs...')\n#3 {main}",
+    "input_data": []
+}
+=== END ERROR ===
+

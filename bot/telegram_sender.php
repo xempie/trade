@@ -489,6 +489,46 @@ class TelegramSender {
        
        return $analysis;
     }
+
+    /**
+     * Send trading signal alert to Telegram
+     */
+    public function sendTradingSignalAlert($symbol, $side, $entries, $targets, $stopLoss, $leverage) {
+        $emoji = ($side === "LONG") ? "🟩" : "🟥";
+        $cleanSymbol = str_replace("-USDT", "", $symbol);
+
+        $message = "<b>🚨 TRADING SIGNAL ALERT</b>\n\n";
+        $message .= "<b>Symbol:</b> {$cleanSymbol}\n";
+        $message .= "<b>Side:</b> {$side} {$emoji}\n";
+        $message .= "<b>Leverage:</b> {$leverage}x\n\n";
+
+        // Entry points
+        $message .= "<b>📊 Entry Points:</b>\n";
+        if (!empty($entries["entry_market"])) {
+            $message .= "Market: $" . number_format($entries["entry_market"], 2) . "\n";
+        }
+        if (!empty($entries["entry_2"])) {
+            $message .= "Entry 2: $" . number_format($entries["entry_2"], 2) . "\n";
+        }
+        if (!empty($entries["entry_3"])) {
+            $message .= "Entry 3: $" . number_format($entries["entry_3"], 2) . "\n";
+        }
+
+        // Targets
+        $message .= "\n<b>🎯 Targets:</b>\n";
+        for ($i = 1; $i <= 5; $i++) {
+            $targetKey = "take_profit_{$i}";
+            if (!empty($targets[$targetKey])) {
+                $message .= "TP{$i}: $" . number_format($targets[$targetKey], 2) . "\n";
+            }
+        }
+
+        // Stop Loss
+        $message .= "\n<b>🛑 Stop Loss:</b> $" . number_format($stopLoss, 2) . "\n";
+        $message .= "\n⏰ <i>" . date("Y-m-d H:i:s") . " UTC</i>";
+
+        return $this->sendMessage($message);
+    }
 }
 
 // Standalone function for backward compatibility

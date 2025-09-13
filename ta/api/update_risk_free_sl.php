@@ -106,8 +106,32 @@ try {
     if ($currentPositionSize <= 0) {
         throw new Exception('No active position found on exchange or position size is 0');
     }
-    
-    // Step 2: Get existing stop loss orders and cancel them (optional - only if they exist)
+
+    error_log("Found current position size from exchange: " . $currentPositionSize);
+    error_log("Database position size: " . $position['size']);
+    error_log("Position entry price: " . $position['entry_price']);
+    error_log("Position margin used: " . $position['margin_used']);
+
+    // Calculate position size in tokens: margin * leverage / entry_price
+    $calculatedTokens = ($position['margin_used'] * $position['leverage']) / $position['entry_price'];
+    error_log("Calculated token quantity from margin: " . $calculatedTokens);
+
+    // Use the smaller of calculated tokens or database position size
+    $stopLossQuantity = min($calculatedTokens, $position['size']);
+
+    // For demo mode, use a much smaller test amount since demo accounts have limited balance
+    // BingX demo accounts often have very low available balance
+    if ($tradingMode === 'demo' || $isDemo) {
+        $originalQuantity = $stopLossQuantity;
+        $stopLossQuantity = 1.0; // Use just 1 token for demo testing
+        error_log("Demo mode: Using minimal test quantity of $stopLossQuantity instead of $originalQuantity");
+    }
+
+    error_log("Using stop loss quantity: " . $stopLossQuantity);
+
+    // Step 2: ALWAYS check BingX for existing stop loss orders and cancel them
+    // This handles cases where stop loss exists on exchange but not tracked in DB
+    error_log("=== CHECKING BINGX FOR EXISTING STOP LOSS ORDERS ===");
     $timestamp = time() * 1000;
     $queryString = "symbol={$bingxSymbol}&timestamp={$timestamp}";
     $signature = hash_hmac('sha256', $queryString, $apiSecret);
@@ -128,21 +152,43 @@ try {
     curl_close($ch);
     
     $stopLossOrdersToCancel = [];
-    
+
     if ($httpCode === 200) {
         $existingOrders = json_decode($response, true);
-        
-        // Find existing stop loss orders for this position (optional)
+        error_log("Retrieved existing orders from BingX: " . json_encode($existingOrders));
+
+        // Find ALL stop loss orders for this symbol (regardless of DB state)
         if (isset($existingOrders['data']) && is_array($existingOrders['data'])) {
+            $totalOrders = count($existingOrders['data']);
+            error_log("Found $totalOrders total open orders on BingX for symbol $bingxSymbol");
+
             foreach ($existingOrders['data'] as $order) {
+                error_log("Checking order: " . json_encode($order));
+
                 if (isset($order['symbol']) && isset($order['type']) && isset($order['side']) && isset($order['orderId']) &&
-                    $order['symbol'] === $bingxSymbol && 
-                    $order['type'] === 'STOP_MARKET' && 
-                    $order['side'] !== $position['side']) {
-                    $stopLossOrdersToCancel[] = $order['orderId'];
+                    $order['symbol'] === $bingxSymbol &&
+                    $order['type'] === 'STOP_MARKET') {
+
+                    // Log details about this stop loss order
+                    error_log("Found STOP_MARKET order - ID: {$order['orderId']}, Side: {$order['side']}, Position Side: " . ($order['positionSide'] ?? 'N/A'));
+
+                    // Cancel any stop loss orders for this position side
+                    if (isset($order['positionSide']) && $order['positionSide'] === strtoupper($position['side'])) {
+                        $stopLossOrdersToCancel[] = $order['orderId'];
+                        error_log("WILL CANCEL: Stop loss order {$order['orderId']} matches position side {$position['side']}");
+                    } else {
+                        error_log("SKIPPING: Stop loss order {$order['orderId']} - different position side");
+                    }
                 }
             }
+        } else {
+            error_log("No orders data found in BingX response or data is not an array");
         }
+    } else {
+        error_log("Failed to get existing orders from BingX: HTTP $httpCode, Response: $response");
+    }
+
+    error_log("Total stop loss orders to cancel: " . count($stopLossOrdersToCancel) . " - IDs: " . implode(', ', $stopLossOrdersToCancel));
         
         // Cancel existing stop loss orders if any exist
         foreach ($stopLossOrdersToCancel as $orderId) {
@@ -192,7 +238,7 @@ try {
         'symbol' => $bingxSymbol,
         'side' => $orderSide,
         'type' => 'STOP_MARKET',
-        'quantity' => $currentPositionSize, // Use actual position size from exchange
+        'quantity' => $stopLossQuantity, // Use calculated reasonable quantity
         'stopPrice' => $newStopLoss,
         'positionSide' => $positionSide, // LONG or SHORT for hedge mode
         'timestamp' => $timestamp
@@ -320,7 +366,7 @@ try {
         $symbol,
         $orderSide,
         $newStopLoss,
-        $currentPositionSize,
+        $stopLossQuantity,
         $position['leverage'],
         $newOrderId, // stop_loss_order_id
         $newStopLoss // stop_loss_price

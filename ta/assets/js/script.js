@@ -1445,19 +1445,15 @@ class TradingForm {
             // Use planned SL from signals table
             if (position.stop_loss && entryPrice > 0) {
                 const slPrice = parseFloat(position.stop_loss);
-                
+
                 // Calculate dollar value using correct formula: margin × leverage × price change %
                 const priceChangePercent = (Math.abs(slPrice - entryPrice) / entryPrice) * 100;
                 const slDollarValue = (marginValue * leverageValue * (priceChangePercent / 100));
-                stopLossValue = slDollarValue;
-                
-                // Format display value - show leveraged percentage impact on margin
+                stopLossValue = -slDollarValue; // Make dollar value negative for SL
+
+                // Format display value - SL always shows negative sign regardless of direction
                 const slPercentageImpact = (slDollarValue / marginValue) * 100;
-                if (direction === 'LONG') {
-                    stopLossPercentDisplay = slPrice < entryPrice ? `-${slPercentageImpact.toFixed(1)}%` : `+${slPercentageImpact.toFixed(1)}%`;
-                } else {
-                    stopLossPercentDisplay = slPrice > entryPrice ? `+${slPercentageImpact.toFixed(1)}%` : `-${slPercentageImpact.toFixed(1)}%`;
-                }
+                stopLossPercentDisplay = `-${slPercentageImpact.toFixed(1)}%`;
             }
             
             // Use planned TP from signals table (prioritize take_profit_1)
@@ -1470,13 +1466,9 @@ class TradingForm {
                 const tpDollarValue = (marginValue * leverageValue * (priceChangePercent / 100));
                 takeProfitValue = tpDollarValue;
                 
-                // Format display value - show leveraged percentage impact on margin
+                // Format display value - TP never shows negative sign, always positive
                 const tpPercentageImpact = (tpDollarValue / marginValue) * 100;
-                if (direction === 'LONG') {
-                    takeProfitPercentDisplay = tpPrice > entryPrice ? `+${tpPercentageImpact.toFixed(1)}%` : `-${tpPercentageImpact.toFixed(1)}%`;
-                } else {
-                    takeProfitPercentDisplay = tpPrice < entryPrice ? `-${tpPercentageImpact.toFixed(1)}%` : `+${tpPercentageImpact.toFixed(1)}%`;
-                }
+                takeProfitPercentDisplay = `+${tpPercentageImpact.toFixed(1)}%`;
             }
             
             // Calculate time ago - handle various date formats
@@ -2693,24 +2685,28 @@ class TradingForm {
         }
 
         // Calculate dollar values and percentages for each target - same as main display
-        const calculateTargetValue = (targetPrice) => {
+        const calculateTargetValue = (targetPrice, isStopLoss = false) => {
             if (!targetPrice || !entryPrice) return null;
             const priceChangePercent = (Math.abs(targetPrice - entryPrice) / entryPrice) * 100;
             const dollarValue = (margin * leverage * (priceChangePercent / 100));
-            
+
             // Calculate percentage impact on margin (same as main display)
             const percentageImpact = (dollarValue / margin) * 100;
-            
+
+            // SL always negative, TP always positive
             let percentDisplay = '';
-            if (direction === 'LONG') {
-                percentDisplay = targetPrice > entryPrice ? `+${percentageImpact.toFixed(1)}%` : `-${percentageImpact.toFixed(1)}%`;
+            let dollarDisplay = '';
+            if (isStopLoss) {
+                percentDisplay = `-${percentageImpact.toFixed(1)}%`;
+                dollarDisplay = `-${dollarValue.toFixed(1)}`; // Negative dollar value for SL
             } else {
-                percentDisplay = targetPrice < entryPrice ? `-${percentageImpact.toFixed(1)}%` : `+${percentageImpact.toFixed(1)}%`;
+                percentDisplay = `+${percentageImpact.toFixed(1)}%`;
+                dollarDisplay = dollarValue.toFixed(1); // Positive dollar value for TP
             }
-            
+
             return {
                 percent: percentDisplay,
-                dollar: dollarValue.toFixed(1)
+                dollar: dollarDisplay
             };
         };
 
@@ -2750,7 +2746,7 @@ class TradingForm {
 
         // Add stop loss
         if (targets.sl) {
-            const slData = calculateTargetValue(parseFloat(targets.sl));
+            const slData = calculateTargetValue(parseFloat(targets.sl), true);
             targetsHTML += `
                 <div class="tp-popover-item stop-loss">
                     <span class="tp-popover-label">Stop Loss:</span>
