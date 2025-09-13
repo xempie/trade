@@ -137,7 +137,9 @@ class SignalWebhookHandler
         $fvgSize = floatval($metadata['fvg_size_pct'] ?? 0);
         
         // Send Telegram notification
+        $this->logMessage('debug_log.txt', "Attempting to send FVG alert for $symbol $side with size $fvgSize%");
         $telegramResult = $this->telegram->sendFVGAlert($symbol, $side, $fvgSize);
+        $this->logMessage('debug_log.txt', "FVG alert result: " . json_encode($telegramResult));
         return $this->processTradingSignal($data);
         // return [
         //     'success' => true,
@@ -160,7 +162,9 @@ class SignalWebhookHandler
         $levels = $data['levels'];
         $prices = $data['prices'];
         
-        $this->telegram->sendHitCrossAlert($symbol, $side, $levels, $prices);
+        $this->logMessage('debug_log.txt', "Attempting to send trigger cross alert for $symbol $side");
+        $telegramResult = $this->telegram->sendHitCrossAlert($symbol, $side, $levels, $prices);
+        $this->logMessage('debug_log.txt', "Trigger cross alert result: " . json_encode($telegramResult));
         return $this->processTradingSignal($data);
         // return [
         //     'success' => true,
@@ -328,8 +332,13 @@ class SignalWebhookHandler
         ]);
         
         // Send Telegram notification if available
+        $this->logMessage('debug_log.txt', "Checking if sendTradingSignalAlert method exists...");
         if (method_exists($this->telegram, 'sendTradingSignalAlert')) {
-            $this->telegram->sendTradingSignalAlert($symbol, $side, $processedEntries, $processedTargets, $processedStopLoss, $leverage);
+            $this->logMessage('debug_log.txt', "sendTradingSignalAlert method exists, attempting to send notification");
+            $telegramResult = $this->telegram->sendTradingSignalAlert($symbol, $side, $processedEntries, $processedTargets, $processedStopLoss, $leverage);
+            $this->logMessage('debug_log.txt', "Trading signal notification result: " . json_encode($telegramResult));
+        } else {
+            $this->logMessage('debug_log.txt', "sendTradingSignalAlert method does NOT exist in telegram object");
         }
         
         return [
@@ -648,14 +657,26 @@ class SignalWebhookHandler
      */
     private function processStopLoss($stopLoss, float $entryPrice, bool $isLong): float
     {
-        $percentage = $this->parsePercentage($stopLoss);
-        
+        // Handle array input (take first element)
+        if (is_array($stopLoss)) {
+            $stopLossValue = $stopLoss[0] ?? null;
+        } else {
+            $stopLossValue = $stopLoss;
+        }
+
+        if ($stopLossValue === null) {
+            // Default to 5% if no stop loss provided
+            $stopLossValue = '5%';
+        }
+
+        $percentage = $this->parsePercentage($stopLossValue);
+
         if ($percentage !== null) {
             // Calculate from percentage
             return $this->calculatePriceFromPercentage($entryPrice, $percentage, $isLong, false);
         } else {
             // Use absolute price
-            return floatval($stopLoss);
+            return floatval($stopLossValue);
         }
     }
 
@@ -816,21 +837,25 @@ class SignalWebhookHandler
             'stack_trace' => $e->getTraceAsString(),
             'input_data' => $data
         ];
-        
+
         $this->logMessage(
-            'debug_log.txt', 
-            "=== ERROR DETAILS ===\n" . 
-            json_encode($errorDetails, JSON_PRETTY_PRINT) . 
+            'debug_log.txt',
+            "=== ERROR DETAILS ===\n" .
+            json_encode($errorDetails, JSON_PRETTY_PRINT) .
             "\n=== END ERROR ==="
         );
-        
+
         $this->logError("Signal processing error: " . $e->getMessage());
-        
+
         // Send error notification if Telegram is available
         if ($this->telegram) {
-            $this->telegram->sendErrorNotification($e->getMessage(), $e->getLine());
+            $this->logMessage('debug_log.txt', "Attempting to send error notification via Telegram");
+            $telegramResult = $this->telegram->sendErrorNotification($e->getMessage(), $e->getLine());
+            $this->logMessage('debug_log.txt', "Telegram error notification result: " . json_encode($telegramResult));
+        } else {
+            $this->logMessage('debug_log.txt', "Telegram object not available for error notification");
         }
-        
+
         http_response_code(500);
         echo json_encode([
             'success' => false,

@@ -1,6 +1,7 @@
-2025-09-13 07:20:45 - === WEBHOOK DEBUG START ===
+=== WEBHOOK FLOW TEST STARTED 2025-09-13 09:34:19 ===
+2025-09-13 09:34:19 - === WEBHOOK DEBUG START ===
 {
-    "timestamp": "2025-09-13 07:20:45",
+    "timestamp": "2025-09-13 09:34:19",
     "raw_input": "",
     "parsed_data": null,
     "json_decode_error": "Syntax error",
@@ -11,14 +12,362 @@
 === END ===
 
 
-2025-09-13 07:20:45 - === ERROR DETAILS ===
+2025-09-13 09:34:19 - === ERROR DETAILS ===
 {
-    "timestamp": "2025-09-13 07:20:45",
+    "timestamp": "2025-09-13 09:34:19",
     "error_message": "No data received or invalid JSON: No error",
     "error_line": 61,
     "error_file": "C:\\xampp\\htdocs\\trade\\bot\\bot.php",
-    "stack_trace": "#0 C:\\xampp\\htdocs\\trade\\bot\\bot.php(31): SignalWebhookHandler->parseIncomingData()\n#1 C:\\xampp\\htdocs\\trade\\bot\\bot.php(941): SignalWebhookHandler->processWebhook()\n#2 C:\\xampp\\htdocs\\trade\\bot\\test_webhook.php(6): require_once('C:\\\\xampp\\\\htdocs...')\n#3 {main}",
+    "stack_trace": "#0 C:\\xampp\\htdocs\\trade\\bot\\bot.php(31): SignalWebhookHandler->parseIncomingData()\n#1 C:\\xampp\\htdocs\\trade\\bot\\bot.php(954): SignalWebhookHandler->processWebhook()\n#2 C:\\xampp\\htdocs\\trade\\bot\\test_webhook_flow.php(123): require_once('C:\\\\xampp\\\\htdocs...')\n#3 C:\\xampp\\htdocs\\trade\\bot\\test_webhook_flow.php(101): simulateBotWebhook(Array)\n#4 C:\\xampp\\htdocs\\trade\\bot\\test_webhook_flow.php(171): testWebhookSignal(Array, 'trading_signal_...')\n#5 {main}",
     "input_data": []
 }
 === END ERROR ===
+
+2025-09-13 09:34:19 - Attempting to send error notification via Telegram
+
+2025-09-13 09:34:21 - Telegram error notification result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":4583,"sender_chat":{"id":-1002819003167,"title":"SSL Adaptive","username":"fvgsignalvip","type":"channel"},"chat":{"id":-1002819003167,"title":"SSL Adaptive","username":"fvgsignalvip","type":"channel"},"date":1757748892,"text":"\ud83d\udea8 Bot Error Alert\n\n\ud83d\udccd Error: No data received or invalid JSON: No error\n\ud83d\udcc4 Line: 61\n\u23f0 Time: 2025-09-13 09:34:19","entities":[{"offset":3,"length":15,"type":"bold"},{"offset":23,"length":6,"type":"bold"},{"offset":76,"length":5,"type":"bold"},{"offset":87,"length":5,"type":"bold"}],"has_protected_content":true}}}
+
+2025-09-13 09:34:21 - Processing signal: Symbol=BTCUSDT, Side=LONG, Type=TRADING_SIGNAL
+
+2025-09-13 09:34:21 - Generated JSON payload: {
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "leverage": 5,
+    "entries": [
+        45000,
+        44500,
+        44000
+    ],
+    "targets": [
+        "2%",
+        "4%",
+        "6%"
+    ],
+    "stop_loss": [
+        "3%"
+    ],
+    "external_signal_id": "webhook-test-001",
+    "notes": "Test webhook trading signal"
+}
+
+2025-09-13 09:34:21 - Attempting to call API: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:34:21 - Checking local file: /ta/api/import_signal.php
+
+2025-09-13 09:34:21 - File exists: NO
+
+2025-09-13 09:34:33 - === API CALL DETAILED DEBUG ===
+
+2025-09-13 09:34:33 - URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:34:33 - Effective URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:34:33 - HTTP Code: 0
+
+2025-09-13 09:34:33 - Content Type: 
+
+2025-09-13 09:34:33 - Total Time: 11.053668s
+
+2025-09-13 09:34:33 - cURL Error: Resolving timed out after 10014 milliseconds
+
+2025-09-13 09:34:33 - Response Length: 0
+
+2025-09-13 09:34:33 - Raw Response (first 500 chars): 
+
+2025-09-13 09:34:33 - Raw Response (full): 
+
+2025-09-13 09:34:33 - Verbose Output: * Resolving timed out after 10014 milliseconds
+* Closing connection
+
+
+2025-09-13 09:34:33 - JSON Payload Sent: {
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "leverage": 5,
+    "entries": [
+        45000,
+        44500,
+        44000
+    ],
+    "targets": [
+        "2%",
+        "4%",
+        "6%"
+    ],
+    "stop_loss": [
+        "3%"
+    ],
+    "external_signal_id": "webhook-test-001",
+    "notes": "Test webhook trading signal"
+}
+
+2025-09-13 09:34:33 - === END DEBUG ===
+
+2025-09-13 09:34:33 - Checking if sendTradingSignalAlert method exists...
+
+2025-09-13 09:34:33 - sendTradingSignalAlert method exists, attempting to send notification
+
+2025-09-13 09:34:35 - Trading signal notification result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":16784,"sender_chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"date":1757748905,"text":"\ud83d\udea8 TRADING SIGNAL ALERT\n\nSymbol: BTCUSDT\nSide: LONG \ud83d\udfe9\nLeverage: 5x\n\n\ud83d\udcca Entry Points:\nMarket: $45,000.00\nEntry 2: $44,500.00\nEntry 3: $44,000.00\n\n\ud83c\udfaf Targets:\nTP1: $45,900.00\nTP2: $46,800.00\nTP3: $47,700.00\n\n\ud83d\uded1 Stop Loss: $1.00\n\n\u23f0 2025-09-13 09:34:33 UTC","entities":[{"offset":0,"length":23,"type":"bold"},{"offset":25,"length":7,"type":"bold"},{"offset":41,"length":5,"type":"bold"},{"offset":55,"length":9,"type":"bold"},{"offset":69,"length":16,"type":"bold"},{"offset":146,"length":11,"type":"bold"},{"offset":207,"length":13,"type":"bold"},{"offset":230,"length":23,"type":"italic"}]}}}
+
+2025-09-13 09:34:37 - Processing signal: Symbol=ADAUSDT, Side=LONG, Type=FVG
+
+2025-09-13 09:34:37 - Attempting to send FVG alert for ADAUSDT LONG with size 3.2%
+
+2025-09-13 09:34:39 - FVG alert result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":455,"sender_chat":{"id":-1003077729880,"title":"FVG Alert","username":"fvgbeer","type":"channel"},"chat":{"id":-1003077729880,"title":"FVG Alert","username":"fvgbeer","type":"channel"},"date":1757748909,"text":"\u2652 FVG Created\n\n====================\nSymbol: ADAUSDT\nSide: LONG \ud83d\udfe9\n\nFVG Size: 3.2%","entities":[{"offset":0,"length":13,"type":"bold"},{"offset":36,"length":7,"type":"bold"},{"offset":52,"length":5,"type":"bold"},{"offset":67,"length":9,"type":"bold"}]}}}
+
+2025-09-13 09:34:40 - Successfully fetched market price for ADA-USDT: 0.92761
+
+2025-09-13 09:34:40 - Generated JSON payload: {
+    "symbol": "ADAUSDT",
+    "side": "LONG",
+    "leverage": 6,
+    "entries": [
+        0.92761,
+        0.9090578
+    ],
+    "targets": [
+        "%2"
+    ],
+    "stop_loss": [
+        "%5"
+    ]
+}
+
+2025-09-13 09:34:40 - Attempting to call API: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:34:40 - Checking local file: /ta/api/import_signal.php
+
+2025-09-13 09:34:40 - File exists: NO
+
+2025-09-13 09:34:51 - === API CALL DETAILED DEBUG ===
+
+2025-09-13 09:34:51 - URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:34:51 - Effective URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:34:51 - HTTP Code: 0
+
+2025-09-13 09:34:51 - Content Type: 
+
+2025-09-13 09:34:51 - Total Time: 11.05666s
+
+2025-09-13 09:34:51 - cURL Error: Resolving timed out after 10004 milliseconds
+
+2025-09-13 09:34:51 - Response Length: 0
+
+2025-09-13 09:34:51 - Raw Response (first 500 chars): 
+
+2025-09-13 09:34:51 - Raw Response (full): 
+
+2025-09-13 09:34:51 - Verbose Output: * Resolving timed out after 10004 milliseconds
+* Closing connection
+
+
+2025-09-13 09:34:51 - JSON Payload Sent: {
+    "symbol": "ADAUSDT",
+    "side": "LONG",
+    "leverage": 6,
+    "entries": [
+        0.92761,
+        0.9090578
+    ],
+    "targets": [
+        "%2"
+    ],
+    "stop_loss": [
+        "%5"
+    ]
+}
+
+2025-09-13 09:34:51 - === END DEBUG ===
+
+2025-09-13 09:34:51 - Checking if sendTradingSignalAlert method exists...
+
+2025-09-13 09:34:51 - sendTradingSignalAlert method exists, attempting to send notification
+
+2025-09-13 09:34:54 - Trading signal notification result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":16785,"sender_chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"date":1757748924,"text":"\ud83d\udea8 TRADING SIGNAL ALERT\n\nSymbol: ADAUSDT\nSide: LONG \ud83d\udfe9\nLeverage: 6x\n\n\ud83d\udcca Entry Points:\nMarket: $0.93\nEntry 2: $0.91\n\n\ud83c\udfaf Targets:\nTP1: $0.95\n\n\ud83d\uded1 Stop Loss: $1.00\n\n\u23f0 2025-09-13 09:34:51 UTC","entities":[{"offset":0,"length":23,"type":"bold"},{"offset":25,"length":7,"type":"bold"},{"offset":41,"length":5,"type":"bold"},{"offset":55,"length":9,"type":"bold"},{"offset":69,"length":16,"type":"bold"},{"offset":116,"length":11,"type":"bold"},{"offset":140,"length":13,"type":"bold"},{"offset":163,"length":23,"type":"italic"}]}}}
+
+2025-09-13 09:34:55 - Processing signal: Symbol=SOLUSDT, Side=SHORT, Type=TRIGGER_CROSS
+
+2025-09-13 09:34:55 - Attempting to send trigger cross alert for SOLUSDT SHORT
+
+2025-09-13 09:34:57 - Trigger cross alert result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":16786,"sender_chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"date":1757748927,"text":"\ud83d\udca5 FVG Price Hit Alert\n\nSymbol: SOLUSDT\nSide: SHORT \ud83d\udfe5\n\nFVG Hit Depth: 25%, 50%, 75%\n\nTriggers: 95.50\n96.20\n97.00\n\nConsider 5-minute timeframe\n\n\ud83d\udfe7\ud83d\udfe7\ud83d\udfe8\ud83d\udfe8\ud83d\udfe9\ud83d\udfe9\u2b1c\u2b1c","entities":[{"offset":0,"length":22,"type":"bold"},{"offset":24,"length":7,"type":"bold"},{"offset":40,"length":5,"type":"bold"},{"offset":56,"length":14,"type":"bold"},{"offset":86,"length":9,"type":"bold"},{"offset":115,"length":27,"type":"italic"}]}}}
+
+2025-09-13 09:34:58 - Successfully fetched market price for SOL-USDT: 242.846
+
+2025-09-13 09:34:58 - Generated JSON payload: {
+    "symbol": "SOLUSDT",
+    "side": "SHORT",
+    "leverage": 6,
+    "entries": [
+        242.846,
+        247.70292
+    ],
+    "targets": [
+        "%2"
+    ],
+    "stop_loss": [
+        "%5"
+    ]
+}
+
+2025-09-13 09:34:58 - Attempting to call API: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:34:58 - Checking local file: /ta/api/import_signal.php
+
+2025-09-13 09:34:58 - File exists: NO
+
+2025-09-13 09:35:09 - === API CALL DETAILED DEBUG ===
+
+2025-09-13 09:35:09 - URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:35:09 - Effective URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:35:09 - HTTP Code: 0
+
+2025-09-13 09:35:09 - Content Type: 
+
+2025-09-13 09:35:09 - Total Time: 11.074442s
+
+2025-09-13 09:35:09 - cURL Error: Resolving timed out after 10004 milliseconds
+
+2025-09-13 09:35:09 - Response Length: 0
+
+2025-09-13 09:35:09 - Raw Response (first 500 chars): 
+
+2025-09-13 09:35:09 - Raw Response (full): 
+
+2025-09-13 09:35:09 - Verbose Output: * Resolving timed out after 10004 milliseconds
+* Closing connection
+
+
+2025-09-13 09:35:09 - JSON Payload Sent: {
+    "symbol": "SOLUSDT",
+    "side": "SHORT",
+    "leverage": 6,
+    "entries": [
+        242.846,
+        247.70292
+    ],
+    "targets": [
+        "%2"
+    ],
+    "stop_loss": [
+        "%5"
+    ]
+}
+
+2025-09-13 09:35:09 - === END DEBUG ===
+
+2025-09-13 09:35:09 - Checking if sendTradingSignalAlert method exists...
+
+2025-09-13 09:35:09 - sendTradingSignalAlert method exists, attempting to send notification
+
+2025-09-13 09:35:11 - Trading signal notification result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":16787,"sender_chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"date":1757748942,"text":"\ud83d\udea8 TRADING SIGNAL ALERT\n\nSymbol: SOLUSDT\nSide: SHORT \ud83d\udfe5\nLeverage: 6x\n\n\ud83d\udcca Entry Points:\nMarket: $242.85\nEntry 2: $247.70\n\n\ud83c\udfaf Targets:\nTP1: $237.99\n\n\ud83d\uded1 Stop Loss: $1.00\n\n\u23f0 2025-09-13 09:35:09 UTC","entities":[{"offset":0,"length":23,"type":"bold"},{"offset":25,"length":7,"type":"bold"},{"offset":41,"length":5,"type":"bold"},{"offset":56,"length":9,"type":"bold"},{"offset":70,"length":16,"type":"bold"},{"offset":121,"length":11,"type":"bold"},{"offset":147,"length":13,"type":"bold"},{"offset":170,"length":23,"type":"italic"}]}}}
+
+2025-09-13 09:35:12 - Processing signal: Symbol=DOGEUSDT, Side=LONG, Type=ICHIMOKU_AFTER_CROSS
+
+2025-09-13 09:35:16 - Successfully fetched market price for DOGE-USDT: 0.28442
+
+2025-09-13 09:35:16 - Generated JSON payload: {
+    "symbol": "DOGEUSDT",
+    "side": "LONG",
+    "leverage": 6,
+    "entries": [
+        0.28442,
+        0.2787316
+    ],
+    "targets": [
+        "%2"
+    ],
+    "stop_loss": [
+        "%5"
+    ]
+}
+
+2025-09-13 09:35:16 - Attempting to call API: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:35:16 - Checking local file: /ta/api/import_signal.php
+
+2025-09-13 09:35:16 - File exists: NO
+
+2025-09-13 09:35:27 - === API CALL DETAILED DEBUG ===
+
+2025-09-13 09:35:27 - URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:35:27 - Effective URL: https://brainity.com.au/ta/api/import_signal.php
+
+2025-09-13 09:35:27 - HTTP Code: 0
+
+2025-09-13 09:35:27 - Content Type: 
+
+2025-09-13 09:35:27 - Total Time: 11.125268s
+
+2025-09-13 09:35:27 - cURL Error: Resolving timed out after 10003 milliseconds
+
+2025-09-13 09:35:27 - Response Length: 0
+
+2025-09-13 09:35:27 - Raw Response (first 500 chars): 
+
+2025-09-13 09:35:27 - Raw Response (full): 
+
+2025-09-13 09:35:27 - Verbose Output: * Resolving timed out after 10003 milliseconds
+* Closing connection
+
+
+2025-09-13 09:35:27 - JSON Payload Sent: {
+    "symbol": "DOGEUSDT",
+    "side": "LONG",
+    "leverage": 6,
+    "entries": [
+        0.28442,
+        0.2787316
+    ],
+    "targets": [
+        "%2"
+    ],
+    "stop_loss": [
+        "%5"
+    ]
+}
+
+2025-09-13 09:35:27 - === END DEBUG ===
+
+2025-09-13 09:35:27 - Checking if sendTradingSignalAlert method exists...
+
+2025-09-13 09:35:27 - sendTradingSignalAlert method exists, attempting to send notification
+
+2025-09-13 09:35:30 - Trading signal notification result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":16788,"sender_chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"chat":{"id":-1002500418563,"title":"FVG Hit Alert \u26a0\ufe0f","username":"manualsignalcheck","type":"channel"},"date":1757748961,"text":"\ud83d\udea8 TRADING SIGNAL ALERT\n\nSymbol: DOGEUSDT\nSide: LONG \ud83d\udfe9\nLeverage: 6x\n\n\ud83d\udcca Entry Points:\nMarket: $0.28\nEntry 2: $0.28\n\n\ud83c\udfaf Targets:\nTP1: $0.29\n\n\ud83d\uded1 Stop Loss: $1.00\n\n\u23f0 2025-09-13 09:35:27 UTC","entities":[{"offset":0,"length":23,"type":"bold"},{"offset":25,"length":7,"type":"bold"},{"offset":42,"length":5,"type":"bold"},{"offset":56,"length":9,"type":"bold"},{"offset":70,"length":16,"type":"bold"},{"offset":117,"length":11,"type":"bold"},{"offset":141,"length":13,"type":"bold"},{"offset":164,"length":23,"type":"italic"}]}}}
+
+2025-09-13 09:35:31 - Processing signal: Symbol=MATICUSDT, Side=SHORT, Type=IN_TREND
+
+2025-09-13 09:35:31 - Processing IN_TREND signal with entry: 1.25
+
+2025-09-13 09:36:37 - === WEBHOOK DEBUG START ===
+{
+    "timestamp": "2025-09-13 09:36:37",
+    "raw_input": "",
+    "parsed_data": null,
+    "json_decode_error": "Syntax error",
+    "content_length": 0,
+    "request_method": "unknown",
+    "content_type": "unknown"
+}
+=== END ===
+
+
+2025-09-13 09:36:37 - === ERROR DETAILS ===
+{
+    "timestamp": "2025-09-13 09:36:37",
+    "error_message": "No data received or invalid JSON: No error",
+    "error_line": 61,
+    "error_file": "C:\\xampp\\htdocs\\trade\\bot\\bot.php",
+    "stack_trace": "#0 C:\\xampp\\htdocs\\trade\\bot\\bot.php(31): SignalWebhookHandler->parseIncomingData()\n#1 C:\\xampp\\htdocs\\trade\\bot\\bot.php(966): SignalWebhookHandler->processWebhook()\n#2 C:\\xampp\\htdocs\\trade\\bot\\test_stopLoss_fix.php(30): require_once('C:\\\\xampp\\\\htdocs...')\n#3 {main}",
+    "input_data": []
+}
+=== END ERROR ===
+
+2025-09-13 09:36:37 - Attempting to send error notification via Telegram
+
+2025-09-13 09:36:39 - Telegram error notification result: {"success":true,"message":"Unknown response","raw_response":{"ok":true,"result":{"message_id":4586,"sender_chat":{"id":-1002819003167,"title":"SSL Adaptive","username":"fvgsignalvip","type":"channel"},"chat":{"id":-1002819003167,"title":"SSL Adaptive","username":"fvgsignalvip","type":"channel"},"date":1757749030,"text":"\ud83d\udea8 Bot Error Alert\n\n\ud83d\udccd Error: No data received or invalid JSON: No error\n\ud83d\udcc4 Line: 61\n\u23f0 Time: 2025-09-13 09:36:37","entities":[{"offset":3,"length":15,"type":"bold"},{"offset":23,"length":6,"type":"bold"},{"offset":76,"length":5,"type":"bold"},{"offset":87,"length":5,"type":"bold"}],"has_protected_content":true}}}
 

@@ -23,50 +23,85 @@ class TelegramSender {
         $this->fvgChatId = EnvLoader::get('TELEGRAM_CHAT_ID_FVG');
         $this->blueBotToken = EnvLoader::get('TELEGRAM_BOT_TOKEN_BLUE');
         $this->blueChatId = EnvLoader::get('TELEGRAM_CHAT_ID_BLUE');
+
+        // Log initialization status
+        $this->logDebug("TelegramSender initialized:");
+        $this->logDebug("- ENABLE_TELEGRAM: " . ($this->enabled ? 'true' : 'false'));
+        $this->logDebug("- Bot Token: " . ($this->botToken ? 'SET' : 'NOT SET'));
+        $this->logDebug("- Chat ID: " . ($this->chatId ? 'SET' : 'NOT SET'));
+        $this->logDebug("- Admin Bot Token: " . ($this->adminBotToken ? 'SET' : 'NOT SET'));
+        $this->logDebug("- Admin Chat ID: " . ($this->adminChatId ? 'SET' : 'NOT SET'));
     }
     
     public function sendMessage($message) {
+        $this->logDebug("sendMessage called with message length: " . strlen($message));
+
         if (!$this->enabled) {
+            $this->logDebug("Telegram is DISABLED");
             return ['success' => false, 'message' => 'Telegram disabled'];
         }
-        
+
         if (empty($this->botToken) || empty($this->chatId)) {
+            $this->logDebug("Missing credentials - Bot Token: " . ($this->botToken ? 'SET' : 'NOT SET') . ", Chat ID: " . ($this->chatId ? 'SET' : 'NOT SET'));
             return ['success' => false, 'message' => 'Telegram credentials missing'];
         }
-        
-        return $this->sendTelegramMessage($this->botToken, $this->chatId, $message);
+
+        $this->logDebug("Calling sendTelegramMessage with bot token and chat ID");
+        $result = $this->sendTelegramMessage($this->botToken, $this->chatId, $message);
+        $this->logDebug("sendMessage result: " . json_encode($result));
+        return $result;
     }
     
     public function sendAdminMessage($type, $message, $inlineKeyboard = null) {
+        $this->logDebug("sendAdminMessage called with type: $type, message length: " . strlen($message));
+
         if (!$this->enabled) {
+            $this->logDebug("Telegram is DISABLED for admin message");
             return ['success' => false, 'message' => 'Telegram disabled'];
         }
-        
-        
+
         if ($type=='IN_TREND') {
-            return $this->sendTelegramMessage($this->adminBotToken, $this->adminChatId, $message, $inlineKeyboard);
+            $this->logDebug("Sending IN_TREND message to admin channel");
+            $result = $this->sendTelegramMessage($this->adminBotToken, $this->adminChatId, $message, $inlineKeyboard);
+            $this->logDebug("IN_TREND result: " . json_encode($result));
+            return $result;
         } elseif ($type=='ICHIMOKU_BEFORE_CROSS' || $type=='ICHIMOKU_AFTER_CROSS') {
-            return $this->sendTelegramMessage($this->adminBotToken, $this->adminChatId, $message, $inlineKeyboard);
+            $this->logDebug("Sending ICHIMOKU message to admin channel");
+            $result = $this->sendTelegramMessage($this->adminBotToken, $this->adminChatId, $message, $inlineKeyboard);
+            $this->logDebug("ICHIMOKU result: " . json_encode($result));
+            return $result;
         } elseif ($type=='UP_TREND') {
-            return $this->sendTelegramMessage($this->blueBotToken, $this->blueChatId, $message, $inlineKeyboard);
+            $this->logDebug("Sending UP_TREND message to blue channel");
+            $result = $this->sendTelegramMessage($this->blueBotToken, $this->blueChatId, $message, $inlineKeyboard);
+            $this->logDebug("UP_TREND result: " . json_encode($result));
+            return $result;
         } elseif ($type=='FVG') {
-            return $this->sendTelegramMessage($this->fvgBotToken, $this->fvgChatId, $message, $inlineKeyboard);
+            $this->logDebug("Sending FVG message to FVG channel");
+            $result = $this->sendTelegramMessage($this->fvgBotToken, $this->fvgChatId, $message, $inlineKeyboard);
+            $this->logDebug("FVG result: " . json_encode($result));
+            return $result;
+        } else {
+            $this->logDebug("Unknown admin message type: $type");
+            return ['success' => false, 'message' => "Unknown message type: $type"];
         }
-        
     }
     
     private function sendTelegramMessage($botToken, $chatId, $message, $inlineKeyboard = null) {
         $telegramUrl = "https://api.telegram.org/bot{$botToken}/sendMessage";
+        $this->logDebug("Sending to Telegram URL: $telegramUrl");
+
         $params = [
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'HTML'
         ];
-        
+
         if ($inlineKeyboard !== null) {
             $params['reply_markup'] = json_encode(['inline_keyboard' => $inlineKeyboard]);
         }
-        
+
+        $this->logDebug("Telegram params: " . json_encode($params));
+
         $options = [
             'http' => [
                 'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
@@ -75,19 +110,96 @@ class TelegramSender {
                 'timeout' => 10
             ],
         ];
-        
+
         $context = stream_context_create($options);
+        $this->logDebug("Making file_get_contents request to Telegram API...");
+
+        // Use error_get_last() to capture more details about the failure
         $result = @file_get_contents($telegramUrl, false, $context);
-        
+
         if ($result === false) {
-            return ['success' => false, 'message' => 'Failed to send telegram message'];
+            $error = error_get_last();
+            $errorMsg = 'Failed to send telegram message';
+            if ($error) {
+                $errorMsg .= ': ' . $error['message'];
+            }
+            $this->logDebug("file_get_contents FAILED: $errorMsg");
+
+            // Try with cURL as fallback
+            $this->logDebug("Attempting fallback with cURL...");
+            return $this->sendTelegramMessageCurl($botToken, $chatId, $message, $inlineKeyboard);
         }
-        
+
+        $this->logDebug("Raw Telegram response: " . $result);
+
         $response = json_decode($result, true);
-        return [
-            'success' => $response['ok'] ?? false, 
+        $finalResult = [
+            'success' => $response['ok'] ?? false,
             'message' => $response['description'] ?? 'Unknown response',
             'raw_response' => $response
+        ];
+
+        $this->logDebug("Final result: " . json_encode($finalResult));
+        return $finalResult;
+    }
+
+    private function sendTelegramMessageCurl($botToken, $chatId, $message, $inlineKeyboard = null) {
+        $telegramUrl = "https://api.telegram.org/bot{$botToken}/sendMessage";
+
+        $params = [
+            'chat_id' => $chatId,
+            'text' => $message,
+            'parse_mode' => 'HTML'
+        ];
+
+        if ($inlineKeyboard !== null) {
+            $params['reply_markup'] = json_encode(['inline_keyboard' => $inlineKeyboard]);
+        }
+
+        $this->logDebug("Using cURL fallback for Telegram API call");
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $telegramUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+
+        $result = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        $this->logDebug("cURL HTTP Code: $httpCode");
+        $this->logDebug("cURL Error: " . ($error ?: 'None'));
+        $this->logDebug("cURL Response: $result");
+
+        if ($error) {
+            return ['success' => false, 'message' => "cURL error: $error"];
+        }
+
+        if ($httpCode !== 200) {
+            return ['success' => false, 'message' => "HTTP error: $httpCode"];
+        }
+
+        if (!$result) {
+            return ['success' => false, 'message' => 'Empty response from Telegram'];
+        }
+
+        $response = json_decode($result, true);
+
+        if (!$response || !$response['ok']) {
+            $errorMsg = $response['description'] ?? 'Unknown API error';
+            return ['success' => false, 'message' => $errorMsg];
+        }
+
+        return [
+            'success' => true,
+            'message_id' => $response['result']['message_id'],
+            'chat_id' => $response['result']['chat']['id']
         ];
     }
     
@@ -528,6 +640,15 @@ class TelegramSender {
         $message .= "\n⏰ <i>" . date("Y-m-d H:i:s") . " UTC</i>";
 
         return $this->sendMessage($message);
+    }
+
+    /**
+     * Debug logging method
+     */
+    private function logDebug($message) {
+        $timestamp = date('Y-m-d H:i:s');
+        $logEntry = "[$timestamp] [TELEGRAM] $message\n";
+        file_put_contents(__DIR__ . '/telegram_debug.log', $logEntry, FILE_APPEND | LOCK_EX);
     }
 }
 
