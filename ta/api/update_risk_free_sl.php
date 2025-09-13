@@ -244,34 +244,36 @@ try {
         throw new Exception('Failed to get new stop loss order ID from exchange. Response structure may have changed.');
     }
     
-    // Step 4: Update database - Update signals table with new stop loss
+    // Step 4: Update signals table with new stop loss
     $stmt = $pdo->prepare("
-        UPDATE signals 
-        SET stop_loss = ?, updated_at = NOW() 
+        UPDATE signals
+        SET stop_loss = ?, updated_at = NOW()
         WHERE id = (SELECT signal_id FROM positions WHERE id = ?)
     ");
     $stmt->execute([$newStopLoss, $positionId]);
-    
-    // Step 5: Save new stop loss order to orders table
+
+    // Step 5: Save new stop loss order to orders table with stop loss fields
     $stmt = $pdo->prepare("
         INSERT INTO orders (
-            signal_id, bingx_order_id, symbol, side, type, 
-            price, quantity, leverage, status, created_at
+            signal_id, bingx_order_id, symbol, side, type, entry_level,
+            price, quantity, leverage, status, stop_loss_order_id, stop_loss_price, created_at
         ) VALUES (
             (SELECT signal_id FROM positions WHERE id = ?),
-            ?, ?, ?, 'STOP_MARKET',
-            ?, ?, ?, 'NEW', NOW()
+            ?, ?, ?, 'STOP_MARKET', 'STOP_LOSS',
+            ?, ?, ?, 'NEW', ?, ?, NOW()
         )
     ");
-    
+
     $stmt->execute([
         $positionId,
         $newOrderId,
         $symbol,
         $orderSide,
         $newStopLoss,
-        $position['size'],
-        $position['leverage']
+        $currentPositionSize,
+        $position['leverage'],
+        $newOrderId, // stop_loss_order_id
+        $newStopLoss // stop_loss_price
     ]);
     
     sendAPIResponse(true, [
