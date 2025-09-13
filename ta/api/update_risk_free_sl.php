@@ -4,6 +4,9 @@ protectAPI();
 
 require_once __DIR__ . '/../auth/config.php';
 
+// Load aggressive exchange sync system
+require_once __DIR__ . '/exchange_sync.php';
+
 try {
     // Get JSON input
     $input = json_decode(file_get_contents('php://input'), true);
@@ -52,10 +55,14 @@ try {
         throw new Exception('BingX API credentials not configured');
     }
     
-    // Determine base URL based on trading mode and demo flag
-    $baseUrl = ($tradingMode === 'demo' || $isDemo) ? 
-        (getenv('BINGX_DEMO_URL') ?: 'https://open-api-vst.bingx.com') : 
+    // CRITICAL: Always use the position's demo/live mode for exchange selection
+    // Demo positions should use demo exchange, live positions should use live exchange
+    $baseUrl = $isDemo ?
+        (getenv('BINGX_DEMO_URL') ?: 'https://open-api-vst.bingx.com') :
         (getenv('BINGX_LIVE_URL') ?: 'https://open-api.bingx.com');
+
+    error_log("POSITION MODE DEBUG: Position is_demo=" . ($isDemo ? 'true' : 'false') . ", baseUrl='$baseUrl'");
+    error_log("Global tradingMode='$tradingMode' (ignored - using position-specific mode)");
     
     // Format symbol for BingX (ensure it has -USDT suffix)
     $bingxSymbol = strtoupper($symbol);
@@ -116,223 +123,122 @@ try {
     $calculatedTokens = ($position['margin_used'] * $position['leverage']) / $position['entry_price'];
     error_log("Calculated token quantity from margin: " . $calculatedTokens);
 
-    // Use the smaller of calculated tokens or database position size
-    $stopLossQuantity = min($calculatedTokens, $position['size']);
+    // Stop loss should be 100% of the position size to close entire position
+    // Use the actual position size from exchange or database
+    $stopLossQuantity = max($currentPositionSize, $position['size']);
+    error_log("Stop loss quantity set to full position size: $stopLossQuantity tokens");
 
-    // For demo mode, use a much smaller test amount since demo accounts have limited balance
-    // BingX demo accounts often have very low available balance
-    if ($tradingMode === 'demo' || $isDemo) {
-        $originalQuantity = $stopLossQuantity;
-        $stopLossQuantity = 0.1; // Use just 0.1 token for demo testing (about $0.03)
-        error_log("Demo mode: Using minimal test quantity of $stopLossQuantity instead of $originalQuantity");
+    // For demo positions, still use full size but handle API errors gracefully
+    if ($isDemo) {
+        error_log("Demo position: Using full position size of $stopLossQuantity tokens for stop loss");
+        error_log("Demo mode will fallback to mock order if BingX rejects due to balance issues");
     }
 
     error_log("Using stop loss quantity: " . $stopLossQuantity);
 
-    // Step 1.5: Check available balance for demo mode to ensure we can place the order
-    if ($tradingMode === 'demo' || $isDemo) {
-        error_log("=== CHECKING DEMO ACCOUNT BALANCE ===");
-
-        $timestamp = time() * 1000;
-        $queryString = "timestamp={$timestamp}";
-        $signature = hash_hmac('sha256', $queryString, $apiSecret);
-
-        $balanceUrl = "{$baseUrl}/openApi/swap/v2/user/balance?{$queryString}&signature={$signature}";
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $balanceUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'X-BX-APIKEY: ' . $apiKey,
-            'Content-Type: application/json'
-        ]);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-        $balanceResponse = curl_exec($ch);
-        $balanceHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($balanceHttpCode === 200) {
-            $balanceData = json_decode($balanceResponse, true);
-            error_log("Balance response: " . json_encode($balanceData));
-
-            // Find USDT available balance
-            $availableUSDT = 0;
-            if (isset($balanceData['data']['balance']) && is_array($balanceData['data']['balance'])) {
-                foreach ($balanceData['data']['balance'] as $asset) {
-                    if (isset($asset['asset']) && $asset['asset'] === 'USDT') {
-                        $availableUSDT = floatval($asset['availableMargin'] ?? $asset['balance'] ?? 0);
-                        break;
-                    }
-                }
-            }
-
-            error_log("Available USDT balance: $availableUSDT");
-
-            // If available balance is very low, adjust quantity accordingly
-            if ($availableUSDT <= 0) {
-                error_log("DEMO MODE WARNING: No available USDT balance ($availableUSDT). Cannot place stop loss order.");
-                error_log("Will proceed with database-only update for demo mode.");
-
-                // For demo mode with zero balance, skip the actual order creation
-                // but still update the database for testing purposes
-                $skipOrderCreation = true;
-            } elseif ($availableUSDT < 1) {
-                // Calculate max quantity based on available balance (use 90% to be safe)
-                $maxValueInUSDT = $availableUSDT * 0.9;
-                $maxQuantity = $maxValueInUSDT / $newStopLoss; // Approximate token quantity
-
-                if ($maxQuantity > 0 && $maxQuantity < $stopLossQuantity) {
-                    $originalQuantity = $stopLossQuantity;
-                    $stopLossQuantity = max(0.01, $maxQuantity); // Minimum 0.01 tokens
-                    error_log("Demo mode balance-adjusted quantity: $stopLossQuantity (was $originalQuantity), based on $availableUSDT USDT available");
-                }
-            }
-        } else {
-            error_log("Failed to get balance: HTTP $balanceHttpCode, Response: $balanceResponse");
-        }
-    }
+    // Remove balance checking - let the exchange handle insufficient balance errors
+    // The system should always attempt to place orders on the appropriate exchange
 
     error_log("Final stop loss quantity to use: " . $stopLossQuantity);
 
-    // Initialize order creation flag
-    $skipOrderCreation = false;
+    // Step 2: AGGRESSIVE STOP LOSS DELETION - Delete ALL stop losses for this symbol and position
+    error_log("=== AGGRESSIVE STOP LOSS DELETION FOR POSITION ===");
+    error_log("Position side: {$position['side']}, Symbol: $bingxSymbol");
 
-    // Step 2: ALWAYS check BingX for existing stop loss orders and cancel them
-    // This handles cases where stop loss exists on exchange but not tracked in DB
-    error_log("=== CHECKING BINGX FOR EXISTING STOP LOSS ORDERS ===");
-    $timestamp = time() * 1000;
-    $queryString = "symbol={$bingxSymbol}&timestamp={$timestamp}";
-    $signature = hash_hmac('sha256', $queryString, $apiSecret);
-    
-    $getOrdersUrl = "{$baseUrl}/openApi/swap/v2/trade/openOrders?{$queryString}&signature={$signature}";
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $getOrdersUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'X-BX-APIKEY: ' . $apiKey,
-        'Content-Type: application/json'
-    ]);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    $stopLossOrdersToCancel = [];
+    function deleteAllStopLossOrders($baseUrl, $bingxSymbol, $positionSide, $apiKey, $apiSecret) {
+        $deletedOrders = [];
 
-    if ($httpCode === 200) {
-        $existingOrders = json_decode($response, true);
-        error_log("Retrieved existing orders from BingX: " . json_encode($existingOrders));
-
-        // Find ALL stop loss orders for this symbol (regardless of DB state)
-        // Check both possible response structures: data.orders[] or data[]
-        $ordersArray = null;
-        if (isset($existingOrders['data']['orders']) && is_array($existingOrders['data']['orders'])) {
-            $ordersArray = $existingOrders['data']['orders'];
-            error_log("Found orders in data.orders structure");
-        } elseif (isset($existingOrders['data']) && is_array($existingOrders['data'])) {
-            $ordersArray = $existingOrders['data'];
-            error_log("Found orders in data structure");
-        }
-
-        if ($ordersArray !== null) {
-            $totalOrders = count($ordersArray);
-            error_log("Found $totalOrders total open orders on BingX for symbol $bingxSymbol");
-
-            foreach ($ordersArray as $order) {
-                error_log("Checking order: " . json_encode($order));
-
-                if (isset($order['symbol']) && isset($order['type']) && isset($order['side']) && isset($order['orderId']) &&
-                    $order['symbol'] === $bingxSymbol &&
-                    $order['type'] === 'STOP_MARKET') {
-
-                    // Log details about this stop loss order
-                    error_log("Found STOP_MARKET order - ID: {$order['orderId']}, Side: {$order['side']}, Position Side: " . ($order['positionSide'] ?? 'N/A'));
-
-                    // Cancel any stop loss orders for this position side
-                    if (isset($order['positionSide']) && $order['positionSide'] === strtoupper($position['side'])) {
-                        $stopLossOrdersToCancel[] = $order['orderId'];
-                        error_log("WILL CANCEL: Stop loss order {$order['orderId']} matches position side {$position['side']}");
-                    } else {
-                        error_log("SKIPPING: Stop loss order {$order['orderId']} - different position side");
-                    }
-                }
-            }
-        } else {
-            error_log("No orders data found in BingX response or data is not an array");
-        }
-    } else {
-        error_log("Failed to get existing orders from BingX: HTTP $httpCode, Response: $response");
-    }
-
-    error_log("Total stop loss orders to cancel: " . count($stopLossOrdersToCancel) . " - IDs: " . implode(', ', $stopLossOrdersToCancel));
-        
-    // Cancel existing stop loss orders if any exist
-    error_log("=== CANCELLING EXISTING STOP LOSS ORDERS ===");
-    $cancelledCount = 0;
-    $failedCancellations = [];
-
-    foreach ($stopLossOrdersToCancel as $orderId) {
-        error_log("Attempting to cancel stop loss order: $orderId");
-
-        $timestamp = time() * 1000;
-        $cancelData = [
-            'symbol' => $bingxSymbol,
-            'orderId' => $orderId,
-            'timestamp' => $timestamp
-        ];
-
-        $queryString = http_build_query($cancelData);
+        // Get all open orders
+        $timestamp = round(microtime(true) * 1000);
+        $queryParams = ['timestamp' => $timestamp];
+        $queryString = http_build_query($queryParams);
         $signature = hash_hmac('sha256', $queryString, $apiSecret);
-
-        $cancelUrl = "{$baseUrl}/openApi/swap/v2/trade/order";
-
-        error_log("Cancel request URL: $cancelUrl");
-        error_log("Cancel request data: " . $queryString . "&signature=" . $signature);
+        $getOrdersUrl = "{$baseUrl}/openApi/swap/v2/trade/openOrders?{$queryString}&signature={$signature}";
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $cancelUrl);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $queryString . "&signature=" . $signature);
+        curl_setopt($ch, CURLOPT_URL, $getOrdersUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'X-BX-APIKEY: ' . $apiKey,
-            'Content-Type: application/x-www-form-urlencoded'
-        ]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['X-BX-APIKEY: ' . $apiKey]);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
-        $cancelResponse = curl_exec($ch);
-        $cancelHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        error_log("Cancel response for order $orderId: HTTP $cancelHttpCode, Response: $cancelResponse");
-
-        if ($cancelHttpCode === 200) {
-            $cancelledCount++;
-            error_log("SUCCESS: Cancelled stop loss order $orderId");
-        } else {
-            $failedCancellations[] = $orderId;
-            error_log("FAILED: Could not cancel stop loss order $orderId - HTTP $cancelHttpCode");
+        if ($httpCode !== 200) {
+            error_log("❌ Failed to get orders: HTTP $httpCode");
+            return $deletedOrders;
         }
+
+        $ordersResponse = json_decode($response, true);
+        $ordersArray = $ordersResponse['data']['orders'] ?? $ordersResponse['data'] ?? [];
+
+        error_log("🔍 Scanning " . count($ordersArray) . " orders for stop losses to delete");
+
+        foreach ($ordersArray as $order) {
+            // Check if this is a stop loss order for our symbol
+            $isStopLoss = (
+                isset($order['symbol']) && $order['symbol'] === $bingxSymbol &&
+                isset($order['type']) && $order['type'] === 'STOP_MARKET' &&
+                isset($order['orderId'])
+            );
+
+            if ($isStopLoss) {
+                error_log("🎯 FOUND STOP LOSS: {$order['orderId']} for {$order['symbol']} - DELETING IMMEDIATELY");
+
+                // Cancel this stop loss order immediately - FIXED VERSION
+                $timestamp = round(microtime(true) * 1000);
+                $cancelData = [
+                    'symbol' => $bingxSymbol,
+                    'orderId' => $order['orderId'],
+                    'timestamp' => $timestamp
+                ];
+
+                $cancelQuery = http_build_query($cancelData);
+                $cancelSig = hash_hmac('sha256', $cancelQuery, $apiSecret);
+
+                // USE GET METHOD WITH URL PARAMETERS INSTEAD OF DELETE WITH BODY
+                $cancelUrl = "{$baseUrl}/openApi/swap/v2/trade/order?" . $cancelQuery . "&signature=" . $cancelSig;
+
+                error_log("🔧 FIXED Cancel URL: $cancelUrl");
+
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $cancelUrl);
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                // NO POST FIELDS - USE URL PARAMETERS ONLY
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'X-BX-APIKEY: ' . $apiKey
+                ]);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+                $cancelResponse = curl_exec($ch);
+                $cancelHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($cancelHttpCode === 200) {
+                    $deletedOrders[] = $order['orderId'];
+                    error_log("✅ DELETED stop loss order: {$order['orderId']}");
+                } else {
+                    error_log("❌ FAILED to delete stop loss order: {$order['orderId']} - HTTP $cancelHttpCode, Response: $cancelResponse");
+                }
+            }
+        }
+
+        return $deletedOrders;
     }
 
-    error_log("Cancellation summary: $cancelledCount successful, " . count($failedCancellations) . " failed");
-    if (!empty($failedCancellations)) {
-        error_log("Failed to cancel orders: " . implode(', ', $failedCancellations));
+    // Execute aggressive deletion
+    $deletedStopLossOrders = deleteAllStopLossOrders($baseUrl, $bingxSymbol, strtoupper($position['side']), $apiKey, $apiSecret);
+    $stopLossOrdersToCancel = $deletedStopLossOrders; // For summary logging
+
+    error_log("🧹 DELETION COMPLETE: " . count($deletedStopLossOrders) . " stop loss orders deleted");
+    if (!empty($deletedStopLossOrders)) {
+        error_log("🗑️  Deleted order IDs: " . implode(', ', $deletedStopLossOrders));
     }
+    // Old cancellation logic removed - using aggressive deletion above
     
-    // Step 3: Create new stop loss order (unless skipping for demo mode)
-    if ($skipOrderCreation) {
-        error_log("=== SKIPPING ORDER CREATION (DEMO MODE - NO BALANCE) ===");
-        $newOrderId = "DEMO_" . time(); // Create a fake order ID for database tracking
-        error_log("Using fake order ID for demo mode: $newOrderId");
-    } else {
-        error_log("=== CREATING NEW STOP LOSS ORDER ===");
-        $timestamp = time() * 1000;
-    
-    // Determine order side (opposite of position side)
+    // Determine order side (opposite of position side) - needed for both API and database
     $orderSide = ($position['side'] === 'LONG') ? 'SELL' : 'BUY';
     error_log("Position side: {$position['side']}, Stop loss order side: $orderSide");
 
@@ -340,23 +246,27 @@ try {
     $positionSide = strtoupper($position['side']); // LONG or SHORT
     error_log("Position side for order: $positionSide");
 
+    // Step 3: Always create new stop loss order on appropriate exchange
+    error_log("=== CREATING NEW STOP LOSS ORDER ===");
+    $timestamp = round(microtime(true) * 1000);
+
     $orderParams = [
         'symbol' => $bingxSymbol,
         'side' => $orderSide,
         'type' => 'STOP_MARKET',
-        'quantity' => $stopLossQuantity, // Use calculated reasonable quantity
+        'quantity' => $stopLossQuantity,
         'stopPrice' => $newStopLoss,
-        'positionSide' => $positionSide, // LONG or SHORT for hedge mode
+        'positionSide' => $positionSide,
         'timestamp' => $timestamp
     ];
 
     error_log("New stop loss order parameters: " . json_encode($orderParams, JSON_PRETTY_PRINT));
-    
+
     $queryString = http_build_query($orderParams);
     $signature = hash_hmac('sha256', $queryString, $apiSecret);
-    
+
     $orderUrl = "{$baseUrl}/openApi/swap/v2/trade/order";
-    
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $orderUrl);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -372,18 +282,17 @@ try {
     $orderResponse = curl_exec($ch);
     $orderHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     if ($orderHttpCode !== 200) {
         error_log("=== STOP LOSS ORDER CREATION FAILED ===");
         error_log("HTTP Status Code: " . $orderHttpCode);
         error_log("Request URL: " . $orderUrl);
         error_log("Request Body: " . $queryString . "&signature=" . $signature);
         error_log("Response Body: " . $orderResponse);
-        error_log("cURL Error (if any): " . curl_error($ch));
         error_log("=== END FAILED REQUEST DEBUG ===");
         throw new Exception("Failed to create new stop loss order on exchange. HTTP Code: $orderHttpCode");
     }
-    
+
     $orderResult = json_decode($orderResponse, true);
 
     // Comprehensive logging for debugging
@@ -393,61 +302,66 @@ try {
     error_log("Request Body: " . $queryString . "&signature=" . $signature);
     error_log("Raw Response: " . $orderResponse);
     error_log("Parsed Response: " . json_encode($orderResult, JSON_PRETTY_PRINT));
-    error_log("Order Parameters Used: " . json_encode([
-        'symbol' => $bingxSymbol,
-        'side' => $orderSide,
-        'type' => 'STOP_MARKET',
-        'quantity' => $stopLossQuantity,
-        'stopPrice' => $newStopLoss,
-        'positionSide' => $positionSide,
-        'trading_mode' => $tradingMode,
-        'is_demo' => $isDemo,
-        'base_url' => $baseUrl
-    ], JSON_PRETTY_PRINT));
 
-    // Check for BingX API errors first
+    // Check for BingX API errors first - handle balance errors gracefully for demo mode
     if (isset($orderResult['code']) && $orderResult['code'] != 0) {
         $errorMsg = isset($orderResult['msg']) ? $orderResult['msg'] : 'Unknown BingX API error';
         error_log("BingX API Error Code: " . $orderResult['code'] . ", Message: " . $errorMsg);
-        throw new Exception("BingX API Error: " . $errorMsg . " (Code: " . $orderResult['code'] . ")");
+
+        // Handle balance/size errors gracefully for demo positions
+        if (($orderResult['code'] == 110424 || $orderResult['code'] == 110422) && $isDemo) {
+            error_log("=== DEMO MODE API ERROR - USING MOCK ORDER ===");
+            error_log("Error code: " . $orderResult['code'] . ", isDemo: " . ($isDemo ? 'true' : 'false'));
+            if ($orderResult['code'] == 110424) {
+                error_log("Demo account has insufficient balance, creating mock order for database tracking");
+            } elseif ($orderResult['code'] == 110422) {
+                error_log("Demo order size too small for BingX requirements, creating mock order for database tracking");
+            }
+            $newOrderId = "DEMO_SL_" . time() . "_" . rand(1000, 9999);
+            error_log("Successfully created mock order ID for demo mode: $newOrderId");
+            error_log("Will proceed with database update using mock order ID");
+        } else {
+            error_log("Not handling error gracefully - code: " . $orderResult['code'] . ", isDemo: " . ($isDemo ? 'true' : 'false'));
+            throw new Exception("BingX API Error: " . $errorMsg . " (Code: " . $orderResult['code'] . ")");
+        }
+    } else {
+        // Success case - extract order ID from response
+        // Try multiple possible response structures
+        $newOrderId = null;
+        if (isset($orderResult['data']['orderId'])) {
+            $newOrderId = $orderResult['data']['orderId'];
+            error_log("Found order ID in data.orderId: " . $newOrderId);
+        } elseif (isset($orderResult['data']['order']['orderId'])) {
+            $newOrderId = $orderResult['data']['order']['orderId'];
+            error_log("Found order ID in data.order.orderId: " . $newOrderId);
+        } elseif (isset($orderResult['orderId'])) {
+            $newOrderId = $orderResult['orderId'];
+            error_log("Found order ID in orderId: " . $newOrderId);
+        } elseif (isset($orderResult['data']['clientOrderId'])) {
+            $newOrderId = $orderResult['data']['clientOrderId'];
+            error_log("Found order ID in data.clientOrderId: " . $newOrderId);
+        } elseif (isset($orderResult['clientOrderId'])) {
+            $newOrderId = $orderResult['clientOrderId'];
+            error_log("Found order ID in clientOrderId: " . $newOrderId);
+        }
+
+        // Log all available fields in the response for analysis
+        if (isset($orderResult['data']) && is_array($orderResult['data'])) {
+            error_log("Available fields in response data: " . implode(', ', array_keys($orderResult['data'])));
+        }
+        if (is_array($orderResult)) {
+            error_log("Available fields in response root: " . implode(', ', array_keys($orderResult)));
+        }
+
+        if (!$newOrderId) {
+            error_log("BingX stop loss order creation failed - no order ID found in any expected field");
+            error_log("Complete response structure analysis: " . print_r($orderResult, true));
+            throw new Exception('Failed to get new stop loss order ID from exchange. Please check the error logs for the complete API response structure.');
+        }
     }
 
-    // Try multiple possible response structures
-    $newOrderId = null;
-    if (isset($orderResult['data']['orderId'])) {
-        $newOrderId = $orderResult['data']['orderId'];
-        error_log("Found order ID in data.orderId: " . $newOrderId);
-    } elseif (isset($orderResult['data']['order']['orderId'])) {
-        $newOrderId = $orderResult['data']['order']['orderId'];
-        error_log("Found order ID in data.order.orderId: " . $newOrderId);
-    } elseif (isset($orderResult['orderId'])) {
-        $newOrderId = $orderResult['orderId'];
-        error_log("Found order ID in orderId: " . $newOrderId);
-    } elseif (isset($orderResult['data']['clientOrderId'])) {
-        $newOrderId = $orderResult['data']['clientOrderId'];
-        error_log("Found order ID in data.clientOrderId: " . $newOrderId);
-    } elseif (isset($orderResult['clientOrderId'])) {
-        $newOrderId = $orderResult['clientOrderId'];
-        error_log("Found order ID in clientOrderId: " . $newOrderId);
-    }
-
-    // Log all available fields in the response for analysis
-    if (isset($orderResult['data']) && is_array($orderResult['data'])) {
-        error_log("Available fields in response data: " . implode(', ', array_keys($orderResult['data'])));
-    }
-    if (is_array($orderResult)) {
-        error_log("Available fields in response root: " . implode(', ', array_keys($orderResult)));
-    }
-
-    if (!$newOrderId) {
-        error_log("BingX stop loss order creation failed - no order ID found in any expected field");
-        error_log("Complete response structure analysis: " . print_r($orderResult, true));
-        throw new Exception('Failed to get new stop loss order ID from exchange. Please check the error logs for the complete API response structure.');
-    }
-
-        error_log("Successfully extracted order ID: " . $newOrderId);
-        error_log("=== END DEBUG ===");
-    } // End of order creation else block
+    error_log("Successfully extracted order ID: " . $newOrderId);
+    error_log("=== END DEBUG ===");
 
     // Step 4: Update database with new stop loss information
     error_log("=== UPDATING DATABASE ===");
@@ -490,6 +404,15 @@ try {
 
     $ordersInserted = $stmt->rowCount();
     error_log("Orders table insert result: $ordersInserted rows affected");
+
+    // AGGRESSIVE SYNC: Sync risk-free stop loss after successful update
+    try {
+        $sync = new ExchangeSync();
+        $syncResult = $sync->syncAfterRiskFree($positionId, $symbol, $newStopLoss);
+        error_log("🔄 AGGRESSIVE SYNC after risk-free update: " . ($syncResult ? 'SUCCESS' : 'FAILED'));
+    } catch (Exception $syncE) {
+        error_log("⚠️ SYNC FAILED after risk-free update: " . $syncE->getMessage());
+    }
 
     error_log("=== RISK FREE STOP LOSS COMPLETE ===");
     error_log("SUCCESS Summary:");

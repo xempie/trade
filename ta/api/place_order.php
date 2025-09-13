@@ -113,6 +113,9 @@ loadEnv($envPath);
 // Load API helper for trading mode support
 require_once __DIR__ . '/api_helper.php';
 
+// Load aggressive exchange sync system
+require_once __DIR__ . '/exchange_sync.php';
+
 // Database connection
 function getDbConnection() {
     $host = getenv('DB_HOST') ?: 'localhost';
@@ -760,13 +763,23 @@ try {
                         'notes' => $notes
                     ];
                     error_log("Position data: " . json_encode($positionData));
-                    
+
                     $positionSaved = savePositionToDb($pdo, $positionData);
                     error_log("Position saved result: " . ($positionSaved ? 'SUCCESS' : 'FAILED'));
-                    
+
                     if ($positionSaved) {
                         $totalMarginUsed += $marginUsed;
                         error_log("Total margin used updated: " . $totalMarginUsed);
+
+                        // AGGRESSIVE SYNC: Sync position data after order placement
+                        try {
+                            $positionId = $pdo->lastInsertId();
+                            $sync = new ExchangeSync();
+                            $syncResult = $sync->syncAfterOrderPlacement($positionId, $symbol);
+                            error_log("🔄 AGGRESSIVE SYNC after order placement: " . ($syncResult ? 'SUCCESS' : 'FAILED'));
+                        } catch (Exception $syncE) {
+                            error_log("⚠️ SYNC FAILED after order placement: " . $syncE->getMessage());
+                        }
                     }
                 } else {
                     error_log("Order failed: " . ($orderResult['error'] ?? 'Unknown error'));
