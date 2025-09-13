@@ -1461,10 +1461,10 @@ class TradingForm {
                 const slDollarValue = (marginValue * leverageValue * (priceChangePercent / 100));
                 stopLossValue = slPercentage < 0 ? -slDollarValue : slDollarValue;
 
-                // Format display value with correct sign and color class
-                const slPercentageFormatted = slPercentage.toFixed(1);
-                const sign = slPercentage >= 0 ? '+' : '';
-                stopLossPercentDisplay = `${sign}${slPercentageFormatted}%`;
+                // Format display value with correct sign and color class - use same format as TP
+                const slPercentageImpact = (Math.abs(slDollarValue) / marginValue) * 100;
+                const sign = slPercentage >= 0 ? '+' : '-';
+                stopLossPercentDisplay = `${sign}${slPercentageImpact.toFixed(1)}%`;
             }
             
             // Use planned TP from signals table (prioritize take_profit_1)
@@ -1539,7 +1539,7 @@ class TradingForm {
                             P&L: $${pnl} (<span class="${pnlPercentClass}">${pnlPercent}%</span>)
                         </div>
                         <div class="position-sl-tp">
-                            <span class="sl-value">SL: $${stopLossValue.toFixed(1)} (<span class="${stopLossPercentDisplay.startsWith('-') ? 'sl-negative' : 'sl-positive'}">${stopLossPercentDisplay}</span>)</span> • <span class="tp-value">TP: $${takeProfitValue.toFixed(1)} (${takeProfitPercentDisplay})</span> <span class="tp-info-icon" onclick="tradingForm.showTPPopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', '${JSON.stringify({tp1: position.take_profit_1, tp2: position.take_profit_2, tp3: position.take_profit_3, sl: position.stop_loss}).replace(/"/g, '&quot;')}')" title="Show all targets">ⓘ</span>
+                            <span class="sl-value ${stopLossPercentDisplay.startsWith('-') ? '' : 'sl-positive-container'}">SL: $${stopLossValue.toFixed(1)} (<span class="${stopLossPercentDisplay.startsWith('-') ? 'sl-negative' : 'sl-positive'}">${stopLossPercentDisplay}</span>)</span> • <span class="tp-value">TP: $${takeProfitValue.toFixed(1)} (${takeProfitPercentDisplay})</span> <span class="tp-info-icon" onclick="tradingForm.showTPPopover(${position.id}, '${symbol}', ${entryPrice}, ${leverageValue}, ${marginValue}, '${direction}', '${JSON.stringify({tp1: position.take_profit_1, tp2: position.take_profit_2, tp3: position.take_profit_3, sl: position.stop_loss}).replace(/"/g, '&quot;')}')" title="Show all targets">ⓘ</span>
                         </div>
                         <div class="position-actions">
                             <button 
