@@ -207,11 +207,96 @@ $isLocal = isLocalhost();
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;">
                                         <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
                                     </svg>
-                                    Trade Log
+                                    Trade History
                                 </h3>
-                                <div class="coming-soon">
-                                    <p>📋 Complete history of all trades and signals</p>
-                                    <span class="status-badge">Coming Soon</span>
+                                
+                                <div id="trades-loading" class="loading-placeholder" style="display: none;">
+                                    <div class="loading-spinner"></div>
+                                    <p>Loading trades data...</p>
+                                </div>
+                                
+                                <div id="trades-content">
+                                    <!-- Trades Summary Cards -->
+                                    <div class="trades-summary-cards">
+                                        <div class="perf-card">
+                                            <div class="perf-card-header">
+                                                <span class="perf-card-title">Total Trades</span>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="perf-card-value" id="trades-total">-</div>
+                                            <div class="perf-card-subtitle">Closed Positions</div>
+                                        </div>
+                                        
+                                        <div class="perf-card">
+                                            <div class="perf-card-header">
+                                                <span class="perf-card-title">Win Rate</span>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="perf-card-value win-rate" id="trades-win-rate">-%</div>
+                                            <div class="perf-card-subtitle" id="trades-win-loss">- Wins / - Losses</div>
+                                        </div>
+                                        
+                                        <div class="perf-card">
+                                            <div class="perf-card-header">
+                                                <span class="perf-card-title">Best Trade</span>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="perf-card-value" id="trades-best" style="color: var(--success);">$-</div>
+                                            <div class="perf-card-subtitle">Highest Profit</div>
+                                        </div>
+                                        
+                                        <div class="perf-card">
+                                            <div class="perf-card-header">
+                                                <span class="perf-card-title">Worst Trade</span>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="perf-card-value" id="trades-worst" style="color: var(--danger);">$-</div>
+                                            <div class="perf-card-subtitle">Largest Loss</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Trades Table -->
+                                    <div class="trades-table-container">
+                                        <div class="table-header">
+                                            <h4>Recent Trades</h4>
+                                            <div class="table-filters">
+                                                <input type="text" id="symbol-filter" placeholder="Filter by symbol..." style="padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="trades-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Symbol</th>
+                                                        <th>Date/Time</th>
+                                                        <th>Side</th>
+                                                        <th>Entry Price</th>
+                                                        <th>Close Price</th>
+                                                        <th>Leverage</th>
+                                                        <th>Margin</th>
+                                                        <th>P&L</th>
+                                                        <th>Duration</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="trades-table-body">
+                                                    <!-- Trades data will be populated here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <!-- Load More Button -->
+                                        <div class="table-pagination" id="trades-pagination" style="text-align: center; margin-top: 20px;">
+                                            <button id="load-more-trades" class="btn-secondary" style="display: none;">Load More Trades</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -281,7 +366,7 @@ $isLocal = isLocalhost();
                     // loadPnLData();
                     break;
                 case 'trades':
-                    // loadTradesData();
+                    loadTradesData();
                     break;
                 case 'analytics':
                     // loadAnalyticsData();
@@ -444,6 +529,174 @@ $isLocal = isLocalhost();
                 tbody.appendChild(row);
             });
         }
+        
+        // Trades data management
+        let tradesData = {
+            trades: [],
+            offset: 0,
+            hasMore: true,
+            loading: false
+        };
+        
+        async function loadTradesData(reset = true) {
+            if (tradesData.loading) return;
+            
+            if (reset) {
+                tradesData.offset = 0;
+                tradesData.trades = [];
+                tradesData.hasMore = true;
+            }
+            
+            tradesData.loading = true;
+            
+            try {
+                // Show loading indicator
+                const loadingEl = document.getElementById('trades-loading');
+                if (reset) {
+                    loadingEl.style.display = 'block';
+                }
+                
+                // Get filter value
+                const symbolFilter = document.getElementById('symbol-filter')?.value || '';
+                
+                // Build API URL
+                let apiUrl = `api_proxy.php?endpoint=get_trades_history.php&limit=20&offset=${tradesData.offset}`;
+                if (symbolFilter) {
+                    apiUrl += `&symbol=${encodeURIComponent(symbolFilter)}`;
+                }
+                
+                const response = await fetch(apiUrl, {
+                    credentials: 'same-origin'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const newTrades = result.data.trades || [];
+                    const pagination = result.data.pagination || {};
+                    const summary = result.data.summary || {};
+                    
+                    if (reset) {
+                        tradesData.trades = newTrades;
+                        displayTradesSummary(summary);
+                    } else {
+                        tradesData.trades = [...tradesData.trades, ...newTrades];
+                    }
+                    
+                    tradesData.offset += newTrades.length;
+                    tradesData.hasMore = pagination.has_more || false;
+                    
+                    displayTrades();
+                    updateLoadMoreButton();
+                    
+                } else {
+                    throw new Error(result.message || 'Failed to load trades data');
+                }
+            } catch (error) {
+                console.error('Error loading trades data:', error);
+                if (reset) {
+                    document.getElementById('trades-table-body').innerHTML = 
+                        '<tr><td colspan="9" style="text-align: center; color: var(--danger);">Failed to load trades data</td></tr>';
+                }
+            } finally {
+                tradesData.loading = false;
+                document.getElementById('trades-loading').style.display = 'none';
+            }
+        }
+        
+        function displayTradesSummary(summary) {
+            document.getElementById('trades-total').textContent = summary.total_trades?.toLocaleString() || '0';
+            document.getElementById('trades-win-rate').textContent = (summary.win_rate || 0) + '%';
+            document.getElementById('trades-win-loss').textContent = 
+                (summary.winning_trades || 0) + ' Wins / ' + (summary.losing_trades || 0) + ' Losses';
+            document.getElementById('trades-best').textContent = '$' + (summary.best_trade?.toLocaleString() || '0');
+            document.getElementById('trades-worst').textContent = '$' + (summary.worst_trade?.toLocaleString() || '0');
+            
+            // Color code win rate
+            const winRateEl = document.getElementById('trades-win-rate');
+            const winRate = summary.win_rate || 0;
+            if (winRate >= 70) {
+                winRateEl.style.color = 'var(--success)';
+            } else if (winRate >= 50) {
+                winRateEl.style.color = 'var(--warning)';
+            } else {
+                winRateEl.style.color = 'var(--danger)';
+            }
+        }
+        
+        function displayTrades() {
+            const tbody = document.getElementById('trades-table-body');
+            
+            // Clear table on first load/reset
+            if (tradesData.offset <= tradesData.trades.length) {
+                tbody.innerHTML = '';
+                
+                // Add all trades
+                tradesData.trades.forEach((trade) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>
+                            <div class="trade-symbol">
+                                ${trade.symbol}
+                                ${trade.is_demo ? '<span class="demo-badge">DEMO</span>' : ''}
+                            </div>
+                        </td>
+                        <td class="trade-date">${trade.closed_at}</td>
+                        <td>
+                            <span class="side-badge ${trade.side.toLowerCase()}">
+                                ${trade.side}
+                            </span>
+                        </td>
+                        <td class="price-cell">${trade.entry_price}</td>
+                        <td class="price-cell">${trade.close_price}</td>
+                        <td class="leverage-cell">${trade.leverage}</td>
+                        <td class="margin-cell">${trade.margin_used}</td>
+                        <td class="pnl-cell ${trade.is_profitable ? 'positive' : 'negative'}">
+                            ${trade.pnl_display}
+                        </td>
+                        <td class="duration-cell">${trade.duration}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            
+            // Show empty state if no trades
+            if (tradesData.trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--dark-text-secondary);">No trades found</td></tr>';
+            }
+        }
+        
+        function updateLoadMoreButton() {
+            const loadMoreBtn = document.getElementById('load-more-trades');
+            if (tradesData.hasMore && tradesData.trades.length > 0) {
+                loadMoreBtn.style.display = 'inline-block';
+                loadMoreBtn.textContent = tradesData.loading ? 'Loading...' : 'Load More Trades';
+                loadMoreBtn.disabled = tradesData.loading;
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+        }
+        
+        // Event listeners for trades functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load more button
+            document.getElementById('load-more-trades')?.addEventListener('click', () => {
+                loadTradesData(false);
+            });
+            
+            // Symbol filter with debounce
+            let filterTimeout;
+            document.getElementById('symbol-filter')?.addEventListener('input', (e) => {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(() => {
+                    loadTradesData(true);
+                }, 500);
+            });
+        });
     </script>
 </body>
 </html>
