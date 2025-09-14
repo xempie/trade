@@ -18,11 +18,6 @@ This project is organized into two main parts:
 - **Authentication**: `/ta/auth/` directory
 - **Assets**: `/ta/assets/` directory (CSS, JS, images)
 
-## 🌐 URLs
-
-- **Homepage**: https://brainity.com.au/ (landing page)
-- **Trading App**: https://brainity.com.au/ta/ (full application)
-- **OAuth Callback**: https://brainity.com.au/ta/auth/callback.php
 
 ## Features
 
