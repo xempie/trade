@@ -1,5 +1,6 @@
 <?php
 // Start output buffering to prevent any stray output from interfering with JSON
+error_reporting(E_ALL);ini_set('display_errors', 0);ini_set('log_errors', 1);ini_set('error_log', '/var/www/html/ta/api/debug_place_order.log');
 ob_start();
 
 // Include authentication protection
@@ -25,6 +26,7 @@ function countOpenTrades($pdo) {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return intval($result['count']);
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         error_log("Error counting open trades: " . $e->getMessage());
         return 0;
     }
@@ -182,6 +184,7 @@ function getAccountBalance($apiKey, $apiSecret) {
         }
         return 0;
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         return 0;
     }
 }
@@ -310,6 +313,7 @@ function setBingXPositionMode($apiKey, $apiSecret, $dualSidePosition = 'false') 
         return false;
         
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         error_log("Position mode setting error: " . $e->getMessage());
         return false;
     }
@@ -363,6 +367,7 @@ function setBingXLeverage($apiKey, $apiSecret, $symbol, $leverage, $side = 'BOTH
         return false;
         
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         error_log("Leverage setting error: " . $e->getMessage());
         return false;
     }
@@ -444,6 +449,7 @@ function placeBingXOrder($apiKey, $apiSecret, $orderData) {
         ];
         
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         return [
             'success' => false,
             'error' => $e->getMessage()
@@ -461,6 +467,7 @@ function saveOrderToDb($pdo, $orderData, $bingxOrderId = null) {
             $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
             $hasIsDemo = in_array('is_demo', $columns);
         } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
             $hasIsDemo = false;
         }
         
@@ -502,6 +509,7 @@ function saveOrderToDb($pdo, $orderData, $bingxOrderId = null) {
         
         return $stmt->execute($params);
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         error_log("Database error saving order: " . $e->getMessage());
         return false;
     }
@@ -536,6 +544,7 @@ function saveSignalToDb($pdo, $signalData) {
         }
         return null;
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         error_log("Database error saving signal: " . $e->getMessage());
         return null;
     }
@@ -551,6 +560,7 @@ function savePositionToDb($pdo, $positionData) {
             $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
             $hasIsDemo = in_array('is_demo', $columns);
         } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
             $hasIsDemo = false;
         }
         
@@ -581,6 +591,7 @@ function savePositionToDb($pdo, $positionData) {
         
         return $stmt->execute($params);
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         error_log("Database error saving position: " . $e->getMessage());
         return false;
     }
@@ -811,6 +822,7 @@ try {
             $results[] = $result;
             
         } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
             $results[] = [
                 'entry_type' => $entry['type'] ?? 'unknown',
                 'success' => false,
@@ -832,6 +844,7 @@ try {
             ':margin' => $totalMarginUsed
         ]);
     } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
         error_log("Failed to update account balance cache: " . $e->getMessage());
     }
     
@@ -854,6 +867,7 @@ try {
     echo json_encode($finalResponse);
     
 } catch (Exception $e) {
+error_log("PLACE_ORDER_ERROR: " . $e->getMessage() . " at line " . $e->getLine() . " in file " . $e->getFile());    error_log("PLACE_ORDER_TRACE: " . $e->getTraceAsString());
     error_log("Place Order API Error: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
     
