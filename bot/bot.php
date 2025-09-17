@@ -101,6 +101,10 @@ class SignalWebhookHandler
         $this->logMessage('debug_log.txt', "Processing signal: Symbol=$symbol, Side=$side, Type=$type");
         
         switch ($type) {
+            case 'FVG1':
+            case 'FVG1HIT':
+                return $this->processFVGSignal($data);
+            
             case 'FVG':
                 return $this->processFVGSignal($data);
             
@@ -137,18 +141,39 @@ class SignalWebhookHandler
         $fvgSize = floatval($metadata['fvg_size_pct'] ?? 0);
         
         // Send Telegram notification
-        $this->logMessage('debug_log.txt', "Attempting to send FVG alert for $symbol $side with size $fvgSize%");
+        //$this->logMessage('debug_log.txt', "Attempting to send FVG alert for $symbol $side with size $fvgSize%");
         $telegramResult = $this->telegram->sendFVGAlert($symbol, $side, $fvgSize);
-        $this->logMessage('debug_log.txt', "FVG alert result: " . json_encode($telegramResult));
-        return $this->processTradingSignal($data);
-        // return [
-        //     'success' => true,
-        //     'symbol' => $symbol,
-        //     'message' => 'FVG signal successfully processed',
-        //     'status' => 'NEW',
-        //     'telegram_sent' => $telegramResult['success'] ?? false
-        // ];
+        //$this->logMessage('debug_log.txt', "FVG alert result: " . json_encode($telegramResult));
+        //return $this->processTradingSignal($data);
+        return [
+             'success' => true,
+             'symbol' => $symbol,
+             'message' => 'FVG signal successfully processed',
+             'status' => 'NEW',
+             'telegram_sent' => $telegramResult['success'] ?? false
+         ];
     }
+
+    private function processFirstFVGSignal(array $data,$type): array
+    {
+        $symbol = $data['symbol'];
+        $side = $data['side'];
+        if ($type == "FVG1") {
+            $fvgSize = "1⬜F";
+        } else {
+            $fvgSize = "1⬜Hit";
+        }
+        
+        $telegramResult = $this->telegram->sendFVGAlert($symbol, $side, $fvgSize);
+        return [
+             'success' => true,
+             'symbol' => $symbol,
+             'message' => 'FVG signal successfully processed',
+             'status' => 'NEW',
+             'telegram_sent' => $telegramResult['success'] ?? false
+         ];
+    }
+    
 
     /**
      * Process trigger cross events
