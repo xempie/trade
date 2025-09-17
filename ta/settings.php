@@ -256,6 +256,17 @@ $isLocal = isLocalhost();
                                 App Settings
                             </h3>
                             <div class="form-group">
+                                <label for="timezone">Timezone</label>
+                                <select id="timezone" name="timezone" required>
+                                    <option value="Australia/Adelaide">+9:30 Adelaide Australia</option>
+                                    <option value="Australia/Melbourne">+10:00 Melbourne Australia</option>
+                                    <option value="Asia/Dubai">+4:00 Dubai UAE</option>
+                                    <option value="Asia/Tehran">+3:30 Tehran Iran</option>
+                                    <option value="America/Philadelphia">-5:00 Philadelphia USA</option>
+                                </select>
+                                <small>Select your timezone for accurate time display</small>
+                            </div>
+                            <div class="form-group">
                                 <label>Cache Status</label>
                                 <div class="info-item">
                                     <span class="value" id="cache-info">Loading...</span>
@@ -369,6 +380,9 @@ $isLocal = isLocalhost();
                     }
                     
                     document.getElementById('auto_stop_loss').checked = currentSettings.auto_stop_loss;
+
+                    // Set timezone
+                    document.getElementById('timezone').value = currentSettings.timezone || 'Australia/Melbourne';
                     
                 } else {
                     showNotification('Error loading settings: ' + data.error, 'error');
@@ -496,7 +510,8 @@ $isLocal = isLocalhost();
                     limit_order_action: formData.get('limit_order_action'),
                     target_percentage: parseFloat(formData.get('target_percentage')) || 10,
                     target_action: formData.get('target_action'),
-                    auto_stop_loss: formData.has('auto_stop_loss')
+                    auto_stop_loss: formData.has('auto_stop_loss'),
+                    timezone: formData.get('timezone')
                 };
                 
                 await saveSettings(settings);

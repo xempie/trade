@@ -1850,13 +1850,19 @@ class TradingForm {
     }
 
     getTimeAgo(dateString) {
+        // Use timezone helper if available, otherwise fallback to original logic
+        if (window.timezoneHelper) {
+            return window.timezoneHelper.getTimeAgo(dateString);
+        }
+
+        // Fallback to original logic if timezone helper not loaded
         const now = new Date();
         const past = new Date(dateString);
         const diffMs = now - past;
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        
+
         if (diffMinutes < 1) {
             return 'Just now';
         } else if (diffMinutes < 60) {

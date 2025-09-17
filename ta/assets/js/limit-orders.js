@@ -93,10 +93,16 @@ class LimitOrdersManager {
     }
 
     getTimeAgo(dateString) {
+        // Use timezone helper if available, otherwise fallback to original logic
+        if (window.timezoneHelper) {
+            return window.timezoneHelper.getTimeAgo(dateString);
+        }
+
+        // Fallback to original logic if timezone helper not loaded
         const now = new Date();
         const past = new Date(dateString);
         const diffInSeconds = Math.floor((now - past) / 1000);
-        
+
         if (diffInSeconds < 60) {
             return `${diffInSeconds}s ago`;
         } else if (diffInSeconds < 3600) {

@@ -99,6 +99,7 @@ try {
     $envVars['TARGET_PERCENTAGE'] = $input['target_percentage'] ?? '10';
     $envVars['TARGET_ACTION'] = $input['target_action'] ?? 'telegram_notify';
     $envVars['AUTO_STOP_LOSS'] = isset($input['auto_stop_loss']) && $input['auto_stop_loss'] ? 'true' : 'false';
+    $envVars['TIMEZONE'] = $input['timezone'] ?? 'Australia/Melbourne';
     
     // Preserve all existing environment variables that are not part of settings
     $preservedVars = [
@@ -142,6 +143,9 @@ try {
     $newEnvContent .= "TARGET_PERCENTAGE={$envVars['TARGET_PERCENTAGE']}\n";
     $newEnvContent .= "TARGET_ACTION={$envVars['TARGET_ACTION']}\n";
     $newEnvContent .= "AUTO_STOP_LOSS={$envVars['AUTO_STOP_LOSS']}\n\n";
+
+    $newEnvContent .= "# User Preferences\n";
+    $newEnvContent .= "TIMEZONE={$envVars['TIMEZONE']}\n\n";
     
     $newEnvContent .= "# Database Configuration\n";
     $newEnvContent .= "DB_HOST=" . ($envVars['DB_HOST'] ?? 'localhost') . "\n";

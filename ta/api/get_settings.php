@@ -28,7 +28,8 @@ try {
         'limit_order_action' => 'telegram_approval',
         'target_percentage' => 10.0,
         'target_action' => 'telegram_notify',
-        'auto_stop_loss' => false
+        'auto_stop_loss' => false,
+        'timezone' => 'Australia/Melbourne'
     ];
     
     // Read .env file if it exists
@@ -92,6 +93,9 @@ try {
                         break;
                     case 'AUTO_STOP_LOSS':
                         $settings['auto_stop_loss'] = $value === 'true';
+                        break;
+                    case 'TIMEZONE':
+                        $settings['timezone'] = $value;
                         break;
                 }
             }
