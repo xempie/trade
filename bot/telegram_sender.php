@@ -461,15 +461,22 @@ class TelegramSender {
         return $this->sendAdminMessage($type, $message);
     }
     
-    public function sendFVGAlert($symbol, $side, $fvg_size_pct) {
+    public function sendFVGAlert($symbol, $side, $type, $metadata) {
 
         $emoji = ($side === 'LONG') ? '🟩' : '🟥';
-
-        $message = "<b>♒ FVG Created</b>\n\n" .
-                  "====================" . "\n" .
+        
+        if ($type=="FVGTOUCH") {
+            $message = "<b>♒ FVG Box Touched</b>\n\n";
+        } else {
+            $message = "<b>🔀 LNL Cross Signal</b>\n\n";
+        }                
+                  $message .= "====================" . "\n" .
                   "<b>Symbol:</b> " . $symbol . "\n" .
                   "<b>Side:</b> " . $side . ' ' . $emoji . "\n\n" .
-                  "<b>FVG Size:</b> " . $fvg_size_pct . "%\n\n" ;
+                  "<b>Entry:</b> $" . $metadata['entry'] . "\n" ;
+                  "<b>Cross Since:</b> " . $metadata['cross_bars_ago'] . " Bars ago\n" ;
+                  "<b>T3 Distance:</b> " . $metadata['t3_distance'] . "%\n" ;
+                  "<b>T3 Lines Status:</b> " . $metadata['t3_lines'] . "\n" ;
         return $this->sendAdminMessage('FVG', $message);
     }
     

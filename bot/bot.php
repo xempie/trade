@@ -101,8 +101,9 @@ class SignalWebhookHandler
         $this->logMessage('debug_log.txt', "Processing signal: Symbol=$symbol, Side=$side, Type=$type");
         
         switch ($type) {
-            case 'FVG1':
-            case 'FVG1HIT':
+            
+            case 'LNL_SIGNAL':
+            case 'FVGTOUCH':
                 return $this->processFVGSignal($data);
             
             case 'FVG':
@@ -137,14 +138,22 @@ class SignalWebhookHandler
     {
         $symbol = $data['symbol'];
         $side = $data['side'];
-        $metadata = $data['metadata'] ?? [];
-        $fvgSize = floatval($metadata['fvg_size_pct'] ?? 0);
+        $type = $data['type'];
         
-        // Send Telegram notification
-        //$this->logMessage('debug_log.txt', "Attempting to send FVG alert for $symbol $side with size $fvgSize%");
-        $telegramResult = $this->telegram->sendFVGAlert($symbol, $side, $fvgSize);
-        //$this->logMessage('debug_log.txt', "FVG alert result: " . json_encode($telegramResult));
-        //return $this->processTradingSignal($data);
+        $entry = $data['entry'];
+        $cross_bars_ago = $data['cross_bars_ago'];
+        $t3_distance = floatval($data['t3_distance']);
+        $t3_lines = $data['t3_lines'];
+
+        $meta_data = [
+            'entry' => $entry,
+            'cross_bars_ago' => $cross_bars_ago,
+            't3_distance' => $t3_distance,
+            't3_lines' => $t3_lines
+        ];
+
+        $telegramResult = $this->telegram->sendFVGAlert($symbol, $side, $type, $meta_data);
+
         return [
              'success' => true,
              'symbol' => $symbol,
