@@ -473,9 +473,9 @@ class TelegramSender {
                   $message .= "====================" . "\n" .
                   "<b>Symbol:</b> " . $symbol . "\n" .
                   "<b>Side:</b> " . $side . ' ' . $emoji . "\n\n" .
-                  "<b>Entry:</b> $" . $metadata['entry'] . "\n" ;
-                  "<b>Cross Since:</b> " . $metadata['cross_bars_ago'] . " Bars ago\n" ;
-                  "<b>T3 Distance:</b> " . $metadata['t3_distance'] . "%\n" ;
+                  "<b>Entry:</b> $" . $metadata['entry'] . "\n" .
+                  "<b>Cross Since:</b> " . $metadata['cross_bars_ago'] . " Bars ago\n" .
+                  "<b>T3 Distance:</b> " . $metadata['t3_distance'] . "%\n" .
                   "<b>T3 Lines Status:</b> " . $metadata['t3_lines'] . "\n" ;
         return $this->sendAdminMessage('FVG', $message);
     }
